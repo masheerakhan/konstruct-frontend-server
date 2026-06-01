@@ -3,10 +3,10 @@ import { Shield, Search, SlidersHorizontal, Plus, Eye, Trash2, X } from "lucide-
 import { useNavigate } from "react-router-dom";
 import { showToast } from "../../../utils/toast";
 import {
-  listSafetyTemplates,
-  deleteSafetyTemplate,
-  getProjectsForCurrentUser,
-  getSafetyTemplate,
+    listSafetyTemplates,
+    deleteSafetyTemplate,
+    getProjectsForCurrentUser,
+    getSafetyTemplate,
 } from "../../../api";
 import SafetyReportTemplate from "./SafetyReportTemplate";
 
@@ -42,27 +42,6 @@ function getFormatNo(reportHeaderMeta) {
         null
     );
 }
-
-
-// function getFormatNo(template) {
-//     const dynamicField = Array.isArray(template?.header_fields)
-//         ? template.header_fields.find((field) => field.key === "format_no")
-//         : null;
-
-//     if (dynamicField?.default_value) {
-//         return dynamicField.default_value;
-//     }
-
-//     const reportHeaderMeta = template?.report_header_meta || {};
-
-//     return (
-//         reportHeaderMeta.format_no ??
-//         reportHeaderMeta.format_no_ ??
-//         reportHeaderMeta.formatNumber ??
-//         null
-//     );
-// }
-
 
 function getCellValue(template, column, index, projectMap) {
     if (column.id === "sr_no") return index + 1;
@@ -184,7 +163,7 @@ function SafetyFormats() {
         const q = searchQuery.trim().toLowerCase();
         return templates.filter((t) => {
             const title = (t.title ?? t.name ?? "").toString().toLowerCase();
-            const formatNo = (getFormatNo(t.report_header_meta) ?? t.template_code ?? t.id ?? "").toString().toLowerCase(); //  getFormatNo(template)
+            const formatNo = (getFormatNo(t.report_header_meta) ?? t.template_code ?? t.id ?? "").toString().toLowerCase();
             const category = (t.category_name ?? "").toString().toLowerCase();
             const projName = projectMap.get(t.project_id) ?? "";
             const status = (t.status ?? "").toString().toLowerCase();

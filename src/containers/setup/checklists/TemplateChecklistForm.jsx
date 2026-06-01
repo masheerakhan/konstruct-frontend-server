@@ -473,6 +473,7 @@ const TemplateChecklistForm = ({
   const [showFloorModal, setShowFloorModal] = useState(false);
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [selectedRooms, setSelectedRooms] = useState([]);
+  const [originalTemplate, setOriginalTemplate] = useState(null);
 
 const [formData, setFormData] = useState({
   name: "",
@@ -606,7 +607,7 @@ const [formData, setFormData] = useState({
       const section = grouped.get(sectionTitle);
 
       section.questions.push({
-        id: `bulk-question-${rowIndex + 1}-${Date.now()}`,
+        id: undefined,
         title: String(questionTitle).trim(),
         description: String(questionDescription || "").trim(),
         sequence: section.questions.length + 1 || runningQuestionSequence,
@@ -904,6 +905,7 @@ const [formData, setFormData] = useState({
       setLoading(true);
       try {
         const response = await getChecklistTemplateById(template.id);
+        setOriginalTemplate(response.data); // ✅ ADD THIS
         const mapped = mapTemplateResponseToForm(response.data);
 
         setFormData((prev) => ({
@@ -1315,10 +1317,46 @@ const handleProjectChange = async (projectId) => {
     }));
   };
 
+  const getAllQuestionIds = (sections = []) => {
+  return sections.flatMap(section =>
+    (section.questions || [])
+      .map(q => q.id)
+      .filter(id => Number.isInteger(id))
+  );
+};
+
   const handleSubmit = async () => {
+if (isEdit && template?.sections) {
+  const originalIds = getAllQuestionIds(template.sections);
+  const currentIds = getAllQuestionIds(formData.sections);
+
+  const deletedIds = originalIds.filter(id => !currentIds.includes(id));
+
+  if (deletedIds.length > 0) {
+    const confirmDelete = window.confirm(
+      `${deletedIds.length} question(s) have been removed.\n\n` +
+      `This will NOT delete existing checklist data, but may cause mismatch.\n\n` +
+      `Do you want to continue?`
+    );
+
+    if (!confirmDelete) {
+      return;
+    }
+  }
+}
+
+    const cleanSections = formData.sections.map(section => ({
+  ...section,
+  id: typeof section.id === "number" ? section.id : undefined,
+  questions: section.questions.map(q => ({
+    ...q,
+    id: Number.isInteger(q.id)? q.id : undefined,
+  }))
+}));
     const payload = {
       ...buildTemplatePayload({
         ...formData,
+        sections: cleanSections,
         room_types: selectedRooms.map((id) => ({
           room_type_id: Number(id),
         })),
@@ -1334,8 +1372,7 @@ const handleProjectChange = async (projectId) => {
         .filter(Boolean),
       building_id: normalizeId(selectedBuildingIds?.[0] || ""),
       floor_id: normalizeId(selectedFloorIds?.[0] || ""),
-    };
-
+    };   
     const validationMessage = validateTemplatePayload(payload);
 
     if (validationMessage) {

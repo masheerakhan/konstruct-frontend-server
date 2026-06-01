@@ -2,10 +2,6 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Shield, ShieldCheck, Pencil, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { createSafetyTemplate } from "../../../api";
-import {
-  buildHeaderPreviewRows,
-  buildHeaderFieldsFromLegacyMeta,
-} from "./safetyHeaderFields";
 
 const META_ROWS = [
   [
@@ -94,9 +90,6 @@ function SafetyReportTemplate({
   orgId,
   projectId,
   selectedCategoryId,
-  projectName = "",
-  headerFields = [],
-  reportNumberConfig = { prefix: "", padding: 2 },
   onTemplateCreated,
   initialTemplateData = null,
   previewOnly = false,
@@ -143,37 +136,6 @@ function SafetyReportTemplate({
     nameOfOperator: "",
   });
 
-
-  const effectiveHeaderFields = useMemo(() => {
-    if (Array.isArray(headerFields) && headerFields.length > 0) {
-      return headerFields;
-    }
-
-    if (
-      Array.isArray(initialTemplateData?.header_fields) &&
-      initialTemplateData.header_fields.length > 0
-    ) {
-      return initialTemplateData.header_fields;
-    }
-
-    return buildHeaderFieldsFromLegacyMeta(
-      initialTemplateData?.report_header_meta || meta || {}
-    );
-  }, [headerFields, initialTemplateData, meta]);
-
-  const effectiveReportNumberConfig =
-    initialTemplateData?.report_number_config || reportNumberConfig;
-
-  const dynamicHeaderRows = useMemo(
-    () =>
-      buildHeaderPreviewRows(effectiveHeaderFields, {
-        projectName,
-        reportNumberConfig: effectiveReportNumberConfig,
-      }),
-    [effectiveHeaderFields, projectName, effectiveReportNumberConfig]
-  );
-
-
   const [title, setTitle] = useState("");
   const [approvedBy, setApprovedBy] = useState("");
   const [checker, setChecker] = useState("");
@@ -184,40 +146,24 @@ function SafetyReportTemplate({
   const [verifiedBy, setVerifiedBy] = useState("");
 
 
-  // useEffect(() => {
-  //   if (!onReportDraftChange) return;
-
-  //   onReportDraftChange({
-  //     title: title || reportTitleProp || "",
-  //     meta,
-  //     leftLogoFile,
-  //     rightLogoFile,
-  //   });
-  // }, [
-  //   title,
-  //   reportTitleProp,
-  //   meta,
-  //   leftLogoFile,
-  //   rightLogoFile,
-  //   onReportDraftChange,
-  // ]);
-
-
   useEffect(() => {
     if (!onReportDraftChange) return;
 
     onReportDraftChange({
       title: title || reportTitleProp || "",
+      meta,
       leftLogoFile,
       rightLogoFile,
     });
   }, [
     title,
     reportTitleProp,
+    meta,
     leftLogoFile,
     rightLogoFile,
     onReportDraftChange,
   ]);
+
 
 
   useEffect(() => {
@@ -250,32 +196,32 @@ function SafetyReportTemplate({
     }));
     setTitle(initialTemplateData.title || initialTemplateData.name || "");
 
- const BASE_URL = "https://konstruct.world/checklists";
+    const BASE_URL = "https://konstruct.world/checklists";
 
- const buildMediaUrl = (path) => {
-   if (!path) return null;
+    const buildMediaUrl = (path) => {
+      if (!path) return null;
 
-   if (path.startsWith("http")) {
-     return path;
-   }
+      if (path.startsWith("http")) {
+        return path;
+      }
 
-   return `${BASE_URL}${path}`;
- };
+      return `${BASE_URL}${path}`;
+    };
 
- setLeftLogoPreview(
-   buildMediaUrl(
-     initialTemplateData.report_logo_url ||
-       initialTemplateData.report_logo ||
-       initialTemplateData.logo_url,
-   ),
- );
+    setLeftLogoPreview(
+      buildMediaUrl(
+        initialTemplateData.report_logo_url ||
+          initialTemplateData.report_logo ||
+          initialTemplateData.logo_url,
+      ),
+    );
 
- setRightLogoPreview(
-   buildMediaUrl(
-     initialTemplateData.report_logo_right_url ||
-       initialTemplateData.report_logo_right,
-   ),
- );
+    setRightLogoPreview(
+      buildMediaUrl(
+        initialTemplateData.report_logo_right_url ||
+          initialTemplateData.report_logo_right,
+      ),
+    );
 
     const qs = Array.isArray(initialTemplateData.questions) ? initialTemplateData.questions : [];
     setChecklistRows(
@@ -484,6 +430,7 @@ function SafetyReportTemplate({
     }
   };
 
+
   const handleLeftLogoChange = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -608,34 +555,36 @@ function SafetyReportTemplate({
               <td className="align-top border border-gray-300 p-0">
                 <table className="w-full text-sm border-collapse">
                   <tbody>
-                    {dynamicHeaderRows.map((row, rowIndex) => (
-                      <tr key={rowIndex}>
-                        {row.map((field) => (
+                    {META_ROWS.map((row, ri) => (
+                      <tr key={ri}>
+                        {row.map(({ key, label, type, placeholder, helper }, ci) => (
                           <td
-                            key={field.key}
-                            colSpan={row.length === 1 ? 2 : 1}
-                            className="border border-gray-300 px-2 py-1.5 font-semibold text-gray-500"
+                            key={key}
+                            className={`border border-gray-300 px-2 py-1.5 font-semibold text-gray-500 ${ri === 0 && ci === 1 ? "bg-orange-50/80" : ""}`}
                           >
-                            {field.label}:{" "}
-                            <span className="font-normal text-gray-900">
-                              {field.previewValue || emptyChar}
-                            </span>
+                            {label}{" "}
+                            {isEditMode ? (
+                              <>
+                                <input
+                                  type={type || "text"}
+                                  value={meta[key]}
+                                  onChange={(e) => setMetaField(key, e.target.value)}
+                                  className="font-normal text-gray-900 min-w-0 flex-1 border-0 border-b border-transparent bg-transparent p-0 outline-none focus:border-orange-500"
+                                  placeholder={placeholder || ""}
+                                />
+                                {helper && (
+                                  <p className="mt-1 text-[10px] font-normal text-gray-400">
+                                    {helper}
+                                  </p>
+                                )}
+                              </>
+                            ) : (
+                              <span className="font-normal text-gray-900">{meta[key] || emptyChar}</span>
+                            )}
                           </td>
                         ))}
                       </tr>
                     ))}
-
-                    {dynamicHeaderRows.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={2}
-                          className="border border-gray-300 px-2 py-1.5 font-semibold text-gray-500"
-                        >
-                          Report Information:{" "}
-                          <span className="font-normal text-gray-900">{emptyChar}</span>
-                        </td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </td>

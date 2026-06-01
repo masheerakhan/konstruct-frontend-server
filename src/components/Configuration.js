@@ -46,6 +46,8 @@ const formatRoleLabel = (role) => {
   if (value === "SUPERVISOR") return "Supervisor";
   if (value === "MANAGER") return "Manager";
   if (value === "CLIENT") return "Client";
+  if (value === "ENGINEER") return "Engineer";
+  if (value === "QUALITY_ENGINEER" || value === "QUALITY ENGINEER") return "Quality Engineer";
   if (value === "PROJECT_HEAD" || value === "PROJECT HEAD") return "Project Head";
   if (value === "PROJECT_MANAGER" || value === "PROJECT MANAGER") return "Project Manager";
   return role;

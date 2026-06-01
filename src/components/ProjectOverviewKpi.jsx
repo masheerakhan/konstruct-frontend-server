@@ -2817,19 +2817,39 @@ if (role) p.pending_from = role;
 
       if (buildingsRes.status === "fulfilled") {
         const list = normalizeList(buildingsRes.value);
-        setBuildingOptions(
-          list
-            .map((x) => ({
-              value: String(x.id ?? x.building_id ?? x.pk ?? ""),
-              label:
-                x.name ??
-                x.building_name ??
-                x.tower_name ??
-                x.title ??
-                `Building #${x.id}`,
-            }))
-            .filter((o) => o.value)
-        );
+        // setBuildingOptions(
+        //   list
+        //     .map((x) => ({
+        //       value: String(x.id ?? x.building_id ?? x.pk ?? ""),
+        //       label:
+        //         x.name ??
+        //         x.building_name ??
+        //         x.tower_name ??
+        //         x.title ??
+        //         `Building #${x.id}`,
+        //     }))
+        //     .filter((o) => o.value)
+        // );
+
+        const towerOpts = list
+          .map((x) => ({
+            value: String(x.id ?? x.building_id ?? x.pk ?? ""),
+            label:
+              x.name ??
+              x.building_name ??
+              x.tower_name ??
+              x.title ??
+              `Building #${x.id}`,
+          }))
+          .filter((o) => o.value);
+        
+        setBuildingOptions(towerOpts);
+        
+        // AUTO SELECT FIRST TOWER
+        if (towerOpts.length > 0) {
+          setBuildingIds([towerOpts[0].value]);
+        }
+
       } else setBuildingOptions([]);
     } catch {
       setStageOptions([]);

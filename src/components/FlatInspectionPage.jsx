@@ -2917,7 +2917,7 @@ useEffect(() => {
           {pageLoading
             ? "Loading…"
             : pageState.count > 0
-              ? `Showing ${showingStart}–${showingEnd} rooms(Page ${pageState.page} of ${totalPages}) Total: ${pageState.count} checklists `
+              ? `Showing ${showingStart}–${showingEnd} (Page ${pageState.page} of ${totalPages}) Total: ${pageState.count} checklists `
               : "No results"}
         </div>
 

@@ -213,6 +213,7 @@ import DocumentPro from "./components/Safety/Document_pro/DocumentPro";
 import ViewReport from "./components/Safety/Safety_Inspection/ViewReport";
 import ChecklistManager from "./containers/setup/checklists/ChecklistManager";
 import UserChecklistDashboard from "./components/Safety/Safety_Inspection/UserChecklistDashboard"
+import ManualLocationChecklistPanel from "./components/ManualLocationChecklistPanel";
 
 
 // For body background
@@ -382,7 +383,8 @@ function AppRoutes() {
 
         <Route path="/forms" element={<FormsEnginePage />} />
         <Route path="/form-packs" element={<FormPacksPage />} />
-        <Route path="/project-forms" element={<ProjectFormsAssignedPage />} />
+        {/* <Route path="/project-forms" element={<ProjectFormsAssignedPage />} /> */}
+        <Route path="/project-forms" element={<ManualLocationChecklistPanel />} />
         <Route path="/project-forms/fill" element={<ProjectFormFillPage />} />
 
 

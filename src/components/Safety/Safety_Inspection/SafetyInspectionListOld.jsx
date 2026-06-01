@@ -211,26 +211,32 @@ const SafetyInspectionList = () => {
                                         {statusDisplay(cl.status)}
                                     </span>
                                     <span className="flex items-center gap-3">
-                                        {/* View Report */}
-                                        <button
-                                            type="button"
-                                            onClick={(e) => {
-                                                e.stopPropagation();
-                                                navigate(`/safety/inspection-report/${cl.id}`);
-                                            }}
-                                            className="text-muted-foreground hover:text-primary transition-colors"
-                                        >
-                                            <Eye size={18} />
-                                        </button>
+                                        {cl.status === "completed" ? (
+                                            <>
+                                                {/* View Report */}
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        navigate(`/safety/inspection-report/${cl.id}`);
+                                                    }}
+                                                    className="text-muted-foreground hover:text-primary transition-colors"
+                                                >
+                                                    <Eye size={18} />
+                                                </button>
 
-                                        {/* Download Report */}
-                                        <button
-                                            type="button"
-                                            onClick={(e) => handleDownloadReport(e, cl.id)}
-                                            className="text-muted-foreground hover:text-primary transition-colors"
-                                        >
-                                            <Download size={18} />
-                                        </button>
+                                                {/* Download Report */}
+                                                <button
+                                                    type="button"
+                                                    onClick={(e) => handleDownloadReport(e, cl.id)}
+                                                    className="text-muted-foreground hover:text-primary transition-colors"
+                                                >
+                                                    <Download size={18} />
+                                                </button>
+                                            </>
+                                        ) : (
+                                            <span className="text-muted-foreground">—</span>
+                                        )}
                                     </span>
                                 </div>
                             ))}

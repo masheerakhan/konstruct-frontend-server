@@ -2,10 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from "react";
 import { Shield, ShieldCheck, Pencil, X } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { createSafetyTemplate } from "../../../api";
-import {
-  buildHeaderPreviewRows,
-  buildHeaderFieldsFromLegacyMeta,
-} from "./safetyHeaderFields";
+
 
 const META_ROWS = [
   [
@@ -18,12 +15,7 @@ const META_ROWS = [
   ],
   [
     { key: "project", label: "Project:" },
-    {
-      key: "inspectionReportPrefix",
-      label: "Inspection Report Prefix:",
-      placeholder: "ADL-NEST-AC",
-      helper: "Auto: ADL-NEST-AC-01, ADL-NEST-AC-02",
-    },
+    { key: "inspectionReportNo", label: "Inspection Report No:" },
   ],
   [
     { key: "nameOfContractor", label: "Name of Contractor:" },
@@ -94,14 +86,9 @@ function SafetyReportTemplate({
   orgId,
   projectId,
   selectedCategoryId,
-  projectName = "",
-  headerFields = [],
-  reportNumberConfig = { prefix: "", padding: 2 },
   onTemplateCreated,
   initialTemplateData = null,
   previewOnly = false,
-  deferCreate = false,
-  onReportDraftChange
 }) {
   const [createLoading, setCreateLoading] = useState(false);
 
@@ -134,7 +121,6 @@ function SafetyReportTemplate({
     revisionNo: "",
     revisionDate: "",
     inspectionReportNo: "",
-    inspectionReportPrefix: "",
     dateOfInspection: "",
     nameOfContractor: "",
     makeModel: "",
@@ -142,37 +128,6 @@ function SafetyReportTemplate({
     identificationNo: "",
     nameOfOperator: "",
   });
-
-
-  const effectiveHeaderFields = useMemo(() => {
-    if (Array.isArray(headerFields) && headerFields.length > 0) {
-      return headerFields;
-    }
-
-    if (
-      Array.isArray(initialTemplateData?.header_fields) &&
-      initialTemplateData.header_fields.length > 0
-    ) {
-      return initialTemplateData.header_fields;
-    }
-
-    return buildHeaderFieldsFromLegacyMeta(
-      initialTemplateData?.report_header_meta || meta || {}
-    );
-  }, [headerFields, initialTemplateData, meta]);
-
-  const effectiveReportNumberConfig =
-    initialTemplateData?.report_number_config || reportNumberConfig;
-
-  const dynamicHeaderRows = useMemo(
-    () =>
-      buildHeaderPreviewRows(effectiveHeaderFields, {
-        projectName,
-        reportNumberConfig: effectiveReportNumberConfig,
-      }),
-    [effectiveHeaderFields, projectName, effectiveReportNumberConfig]
-  );
-
 
   const [title, setTitle] = useState("");
   const [approvedBy, setApprovedBy] = useState("");
@@ -182,43 +137,6 @@ function SafetyReportTemplate({
   const [description, setDescription] = useState("");
   const [checkedBy, setCheckedBy] = useState("");
   const [verifiedBy, setVerifiedBy] = useState("");
-
-
-  // useEffect(() => {
-  //   if (!onReportDraftChange) return;
-
-  //   onReportDraftChange({
-  //     title: title || reportTitleProp || "",
-  //     meta,
-  //     leftLogoFile,
-  //     rightLogoFile,
-  //   });
-  // }, [
-  //   title,
-  //   reportTitleProp,
-  //   meta,
-  //   leftLogoFile,
-  //   rightLogoFile,
-  //   onReportDraftChange,
-  // ]);
-
-
-  useEffect(() => {
-    if (!onReportDraftChange) return;
-
-    onReportDraftChange({
-      title: title || reportTitleProp || "",
-      leftLogoFile,
-      rightLogoFile,
-    });
-  }, [
-    title,
-    reportTitleProp,
-    leftLogoFile,
-    rightLogoFile,
-    onReportDraftChange,
-  ]);
-
 
   useEffect(() => {
     if (reportTitleProp != null && reportTitleProp !== "") {
@@ -237,10 +155,6 @@ function SafetyReportTemplate({
       revisionNo: hdr.revision_no || "",
       revisionDate: hdr.revision_date || "",
       inspectionReportNo: hdr.inspection_report_no || "",
-      inspectionReportPrefix:
-        hdr.inspection_report_prefix ||
-        hdr.inspection_report_no ||
-        "",
       dateOfInspection: hdr.date_of_inspection || "",
       nameOfContractor: hdr.name_of_contractor || "",
       makeModel: hdr.make_model || "",
@@ -250,32 +164,32 @@ function SafetyReportTemplate({
     }));
     setTitle(initialTemplateData.title || initialTemplateData.name || "");
 
- const BASE_URL = "https://konstruct.world/checklists";
+    const BASE_URL = "https://konstruct.world/checklists";
 
- const buildMediaUrl = (path) => {
-   if (!path) return null;
+    const buildMediaUrl = (path) => {
+      if (!path) return null;
 
-   if (path.startsWith("http")) {
-     return path;
-   }
+      if (path.startsWith("http")) {
+        return path;
+      }
 
-   return `${BASE_URL}${path}`;
- };
+      return `${BASE_URL}${path}`;
+    };
 
- setLeftLogoPreview(
-   buildMediaUrl(
-     initialTemplateData.report_logo_url ||
-       initialTemplateData.report_logo ||
-       initialTemplateData.logo_url,
-   ),
- );
+    setLeftLogoPreview(
+      buildMediaUrl(
+        initialTemplateData.report_logo_url ||
+          initialTemplateData.report_logo ||
+          initialTemplateData.logo_url,
+      ),
+    );
 
- setRightLogoPreview(
-   buildMediaUrl(
-     initialTemplateData.report_logo_right_url ||
-       initialTemplateData.report_logo_right,
-   ),
- );
+    setRightLogoPreview(
+      buildMediaUrl(
+        initialTemplateData.report_logo_right_url ||
+          initialTemplateData.report_logo_right,
+      ),
+    );
 
     const qs = Array.isArray(initialTemplateData.questions) ? initialTemplateData.questions : [];
     setChecklistRows(
@@ -437,13 +351,7 @@ function SafetyReportTemplate({
           issued_date: meta.issuedDate || "",
           revision_date: meta.revisionDate || "",
           project: meta.project || "",
-          inspection_report_prefix: String(
-            meta.inspectionReportPrefix || meta.inspectionReportNo || ""
-          )
-            .trim()
-            .replace(/-$/, ""),
-
-          inspection_report_no: "",
+          inspection_report_no: meta.inspectionReportNo || "",
           date_of_inspection: meta.dateOfInspection || "",
           name_of_contractor: meta.nameOfContractor || "",
           make_model: meta.makeModel || "",
@@ -483,6 +391,7 @@ function SafetyReportTemplate({
       setCreateLoading(false);
     }
   };
+
 
   const handleLeftLogoChange = (e) => {
     const file = e.target.files?.[0];
@@ -537,7 +446,7 @@ function SafetyReportTemplate({
               </button>
             )
           )}
-          {!previewOnly && !deferCreate && (
+          {!previewOnly && (
             <button
               type="button"
               onClick={handleCreateTemplate}
@@ -608,34 +517,28 @@ function SafetyReportTemplate({
               <td className="align-top border border-gray-300 p-0">
                 <table className="w-full text-sm border-collapse">
                   <tbody>
-                    {dynamicHeaderRows.map((row, rowIndex) => (
-                      <tr key={rowIndex}>
-                        {row.map((field) => (
+                    {META_ROWS.map((row, ri) => (
+                      <tr key={ri}>
+                        {row.map(({ key, label, type }, ci) => (
                           <td
-                            key={field.key}
-                            colSpan={row.length === 1 ? 2 : 1}
-                            className="border border-gray-300 px-2 py-1.5 font-semibold text-gray-500"
+                            key={key}
+                            className={`border border-gray-300 px-2 py-1.5 font-semibold text-gray-500 ${ri === 0 && ci === 1 ? "bg-orange-50/80" : ""}`}
                           >
-                            {field.label}:{" "}
-                            <span className="font-normal text-gray-900">
-                              {field.previewValue || emptyChar}
-                            </span>
+                            {label}{" "}
+                            {isEditMode ? (
+                              <input
+                                type={type || "text"}
+                                value={meta[key]}
+                                onChange={(e) => setMetaField(key, e.target.value)}
+                                className="font-normal text-gray-900 min-w-0 flex-1 border-0 border-b border-transparent bg-transparent p-0 outline-none focus:border-orange-500"
+                              />
+                            ) : (
+                              <span className="font-normal text-gray-900">{meta[key] || emptyChar}</span>
+                            )}
                           </td>
                         ))}
                       </tr>
                     ))}
-
-                    {dynamicHeaderRows.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={2}
-                          className="border border-gray-300 px-2 py-1.5 font-semibold text-gray-500"
-                        >
-                          Report Information:{" "}
-                          <span className="font-normal text-gray-900">{emptyChar}</span>
-                        </td>
-                      </tr>
-                    )}
                   </tbody>
                 </table>
               </td>
@@ -713,7 +616,7 @@ function SafetyReportTemplate({
         </div>
 
         {/* Approved / Checker / Maker - on white, right-aligned */}
-        {/* <div className="flex justify-end gap-8 text-sm font-semibold text-gray-500 mb-2 pr-2">
+        <div className="flex justify-end gap-8 text-sm font-semibold text-gray-500 mb-2 pr-2">
           <span>
             Approved By:{" "}
             {isEditMode ? (
@@ -753,7 +656,7 @@ function SafetyReportTemplate({
               <span className="font-normal text-gray-900">{maker || emptyChar}</span>
             )}
           </span>
-        </div> */}
+        </div>
 
         {/* Checklist Table - bg-accent style (dark grey header) */}
         <table className="w-full text-sm border-collapse mb-6">

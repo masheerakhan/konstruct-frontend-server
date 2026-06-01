@@ -19,6 +19,8 @@ import {
   createCompany,
   getCompanyDetailsById,
   createEntity,
+  updateCompany,
+  updateEntity,
 } from "../../api";
 import axios from "axios";
 import { toast } from "react-hot-toast";
@@ -75,7 +77,12 @@ const UserSetup = () => {
   const [loading, setLoading] = React.useState(false);
   const [selectedOrgId, setSelectedOrgId] = React.useState(null);
   const [orgSearch, setOrgSearch] = React.useState("");
+  const [companySearch, setCompanySearch] = React.useState(""); //Company search state
+  const [entitySearch, setEntitySearch] = React.useState("");
   const [companyDetails, setCompanyDetails] = React.useState([]);
+  const [selectedCompanyId, setSelectedCompanyId] = React.useState(null);
+  const [isCompanyEditMode, setIsCompanyEditMode] = React.useState(false);
+  const [originalCompanyForm, setOriginalCompanyForm] = React.useState(null);
   const [companyForm, setCompanyForm] = React.useState({
     name: "",
     entity_name: "",
@@ -86,10 +93,11 @@ const UserSetup = () => {
     sub_domain: "",
     pincode: "",
   });
-  const [entityStepOrgs, setEntityStepOrgs] = React.useState([]);
-  const [entityStepCompanies, setEntityStepCompanies] = React.useState([]);
   const [selectedEntityOrgId, setSelectedEntityOrgId] = React.useState(null);
   const [selectedEntityCompanyId, setSelectedEntityCompanyId] =
+    React.useState(null);
+  const [selectedEntityOrg, setSelectedEntityOrg] = React.useState(null);
+  const [selectedEntityCompany, setSelectedEntityCompany] =
     React.useState(null);
   const [entityForm, setEntityForm] = React.useState({
     name: "",
@@ -97,7 +105,14 @@ const UserSetup = () => {
     region: "",
     zone: "",
   });
+const [companiesLoading, setCompaniesLoading] = React.useState(false);
+const [companyEntities, setCompanyEntities] = React.useState([]);
+const [entityOrganizations, setEntityOrganizations] = React.useState([]);
+const [entityCompanies, setEntityCompanies] = React.useState([]);
 
+const [selectedEntityId, setSelectedEntityId] = React.useState(null);
+const [isEntityEditMode, setIsEntityEditMode] = React.useState(false);
+const [originalEntityForm, setOriginalEntityForm] = React.useState(null);
   // API handlers
   // const fetchOrganizations = async () => {
   //   try {
@@ -118,41 +133,74 @@ const UserSetup = () => {
   };
 
   const fetchCompanies = async (orgId) => {
-    if (!orgId) return setCompanyDetails([]);
+    if (!orgId) {
+      setCompanyDetails([]);
+      return;
+    }
+
+    setCompaniesLoading(true);
+
     try {
       const response = await getCompanyDetailsById(orgId);
+
       if (response.data && response.data.data && response.data.data.company) {
         setCompanyDetails(response.data.data.company);
-      } else setCompanyDetails([]);
+      } else {
+        setCompanyDetails([]);
+      }
     } catch {
       setCompanyDetails([]);
+    } finally {
+      setCompaniesLoading(false);
     }
   };
   // const local = "192.168.29.79:8002/api";
   const local = "192.168.29.79:8002/api";
 
-  const fetchEntityStepInfo = async () => {
+  // const fetchEntityStepInfo = async () => {
+  //   try {
+  //     const response = await axios.get(
+  //       `https://konstruct.world/organizations/user-orgnizationn-info/${userId}/`,
+  //       // `http://${local}/user-orgnizationn-info/${userId}/`,
+  //       {
+  //         headers: {
+  //           Authorization: `Bearer ${localStorage.getItem("ACCESS_TOKEN")}`,
+  //         },
+  //       },
+  //     );
+  //     setEntityStepOrgs(
+  //       Array.isArray(response.data.organizations)
+  //         ? response.data.organizations
+  //         : [],
+  //     );
+  //     setEntityStepCompanies(
+  //       Array.isArray(response.data.companies) ? response.data.companies : [],
+  //     );
+  //   } catch {
+  //     setEntityStepOrgs([]);
+  //     setEntityStepCompanies([]);
+  //   }
+  // };
+
+  const fetchCompanyEntities = async (companyId) => {
+    if (!companyId) {
+      setCompanyEntities([]);
+      return;
+    }
+
     try {
       const response = await axios.get(
-        `https://konstruct.world/organizations/user-orgnizationn-info/${userId}/`,
-        // `http://${local}/user-orgnizationn-info/${userId}/`,
+        `https://konstruct.world/organizations/entities/by-company/${companyId}/`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("ACCESS_TOKEN")}`,
           },
         },
       );
-      setEntityStepOrgs(
-        Array.isArray(response.data.organizations)
-          ? response.data.organizations
-          : [],
-      );
-      setEntityStepCompanies(
-        Array.isArray(response.data.companies) ? response.data.companies : [],
-      );
+
+      setCompanyEntities(Array.isArray(response.data) ? response.data : []);
     } catch {
-      setEntityStepOrgs([]);
-      setEntityStepCompanies([]);
+      setCompanyEntities([]);
     }
   };
 
@@ -162,9 +210,26 @@ const UserSetup = () => {
   React.useEffect(() => {
     if (setup === "company" && selectedOrgId) fetchCompanies(selectedOrgId);
   }, [setup, selectedOrgId]);
+
   React.useEffect(() => {
-    if (setup === "entity") fetchEntityStepInfo();
-  }, [setup, userId]);
+    setEntityOrganizations(organizationDetails);
+  }, [organizationDetails]);
+
+  // React.useEffect(() => {
+  //   if (selectedEntityOrgId) {
+  //     const filtered = companyDetails.filter(
+  //       (c) => Number(c.organization) === Number(selectedEntityOrgId),
+  //     );
+
+  //     setEntityCompanies(filtered);
+  //   } else {
+  //     setEntityCompanies([]);
+  //   }
+  // }, [selectedEntityOrgId, companyDetails]);
+
+  React.useEffect(() => {
+    setEntityCompanies(companyDetails || []);
+  }, [companyDetails]);
 
   // Organization handlers
   const handleOrgSubmit = async (e) => {
@@ -202,10 +267,54 @@ const UserSetup = () => {
       setLoading(false);
     }
   };
+
   const handleSelectOrg = (org) => {
+    // Reset company lists/entities
+    setCompanyDetails([]);
+    setCompanyEntities([]);
+
+    // Reset selected company states
+    setSelectedCompanyId(null);
+
+    setSelectedEntityOrgId(null);
+    setSelectedEntityCompanyId(null);
+
+    setSelectedEntityOrg(null);
+    setSelectedEntityCompany(null);
+
+    // Reset entity companies
+    setEntityCompanies([]);
+
+    // Reset company form completely
+    setCompanyForm({
+      name: "",
+      entity_name: "",
+      country: "",
+      state_name: "",
+      region: "",
+      zone_name: "",
+      sub_domain: "",
+      pincode: "",
+    });
+
+    // Reset edit mode
+    setOriginalCompanyForm(null);
+    setIsCompanyEditMode(false);
+
+    // Reset entity form
+    setEntityForm({
+      name: "",
+      state: "",
+      region: "",
+      zone: "",
+    });
+
+    // Set new org
     setSelectedOrgId(org.id);
+
     dispatch(setOrganizationAction(org.id));
   };
+
   const handleEditOrg = (org) => {
     setEditingOrg(org.id);
     setEditingName(org.organization_name);
@@ -269,40 +378,120 @@ const UserSetup = () => {
     }
   };
 
+  const hasCompanyChanges = () => {
+  if (!originalCompanyForm) return false;
+
+  return JSON.stringify(companyForm) !==
+    JSON.stringify(originalCompanyForm);
+};
+
+const hasEntityChanges = () => {
+  if (!originalEntityForm) return false;
+
+  return JSON.stringify(entityForm) !== JSON.stringify(originalEntityForm);
+};
   // Company handlers
+  // const handleCompanySubmit = async (e) => {
+  //   e.preventDefault();
+  //   if (!selectedOrgId) {
+  //     toast.error("Select organization first.");
+  //     return;
+  //   }
+  //   if (companyForm.pincode && !/^\d{6}$/.test(companyForm.pincode)) {
+  //     toast.error("Please enter a valid 6-digit pincode.");
+  //     return;
+  //   }
+  //   try {
+  //     const response = await createCompany({
+  //       ...companyForm,
+  //       organization: selectedOrgId,
+  //       created_by: userId,
+  //     });
+  //     // if (response.status === 200 && response.data.data) {
+  //     //   toast.success(response.data.message || "Company created!");
+  //     //   setCompanyForm({
+  //     //     name: "",
+  //     //     entity_name: "",
+  //     //     country: "",
+  //     //     state_name: "",
+  //     //     region: "",
+  //     //     zone_name: "",
+  //     //     sub_domain: "",
+  //     //     pincode: "",
+  //     //   });
+  //     //   setSetup("entity");
+  //     //   setSelectedEntityOrgId(selectedOrgId);
+  //     //   setSelectedEntityCompanyId(response.data.data.id);
+  //     //   // fetchEntityStepInfo();
+  //     // }
+  //   } catch (error) {
+  //     if (
+  //       error?.response?.data?.non_field_errors &&
+  //       error.response.data.non_field_errors[0]?.includes(
+  //         "must make a unique set",
+  //       )
+  //     ) {
+  //       toast.error(
+  //         "A company with this name already exists for the selected organization. Please use a different name or select the existing company.",
+  //       );
+  //     } else {
+  //       toast.error(error.response?.data?.message || "Error creating company.");
+  //     }
+  //   }
+  // };
+
   const handleCompanySubmit = async (e) => {
     e.preventDefault();
+
     if (!selectedOrgId) {
       toast.error("Select organization first.");
       return;
     }
+
     if (companyForm.pincode && !/^\d{6}$/.test(companyForm.pincode)) {
       toast.error("Please enter a valid 6-digit pincode.");
       return;
     }
+
     try {
       const response = await createCompany({
         ...companyForm,
         organization: selectedOrgId,
         created_by: userId,
       });
-      if (response.status === 200 && response.data.data) {
-        toast.success(response.data.message || "Company created!");
-        setCompanyForm({
-          name: "",
-          entity_name: "",
-          country: "",
-          state_name: "",
-          region: "",
-          zone_name: "",
-          sub_domain: "",
-          pincode: "",
-        });
-        setSetup("entity");
-        setSelectedEntityOrgId(selectedOrgId);
-        setSelectedEntityCompanyId(response.data.data.id);
-        fetchEntityStepInfo();
-      }
+
+      const createdCompany = response?.data?.data || response?.data;
+
+      toast.success("Company created successfully!");
+
+      setCompanyForm({
+        name: "",
+        entity_name: "",
+        country: "",
+        state_name: "",
+        region: "",
+        zone_name: "",
+        sub_domain: "",
+        pincode: "",
+      });
+
+      await fetchCompanies(selectedOrgId);
+
+      const org = organizationDetails.find(
+        (o) => Number(o.id) === Number(selectedOrgId),
+      );
+
+      setSelectedCompanyId(createdCompany.id);
+
+      setSelectedEntityOrgId(selectedOrgId);
+      setSelectedEntityCompanyId(createdCompany.id);
+
+      setSelectedEntityOrg(org || null);
+      setSelectedEntityCompany(createdCompany);
+      setIsCompanyEditMode(false);
+      setOriginalCompanyForm(null);
+
+      setSetup("entity");
     } catch (error) {
       if (
         error?.response?.data?.non_field_errors &&
@@ -310,14 +499,36 @@ const UserSetup = () => {
           "must make a unique set",
         )
       ) {
-        toast.error(
-          "A company with this name already exists for the selected organization. Please use a different name or select the existing company.",
-        );
+        toast.error("Company already exists for this organization.");
       } else {
         toast.error(error.response?.data?.message || "Error creating company.");
       }
     }
   };
+
+  const handleContinueToEntity = async () => {
+  if (!selectedCompanyId) {
+    toast.error("Please select a company.");
+    return;
+  }
+
+  try {
+    if (hasCompanyChanges()) {
+      await updateCompany(selectedCompanyId, companyForm);
+
+      toast.success("Company updated successfully!");
+
+      await fetchCompanies(selectedOrgId);
+    }
+
+    setSetup("entity");
+  } catch (error) {
+    toast.error(
+      error.response?.data?.message ||
+        "Failed to update company.",
+    );
+  }
+};
 
   const [setupCompleted, setSetupCompleted] = React.useState(false);
   // Entity handlers
@@ -332,17 +543,49 @@ const UserSetup = () => {
       company: selectedEntityCompanyId,
       created_by: userId,
     };
-    const selectedOrg = entityStepOrgs.find(
-      (o) => o.id === selectedEntityOrgId,
-    );
+
     try {
+      // UPDATE MODE
+      if (isEntityEditMode && selectedEntityId) {
+        await updateEntity(selectedEntityId, entityForm);
+
+        toast.success("Entity updated successfully!");
+
+        fetchCompanyEntities(selectedEntityCompanyId);
+
+        setIsEntityEditMode(false);
+        setSelectedEntityId(null);
+
+        setEntityForm({
+          name: "",
+          state: "",
+          region: "",
+          zone: "",
+        });
+
+        return;
+      }
+
+      // CREATE MODE
       const response = await createEntity(payload);
+
       if (response.status === 200 && response.data.success) {
         toast.success(
-          `Setup successful! Organization: ${selectedOrg?.organization_name || ""}`,
+          `Setup successful! Organization: ${
+            selectedEntityOrg?.organization_name || ""
+          }`,
         );
-        setEntityForm({ name: "", state: "", region: "", zone: "" });
-        setSetupCompleted(true); // <-- ADD THIS LINE
+
+        fetchCompanyEntities(selectedEntityCompanyId);
+
+        setEntityForm({
+          name: "",
+          state: "",
+          region: "",
+          zone: "",
+        });
+
+        setSetupCompleted(true);
       } else {
         toast.error(response.data.message || "Error creating entity.");
       }
@@ -356,13 +599,51 @@ const UserSetup = () => {
   };
 
   // Filtering
-  const filteredCompaniesForEntity = selectedEntityOrgId
-    ? entityStepCompanies.filter((c) => c.organization === selectedEntityOrgId)
-    : [];
-  const filteredOrgs = organizationDetails.filter((org) =>
-    org.organization_name.toLowerCase().includes(orgSearch.toLowerCase()),
-  );
+// const filteredCompaniesForEntity = selectedEntityOrgId
+//   ? entityStepCompanies.filter(
+//       (c) => Number(c.organization) === Number(selectedEntityOrgId),
+//     )
+//   : [];
 
+  // const filteredOrgs = organizationDetails.filter((org) =>
+  //   org.organization_name.toLowerCase().includes(orgSearch.toLowerCase()),
+  // );
+const filteredOrgs = organizationDetails
+  .filter((org) =>
+    org.organization_name.toLowerCase().includes(orgSearch.toLowerCase()),
+  )
+  .sort((a, b) => {
+    if (a.id === selectedOrgId) return -1;
+    if (b.id === selectedOrgId) return 1;
+    return 0;
+  });
+
+  // const filteredCompanies = companyDetails.filter((comp) =>
+  //   comp.name.toLowerCase().includes(companySearch.toLowerCase()),
+  // );
+  const filteredCompanies = companyDetails
+    .filter((comp) =>
+      comp.name.toLowerCase().includes(companySearch.toLowerCase()),
+    )
+    .sort((a, b) => {
+      if (a.id === selectedCompanyId) return -1;
+      if (b.id === selectedCompanyId) return 1;
+      return 0;
+    });
+
+  const filteredCompaniesForEntity = entityCompanies
+    .filter((comp) =>
+      comp.name.toLowerCase().includes(companySearch.toLowerCase()),
+    )
+    .sort((a, b) => {
+      if (a.id === selectedEntityCompanyId) return -1;
+      if (b.id === selectedEntityCompanyId) return 1;
+      return 0;
+    });
+
+    const filteredEntityList = companyEntities.filter((entity) =>
+      entity.name.toLowerCase().includes(entitySearch.toLowerCase()),
+    );
   // THEME palette
   const ORANGE = "#ffbe63";
   const BG_OFFWHITE = "#fcfaf7";
@@ -471,9 +752,10 @@ const UserSetup = () => {
                 disabled = !selectedOrgId;
               } else if (step.key === "entity") {
                 // NEW LOGIC:
-                const hasCompanies =
-                  companyDetails && companyDetails.length > 0;
-                disabled = !(selectedEntityCompanyId || hasCompanies);
+                // const hasCompanies =
+                //   companyDetails && companyDetails.length > 0;
+                // disabled = !(selectedEntityCompanyId || hasCompanies);
+                disabled = !selectedOrgId;
               }
             }
             return (
@@ -748,10 +1030,13 @@ const UserSetup = () => {
 
         {/* --- COMPANY STEP --- */}
         {setup === "company" && (
-          <div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl">
+          // <div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 w-full max-w-7xl">
             {/* Left Panel */}
             <div
-              className="flex-1 rounded-3xl shadow-2xl p-8 border"
+              // className="flex-1 rounded-3xl shadow-2xl p-8 border"
+
+              className="rounded-3xl shadow-2xl p-8 border h-fit"
               style={{
                 background: cardColor,
                 border: `1.5px solid ${borderColor}`,
@@ -766,6 +1051,25 @@ const UserSetup = () => {
                 <Building2 className="w-7 h-7" style={{ color: ORANGE }} />
                 Organizations & Companies
               </h3>
+              <div className="relative w-full mb-6">
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2"
+                  style={{ color: iconColor }}
+                />
+
+                <input
+                  type="text"
+                  value={orgSearch}
+                  onChange={(e) => setOrgSearch(e.target.value)}
+                  placeholder="Search organizations..."
+                  className="w-full rounded-2xl pl-10 pr-4 py-3 border"
+                  style={{
+                    borderColor: ORANGE,
+                    background: theme === "dark" ? "#191922" : "#f8f7fa",
+                    color: textColor,
+                  }}
+                />
+              </div>
               {/* Organizations List */}
               <div className="mb-8">
                 <h4
@@ -784,10 +1088,14 @@ const UserSetup = () => {
                       No organizations available
                     </div>
                   ) : (
-                    organizationDetails.map((org, idx) => (
+                    // organizationDetails.map((org, idx) => (
+                    filteredOrgs.map((org, idx) => (
                       <div
                         key={org.id}
-                        onClick={() => handleSelectOrg(org)}
+                        onClick={() => {
+                          console.log("ORG CLICKED:", org);
+                          handleSelectOrg(org);
+                        }}
                         className="p-4 rounded-xl cursor-pointer transition-all duration-200"
                         style={{
                           background:
@@ -822,6 +1130,25 @@ const UserSetup = () => {
                 </div>
               </div>
               {/* Companies List */}
+              <div className="relative w-full mb-4">
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2"
+                  style={{ color: iconColor }}
+                />
+
+                <input
+                  type="text"
+                  value={companySearch}
+                  onChange={(e) => setCompanySearch(e.target.value)}
+                  placeholder="Search companies..."
+                  className="w-full rounded-2xl pl-10 pr-4 py-3 border"
+                  style={{
+                    borderColor: ORANGE,
+                    background: theme === "dark" ? "#191922" : "#f8f7fa",
+                    color: textColor,
+                  }}
+                />
+              </div>
               <div>
                 <h4
                   className="text-sm font-semibold"
@@ -834,21 +1161,109 @@ const UserSetup = () => {
                   Companies
                 </h4>
                 <div className="space-y-2 max-h-[180px] overflow-y-auto pr-2">
-                  {companyDetails.length === 0 ? (
+                  {companiesLoading ? (
+                    <div className="text-center py-6" style={{ color: ORANGE }}>
+                      Loading companies...
+                    </div>
+                  ) : companyDetails.length === 0 ? (
                     <div className="text-center py-6" style={{ color: ORANGE }}>
                       {selectedOrgId
                         ? "No companies yet"
                         : "Select an organization first"}
                     </div>
                   ) : (
-                    companyDetails.map((comp, idx) => (
+                    // companyDetails.map((comp, idx) => (
+                    filteredCompanies.map((comp, idx) => (
+                      // <div
+                      //   key={comp.id}
+                      //   className="p-4 rounded-xl"
                       <div
                         key={comp.id}
-                        className="p-4 rounded-xl"
+                        // onClick={() => {
+                        //   setSelectedCompanyId(comp.id);
+                        //   setSelectedEntityOrgId(selectedOrgId);
+                        //   setSelectedEntityCompanyId(comp.id);
+                        //   setSetup("entity");
+                        // }}
+                        onClick={() => {
+                          const isSame =
+                            Number(selectedCompanyId) === Number(comp.id);
+
+                          // DESELECT COMPANY
+                          if (isSame) {
+                            setSelectedCompanyId(null);
+
+                            setSelectedEntityOrgId(null);
+                            setSelectedEntityCompanyId(null);
+
+                            setSelectedEntityOrg(null);
+                            setSelectedEntityCompany(null);
+
+                            setCompanyEntities([]);
+
+                            // Reset company form
+                            setCompanyForm({
+                              name: "",
+                              entity_name: "",
+                              country: "",
+                              state_name: "",
+                              region: "",
+                              zone_name: "",
+                              sub_domain: "",
+                              pincode: "",
+                            });
+
+                            // Exit edit mode
+                            setIsCompanyEditMode(false);
+
+                            setOriginalCompanyForm(null);
+
+                            return;
+                          }
+
+                          // SELECT COMPANY
+                          const org = organizationDetails.find(
+                            (o) => Number(o.id) === Number(comp.organization),
+                          );
+
+                          setSelectedCompanyId(comp.id);
+
+                          setSelectedEntityOrgId(Number(comp.organization));
+                          setSelectedEntityCompanyId(Number(comp.id));
+
+                          setSelectedEntityOrg(org || null);
+                          setSelectedEntityCompany(comp);
+
+                          fetchCompanyEntities(comp.id);
+
+                          // Prefill form
+                          const formData = {
+                            name: comp.name || "",
+                            entity_name: comp.entity_name || "",
+                            country: comp.country || "",
+                            state_name: comp.state_name || "",
+                            region: comp.region || "",
+                            zone_name: comp.zone_name || "",
+                            sub_domain: comp.sub_domain || "",
+                            pincode: comp.pincode || "",
+                          };
+
+                          setCompanyForm(formData);
+
+                          setOriginalCompanyForm(formData);
+
+                          setIsCompanyEditMode(true);
+                        }}
+                        className="p-4 rounded-xl cursor-pointer transition-all duration-200"
                         style={{
-                          background: cardColor,
+                          // background: cardColor,
                           border: `1.5px solid ${ORANGE}`,
-                          color: textColor,
+                          // color: textColor,
+                          background:
+                            selectedCompanyId === comp.id ? ORANGE : cardColor,
+
+                          color:
+                            selectedCompanyId === comp.id ? "#fff" : textColor,
                         }}
                       >
                         <div className="flex items-center gap-3">
@@ -864,6 +1279,12 @@ const UserSetup = () => {
                           />
                           <span className="font-medium">{comp.name}</span>
                         </div>
+                        {selectedCompanyId === comp.id && (
+                          <Check
+                            className="w-5 h-5"
+                            style={{ color: "#fff" }}
+                          />
+                        )}
                       </div>
                     ))
                   )}
@@ -872,7 +1293,8 @@ const UserSetup = () => {
             </div>
             {/* Company Form */}
             <form
-              className="flex-1 rounded-3xl shadow-2xl p-8 border"
+              // className="flex-1 rounded-3xl shadow-2xl p-8 border"
+              className="rounded-3xl shadow-2xl p-8 border"
               style={{
                 background: cardColor,
                 border: `1.5px solid ${borderColor}`,
@@ -886,7 +1308,7 @@ const UserSetup = () => {
                 style={{ color: ORANGE }}
               >
                 <Building className="w-7 h-7" style={{ color: ORANGE }} />
-                Create New Company
+                {isCompanyEditMode ? "Update Company" : "Create New Company"}
               </h3>
               <div className="space-y-4">
                 <div>
@@ -1064,21 +1486,36 @@ const UserSetup = () => {
                   </div>
                 </div>
               </div>
-              <button
-                type="submit"
-                className="w-full mt-8 rounded-xl px-6 py-4 font-semibold flex items-center justify-center gap-2"
-                style={{ background: ORANGE, color: "#fff" }}
-              >
-                Create Company & Continue
-                <ChevronRight className="w-5 h-5" />
-              </button>
+              {isCompanyEditMode ? (
+                <button
+                  type="button"
+                  onClick={handleContinueToEntity}
+                  className="w-full mt-8 rounded-xl px-6 py-4 font-semibold flex items-center justify-center gap-2"
+                  style={{ background: ORANGE, color: "#fff" }}
+                >
+                  {hasCompanyChanges()
+                    ? "Update & Continue"
+                    : "Continue to Entity"}
+
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className="w-full mt-8 rounded-xl px-6 py-4 font-semibold flex items-center justify-center gap-2"
+                  style={{ background: ORANGE, color: "#fff" }}
+                >
+                  Create Company & Continue
+                  <ChevronRight className="w-5 h-5" />
+                </button>
+              )}
             </form>
           </div>
         )}
 
         {/* --- ENTITY STEP --- */}
         {setup === "entity" && (
-          <div className="flex flex-col lg:flex-row gap-8 w-full max-w-6xl">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-8 w-full max-w-7xl">
             {/* Left Panel */}
             <div
               className="flex-1 rounded-3xl shadow-2xl p-8 border"
@@ -1097,6 +1534,25 @@ const UserSetup = () => {
                 Select Organization & Company
               </h3>
               {/* Organizations */}
+              <div className="relative w-full mb-4">
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2"
+                  style={{ color: iconColor }}
+                />
+
+                <input
+                  type="text"
+                  value={orgSearch}
+                  onChange={(e) => setOrgSearch(e.target.value)}
+                  placeholder="Search organizations..."
+                  className="w-full rounded-2xl pl-10 pr-4 py-3 border"
+                  style={{
+                    borderColor: ORANGE,
+                    background: theme === "dark" ? "#191922" : "#f8f7fa",
+                    color: textColor,
+                  }}
+                />
+              </div>
               <div className="mb-8">
                 <h4
                   className="text-sm font-semibold mb-4"
@@ -1109,46 +1565,105 @@ const UserSetup = () => {
                   Select Organization
                 </h4>
                 <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2">
-                  {entityStepOrgs.length === 0 ? (
+                  {entityOrganizations.length === 0 ? (
                     <div className="text-center py-6" style={{ color: ORANGE }}>
                       No organizations available
                     </div>
                   ) : (
-                    entityStepOrgs.map((org, idx) => (
+                    filteredOrgs.map((org, idx) => (
                       <div
                         key={org.id}
                         onClick={() => {
                           setSelectedEntityOrgId(org.id);
+                          setSelectedEntityOrg(org);
+
+                          fetchCompanies(org.id);
+
+                          // Reset selected company
                           setSelectedEntityCompanyId(null);
+                          setSelectedEntityCompany(null);
+
+                          // Reset entities
+                          setCompanyEntities([]);
+
+                          // Reset entity form
+                          setEntityForm({
+                            name: "",
+                            state: "",
+                            region: "",
+                            zone: "",
+                          });
+
+                          // Reset company form state
+                          setSelectedCompanyId(null);
+
+                          setCompanyForm({
+                            name: "",
+                            entity_name: "",
+                            country: "",
+                            state_name: "",
+                            region: "",
+                            zone_name: "",
+                            sub_domain: "",
+                            pincode: "",
+                          });
+
+                          setOriginalCompanyForm(null);
+
+                          setIsCompanyEditMode(false);
                         }}
                         className="p-4 rounded-xl cursor-pointer transition-all duration-200"
                         style={{
                           background:
-                            selectedEntityOrgId === org.id ? ORANGE : cardColor,
+                            Number(selectedEntityOrg?.id) === Number(org.id)
+                              ? ORANGE
+                              : cardColor,
+
                           color:
-                            selectedEntityOrgId === org.id ? "#fff" : textColor,
+                            Number(selectedEntityOrg?.id) === Number(org.id)
+                              ? "#fff"
+                              : textColor,
                           border: `1.5px solid ${ORANGE}`,
                         }}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <span className="font-semibold text-sm">
-                              {idx + 1}
-                            </span>
-                            <Building2
-                              className="w-4 h-4"
-                              style={{ color: ORANGE }}
-                            />
-                            <span className="font-medium">
-                              {org.organization_name}
-                            </span>
+                          {/* <div className="flex items-center gap-3"> */}
+                          <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-3">
+                              <span className="font-semibold text-sm">
+                                {idx + 1}
+                              </span>
+
+                              <Building2
+                                className="w-4 h-4"
+                                style={{
+                                  color:
+                                    Number(selectedEntityOrg?.id) ===
+                                    Number(org.id)
+                                      ? "#fff"
+                                      : ORANGE,
+                                }}
+                              />
+
+                              <span className="font-medium">
+                                {org.organization_name}
+                              </span>
+                            </div>
+
+                            {Number(selectedEntityOrg?.id) ===
+                              Number(org.id) && (
+                              <Check
+                                className="w-5 h-5"
+                                style={{ color: "#fff" }}
+                              />
+                            )}
                           </div>
-                          {selectedEntityOrgId === org.id && (
+                          {/* {Number(selectedEntityOrg?.id) === Number(org.id) && (
                             <Check
                               className="w-5 h-5"
                               style={{ color: "#fff" }}
                             />
-                          )}
+                          )} */}
                         </div>
                       </div>
                     ))
@@ -1156,6 +1671,25 @@ const UserSetup = () => {
                 </div>
               </div>
               {/* Companies */}
+              <div className="relative w-full mb-4">
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2"
+                  style={{ color: iconColor }}
+                />
+
+                <input
+                  type="text"
+                  value={companySearch}
+                  onChange={(e) => setCompanySearch(e.target.value)}
+                  placeholder="Search companies..."
+                  className="w-full rounded-2xl pl-10 pr-4 py-3 border"
+                  style={{
+                    borderColor: ORANGE,
+                    background: theme === "dark" ? "#191922" : "#f8f7fa",
+                    color: textColor,
+                  }}
+                />
+              </div>
               {selectedEntityOrgId && (
                 <div>
                   <h4
@@ -1178,17 +1712,59 @@ const UserSetup = () => {
                       </div>
                     ) : (
                       filteredCompaniesForEntity.map((comp, idx) => (
+                        // <div
+                        //   key={comp.id}
+                        //   onClick={() => setSelectedEntityCompanyId(comp.id)}
+                        //   className="p-4 rounded-xl cursor-pointer transition-all duration-200"
                         <div
                           key={comp.id}
-                          onClick={() => setSelectedEntityCompanyId(comp.id)}
-                          className="p-4 rounded-xl cursor-pointer transition-all duration-200"
+                          onClick={() => {
+                            const isSame =
+                              Number(selectedEntityCompany?.id) ===
+                              Number(comp.id);
+
+                            // Deselect
+                            if (isSame) {
+                              setSelectedEntityCompanyId(null);
+                              setSelectedEntityCompany(null);
+
+                              setCompanyEntities([]);
+
+                              setEntityForm({
+                                name: "",
+                                state: "",
+                                region: "",
+                                zone: "",
+                              });
+
+                              return;
+                            }
+
+                            // Select
+                            setSelectedEntityCompanyId(comp.id);
+                            setSelectedEntityCompany(comp);
+
+                            fetchCompanyEntities(comp.id);
+
+                            // Reset entity form
+                            setEntityForm({
+                              name: "",
+                              state: "",
+                              region: "",
+                              zone: "",
+                            });
+                          }}
+                          className="p-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.01]"
                           style={{
                             background:
-                              selectedEntityCompanyId === comp.id
+                              Number(selectedEntityCompany?.id) ===
+                              Number(comp.id)
                                 ? ORANGE
                                 : cardColor,
+
                             color:
-                              selectedEntityCompanyId === comp.id
+                              Number(selectedEntityCompany?.id) ===
+                              Number(comp.id)
                                 ? "#fff"
                                 : textColor,
                             border: `1.5px solid ${ORANGE}`,
@@ -1205,7 +1781,8 @@ const UserSetup = () => {
                               />
                               <span className="font-medium">{comp.name}</span>
                             </div>
-                            {selectedEntityCompanyId === comp.id && (
+                            {Number(selectedEntityCompany?.id) ===
+                              Number(comp.id) && (
                               <Check
                                 className="w-5 h-5"
                                 style={{ color: "#fff" }}
@@ -1218,7 +1795,164 @@ const UserSetup = () => {
                   </div>
                 </div>
               )}
+              {/* Existing Entities */}
+              <div className="relative w-full mb-4">
+                <Search
+                  className="absolute left-3 top-1/2 transform -translate-y-1/2"
+                  style={{ color: iconColor }}
+                />
+
+                <input
+                  type="text"
+                  value={entitySearch}
+                  onChange={(e) => setEntitySearch(e.target.value)}
+                  placeholder="Search entities..."
+                  className="w-full rounded-2xl pl-10 pr-4 py-3 border"
+                  style={{
+                    borderColor: ORANGE,
+                    background: theme === "dark" ? "#191922" : "#f8f7fa",
+                    color: textColor,
+                  }}
+                />
+              </div>
+              {selectedEntityCompanyId && (
+                <div className="mt-8">
+                  <h4
+                    className="text-sm font-semibold mb-4"
+                    style={{
+                      color: ORANGE,
+                      textTransform: "uppercase",
+                      letterSpacing: "1.5px",
+                    }}
+                  >
+                    Existing Entities
+                  </h4>
+
+                  <div className="space-y-2 max-h-[220px] overflow-y-auto pr-2">
+                    {filteredEntityList.length === 0 ? (
+                      <div
+                        className="text-center py-6 rounded-xl"
+                        style={{
+                          border: `1.5px solid ${ORANGE}`,
+                          color: ORANGE,
+                        }}
+                      >
+                        No entities created yet
+                      </div>
+                    ) : (
+                      filteredEntityList.map((entity, idx) => (
+                        <div
+                          key={entity.id}
+                          onClick={() => {
+                            const isSame =
+                              Number(selectedEntityId) === Number(entity.id);
+
+                            // DESELECT ENTITY
+                            if (isSame) {
+                              setSelectedEntityId(null);
+
+                              setIsEntityEditMode(false);
+
+                              setOriginalEntityForm(null);
+
+                              setEntityForm({
+                                name: "",
+                                state: "",
+                                region: "",
+                                zone: "",
+                              });
+
+                              return;
+                            }
+
+                            // SELECT ENTITY
+                            const formData = {
+                              name: entity.name || "",
+                              state: entity.state || "",
+                              region: entity.region || "",
+                              zone: entity.zone || "",
+                            };
+
+                            setSelectedEntityId(entity.id);
+
+                            setEntityForm(formData);
+
+                            setOriginalEntityForm(formData);
+
+                            setIsEntityEditMode(true);
+                          }}
+                          className="p-4 rounded-xl cursor-pointer transition-all duration-200 hover:scale-[1.01]"
+                          style={{
+                            background:
+                              Number(selectedEntityId) === Number(entity.id)
+                                ? ORANGE
+                                : cardColor,
+
+                            color:
+                              Number(selectedEntityId) === Number(entity.id)
+                                ? "#fff"
+                                : textColor,
+
+                            border: `1.5px solid ${ORANGE}`,
+                          }}
+                        >
+                          {/* <div className="flex items-center justify-between"> */}
+                          <div className="flex items-center justify-between w-full">
+                            <div>
+                              <div
+                                className="font-semibold"
+                                style={{
+                                  color:
+                                    Number(selectedEntityId) ===
+                                    Number(entity.id)
+                                      ? "#fff"
+                                      : ORANGE,
+                                }}
+                              >
+                                {idx + 1}. {entity.name}
+                              </div>
+
+                              <div
+                                className="text-xs mt-1"
+                                style={{
+                                  opacity: 0.9,
+                                  color:
+                                    Number(selectedEntityId) ===
+                                    Number(entity.id)
+                                      ? "#fff"
+                                      : textColor,
+                                }}
+                              >
+                                {entity.state || "-"} • {entity.region || "-"} •{" "}
+                                {entity.zone || "-"}
+                              </div>
+                              {Number(selectedEntityId) ===
+                                Number(entity.id) && (
+                                <Check
+                                  className="w-5 h-5"
+                                  style={{ color: "#fff" }}
+                                />
+                              )}
+                            </div>
+
+                            <div
+                              className="px-2 py-1 rounded-full text-xs font-semibold"
+                              style={{
+                                background: "#ffbe6330",
+                                color: ORANGE,
+                              }}
+                            >
+                              Existing
+                            </div>
+                          </div>
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
+
             {/* Entity Form */}
             <form
               className="flex-1 rounded-3xl shadow-2xl p-8 border"
@@ -1235,7 +1969,7 @@ const UserSetup = () => {
                 style={{ color: ORANGE }}
               >
                 <MapPin className="w-7 h-7" style={{ color: ORANGE }} />
-                Create New Entity
+                {isEntityEditMode ? "Update Entity" : "Create New Entity"}
               </h3>
               <div className="space-y-4">
                 <div>
@@ -1340,16 +2074,8 @@ const UserSetup = () => {
                   >
                     <p className="text-sm">
                       <span className="font-semibold">Selected: </span>
-                      {
-                        entityStepOrgs.find((o) => o.id === selectedEntityOrgId)
-                          ?.organization_name
-                      }{" "}
-                      →{" "}
-                      {
-                        filteredCompaniesForEntity.find(
-                          (c) => c.id === selectedEntityCompanyId,
-                        )?.name
-                      }
+                      {selectedEntityOrg?.organization_name}→
+                      {selectedEntityCompany?.name}
                     </p>
                   </div>
                 )}
@@ -1361,7 +2087,11 @@ const UserSetup = () => {
                 disabled={!selectedEntityCompanyId}
               >
                 <Check className="w-5 h-5" />
-                Complete Setup
+                {isEntityEditMode
+                  ? hasEntityChanges()
+                    ? "Update Entity"
+                    : "No Changes"
+                  : "Complete Setup"}
               </button>
             </form>
           </div>

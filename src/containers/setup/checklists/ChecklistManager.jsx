@@ -4,6 +4,13 @@ import TemplateChecklistList from "./TemplateChecklistList";
 import TemplateChecklistForm from "./TemplateChecklistForm";
 import TemplateChecklistDetails from "./TemplateChecklistDetails";
 import TemplateInitializeModal from "./TemplateInitializeModal";
+import ManualChecklistList from "./ManualChecklistList";
+import ManualChecklistForm from "./ManualChecklistForm";
+import ManualChecklistDetails from "./ManualChecklistDetails";
+import {
+  getManualChecklistTemplates,
+  deleteManualChecklistTemplateById,
+} from "../../../api/manualChecklistApi";
 import {
   getProjectsByOwnership,
   getProjectUserDetails,
@@ -182,6 +189,11 @@ const ChecklistManager = () => {
   const [pageState, setPageState] = useState("list");
 
   const [templates, setTemplates] = useState([]);
+const [manualTemplates, setManualTemplates] = useState([]);
+const [manualTemplatesLoading, setManualTemplatesLoading] = useState(false);
+
+const [selectedManualTemplate, setSelectedManualTemplate] = useState(null);
+
   const [templatesLoading, setTemplatesLoading] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
 
@@ -418,6 +430,39 @@ const ChecklistManager = () => {
     }
   };
 
+const fetchManualTemplates = async () => {
+  if (!context.project_id) {
+    setManualTemplates([]);
+    return;
+  }
+
+  setManualTemplatesLoading(true);
+
+  try {
+    const params = {
+      project_id: context.project_id,
+    };
+
+    if (context.phase_id) {
+      params.phase_id = context.phase_id;
+    }
+
+    if (context.stage_id) {
+      params.stage_id = context.stage_id;
+    }
+
+    const response = await getManualChecklistTemplates(params);
+
+    const data = response?.data?.results || response?.data || [];
+
+    setManualTemplates(Array.isArray(data) ? data : []);
+  } catch (error) {
+    setManualTemplates([]);
+  } finally {
+    setManualTemplatesLoading(false);
+  }
+};
+  
   useEffect(() => {
     fetchTemplates();
   }, [
@@ -428,6 +473,15 @@ const ChecklistManager = () => {
     context.category,
   ]);
 
+useEffect(() => {
+  if (activeTab === "manual") {
+    fetchManualTemplates();
+  }
+}, [
+  activeTab,
+  context.project_id
+]);
+  
   const handleContextChange = (key, value) => {
     setContext((prev) => ({
       ...prev,
@@ -455,6 +509,22 @@ const ChecklistManager = () => {
       fetchTemplates();
     } catch (error) {
       showToast("Failed to delete checklist template.", "error");
+    }
+  };
+
+  const handleDeleteManualTemplate = async (template) => {
+    const confirmed = window.confirm(`Delete template "${template.name}"?`);
+
+    if (!confirmed) return;
+
+    try {
+      await deleteManualChecklistTemplateById(template.id);
+
+      showToast("Manual template deleted successfully.", "success");
+
+      fetchManualTemplates();
+    } catch (error) {
+      showToast("Failed to delete manual template.", "error");
     }
   };
 
@@ -557,6 +627,65 @@ const ChecklistManager = () => {
               setInitializeTemplate(null);
             }}
             onInitialized={() => {}}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (pageState === "form" && activeTab === "manual") {
+    return (
+      <div
+        style={{
+          background: palette.bg,
+          minHeight: "100vh",
+          marginLeft: contentMarginLeft,
+          transition: "margin-left 0.35s cubic-bezier(.6,-0.17,.22,1.08)",
+          padding: 16,
+        }}
+      >
+        <div className="max-w-7xl mx-auto">
+          <ManualChecklistForm
+            palette={palette}
+            template={selectedManualTemplate}
+            context={context}
+            onBack={() => {
+              setPageState("list");
+              setSelectedManualTemplate(null);
+            }}
+            onSaved={() => {
+              setPageState("list");
+              setSelectedManualTemplate(null);
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (pageState === "detail" && activeTab === "manual") {
+    return (
+      <div
+        style={{
+          background: palette.bg,
+          minHeight: "100vh",
+          marginLeft: contentMarginLeft,
+          transition: "margin-left 0.35s cubic-bezier(.6,-0.17,.22,1.08)",
+          padding: 16,
+        }}
+      >
+        <div className="max-w-7xl mx-auto">
+          <ManualChecklistDetails
+            palette={palette}
+            template={selectedManualTemplate}
+            onBack={() => {
+              setPageState("list");
+              setSelectedManualTemplate(null);
+            }}
+            onEdit={(template) => {
+              setSelectedManualTemplate(template);
+              setPageState("form");
+            }}
           />
         </div>
       </div>
@@ -781,6 +910,23 @@ const ChecklistManager = () => {
 
           <button
             onClick={() => {
+              setActiveTab("manual");
+              setPageState("list");
+            }}
+            style={{
+              ...(activeTab === "manual"
+                ? palette.primaryBtn
+                : palette.secondaryBtn),
+              borderRadius: 12,
+              padding: "12px 18px",
+              cursor: "pointer",
+            }}
+          >
+            Manual Templates
+          </button>
+
+          <button
+            onClick={() => {
               setActiveTab("legacy");
               setPageState("list");
             }}
@@ -833,6 +979,25 @@ const ChecklistManager = () => {
               onInitialized={() => {}}
             />
           </>
+        ) : activeTab === "manual" ? (
+          <ManualChecklistList
+            palette={palette}
+            templates={manualTemplates}
+            loading={manualTemplatesLoading}
+            onCreate={() => {
+              setSelectedManualTemplate(null);
+              setPageState("form");
+            }}
+            onEdit={(template) => {
+              setSelectedManualTemplate(template);
+              setPageState("form");
+            }}
+            onView={(template) => {
+              setSelectedManualTemplate(template);
+              setPageState("detail");
+            }}
+            onDelete={handleDeleteManualTemplate}
+          />
         ) : (
           <LegacyChecklistWrapper
             palette={palette}

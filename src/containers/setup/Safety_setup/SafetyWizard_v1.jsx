@@ -8,22 +8,13 @@ import SafetyCategory from "./SafetyCategory";
 import UploadAndMapping from "./UploadAndMapping";
 import FinalPreview from "./FinalPreview";
 import SafetyReportTemplate from "./SafetyReportTemplate";
-import SafetyHeaderFieldsConfig from "./SafetyHeaderFieldsConfig";
 import SafetyFlowConfig from "./SafetyFlowConfig";
-
-import {
-    createDefaultHeaderFields,
-    normaliseHeaderFields,
-    validateHeaderFields,
-    buildLegacyReportHeaderMeta,
-} from "./safetyHeaderFields";
 
 const STEPS = [
     { id: "category", label: "Category" },
     { id: "upload", label: "Upload & Select Questions" },
     { id: "preview", label: "Preview" },
     { id: "report", label: "Create Report Template" },
-    { id: "fields", label: "Configure Header Fields" },
     { id: "flow", label: "Flow Config" },
 ];
 
@@ -63,15 +54,6 @@ function SafetyWizard() {
     const [movementSteps, setMovementSteps] = useState(DEFAULT_MOVEMENT_STEPS);
     const [reportDraft, setReportDraft] = useState(null);
     const [creatingTemplate, setCreatingTemplate] = useState(false);
-
-    const [headerFields, setHeaderFields] = useState(() =>
-        createDefaultHeaderFields()
-    );
-
-    const [reportNumberConfig, setReportNumberConfig] = useState({
-        prefix: "",
-        padding: 2,
-    });
 
     const [tillApprove, setTillApprove] = useState(true);
     const [roundCount, setRoundCount] = useState(1);
@@ -156,19 +138,6 @@ function SafetyWizard() {
             return;
         }
 
-        const headerValidationError = validateHeaderFields(
-            headerFields,
-            reportNumberConfig
-        );
-
-        if (headerValidationError) {
-            toast.error(headerValidationError);
-            setCurrentStepIndex(STEPS.findIndex((step) => step.id === "fields"));
-            return;
-        }
-
-        const cleanHeaderFields = normaliseHeaderFields(headerFields);
-
         const titleVal =
             reportDraft?.title || reportTitle || "Untitled Template";
 
@@ -200,9 +169,7 @@ function SafetyWizard() {
         }));
 
 
-        // const meta = reportDraft?.meta || {};
-
-
+        const meta = reportDraft?.meta || {};
 
         setCreatingTemplate(true);
 
@@ -213,39 +180,36 @@ function SafetyWizard() {
             formData.append("project_id", Number(selectedProjectId));
             formData.append("category", Number(selectedCategoryId));
             formData.append("title", titleVal);
-            formData.append("template_code", buildTemplateCode(titleVal));
+            // formData.append("template_code", buildTemplateCode(titleVal));
+            const uniqueCode = `${buildTemplateCode(titleVal)}_V${Date.now()}`;
+
+            formData.append("template_code", uniqueCode);
             formData.append("status", "ACTIVE");
 
 
 
             formData.append(
-                "header_fields",
-                JSON.stringify(cleanHeaderFields)
-            );
-
-            formData.append(
-                "report_number_config",
-                JSON.stringify({
-                    prefix: String(reportNumberConfig.prefix || "")
-                        .trim()
-                        .replace(/-+$/, ""),
-                    padding: Number(reportNumberConfig.padding || 2),
-                })
-            );
-
-            /*
-                Keep report_header_meta temporarily for backward compatibility
-                with old backend/list screens while frontend migration is ongoing.
-                New dynamic rendering should use header_fields.
-            */
-            formData.append(
                 "report_header_meta",
-                JSON.stringify(
-                    buildLegacyReportHeaderMeta(
-                        cleanHeaderFields,
-                        reportNumberConfig
+                JSON.stringify({
+                    format_no: meta.formatNo || "",
+                    revision_no: meta.revisionNo || "",
+                    issued_date: meta.issuedDate || "",
+                    revision_date: meta.revisionDate || "",
+                    project: meta.project || "",
+                    inspection_report_prefix: String(
+                        meta.inspectionReportPrefix || meta.inspectionReportNo || ""
                     )
-                )
+                        .trim()
+                        .replace(/-$/, ""),
+
+                    inspection_report_no: "",
+                    date_of_inspection: meta.dateOfInspection || "",
+                    name_of_contractor: meta.nameOfContractor || "",
+                    make_model: meta.makeModel || "",
+                    location: meta.location || "",
+                    identification_no: meta.identificationNo || "",
+                    name_of_operator: meta.nameOfOperator || "",
+                })
             );
 
             formData.append(
@@ -370,9 +334,6 @@ function SafetyWizard() {
                         orgId={selectedOrgId}
                         projectId={selectedProjectId}
                         selectedCategoryId={selectedCategoryId}
-                        projectName={selectedProject?.name || ""}
-                        headerFields={headerFields}
-                        reportNumberConfig={reportNumberConfig}
                         deferCreate
                         onReportDraftChange={setReportDraft}
                     />
@@ -387,18 +348,6 @@ function SafetyWizard() {
                         setTillApprove={setTillApprove}
                         roundCount={roundCount}
                         setRoundCount={setRoundCount}
-                    />
-                );
-
-
-            case "fields":
-                return (
-                    <SafetyHeaderFieldsConfig
-                        headerFields={headerFields}
-                        setHeaderFields={setHeaderFields}
-                        reportNumberConfig={reportNumberConfig}
-                        setReportNumberConfig={setReportNumberConfig}
-                        projectName={selectedProject?.name || ""}
                     />
                 );
 

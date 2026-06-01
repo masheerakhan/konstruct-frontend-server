@@ -42,8 +42,11 @@ const ROLE_OPTIONS = [
   "STAFF",
   "MAKER",
   "SECURITY_GUARD",
+  "MANAGER",
   "PROJECT_MANAGER",
   "PROJECT_HEAD",
+  "ENGINEER",
+  "QUALITY ENGINEER",
 ];
 
 function UsersManagement() {
@@ -100,6 +103,8 @@ const [selectedBuildingIds, setSelectedBuildingIds] = useState([]);
   const [editSaving, setEditSaving] = useState(false);
   const [editErr, setEditErr] = useState("");
   const [editForm, setEditForm] = useState({
+    user_type: "INTERNAL",
+    contractor_name: "",
     username: "",
     first_name: "",
     last_name: "",
@@ -133,6 +138,7 @@ const [selectedBuildingIds, setSelectedBuildingIds] = useState([]);
   const [projectNameCache, setProjectNameCache] = useState({});
   const [stageNameCache, setStageNameCache] = useState({});
   const [categories, setCategories] = useState([]);
+  const [safetyOfficerDraft, setSafetyOfficerDraft] = useState(false);
 
   const fetchUsers = async () => {
     setLoading(true);
@@ -935,7 +941,10 @@ const toggleSelectAllBuildings = () => {
 
     setEditErr("");
     setEditUser(u);
+    setSafetyOfficerDraft(!!(u.is_safetyOfficer ?? u.is_safetyOfficer));
     setEditForm({
+      user_type: u.user_type || "INTERNAL",
+      contractor_name: u.contractor_name || "",
       username: u.username || "",
       first_name: u.first_name || "",
       last_name: u.last_name || "",
@@ -953,6 +962,8 @@ const toggleSelectAllBuildings = () => {
     setEditErr("");
     setEditSaving(false);
     setEditForm({
+      user_type: "INTERNAL",
+      contractor_name: "",
       username: "",
       first_name: "",
       last_name: "",
@@ -989,6 +1000,14 @@ const toggleSelectAllBuildings = () => {
     }
 
     const userPayload = {
+      user_type: editForm.user_type || "INTERNAL",
+
+      contractor_name:
+        editForm.user_type === "EXTERNAL"
+          ? (editForm.contractor_name || "").trim()
+          : "",
+
+      is_safetyOfficer: !!safetyOfficerDraft,
       username: uname,
       first_name: (editForm.first_name || "").trim(),
       last_name: (editForm.last_name || "").trim(),
@@ -1018,6 +1037,16 @@ const toggleSelectAllBuildings = () => {
       setEditSaving(false);
     }
   };
+
+    const handleEditUserTypeChange = (e) => {
+      const nextType = e.target.value;
+
+      setEditForm((prev) => ({
+        ...prev,
+        user_type: nextType,
+        contractor_name: nextType === "EXTERNAL" ? prev.contractor_name : "",
+      }));
+    };
 
   const toggleUserHasAccess = async (user) => {
     if (!user?.id || userToggleSaving) return;
@@ -2398,6 +2427,66 @@ const buildAccessPayloads = ({
 
                 <div>
                   <label
+                    className={`block text-sm font-medium mb-1 ${palette.text}`}
+                  >
+                    User Type *
+                  </label>
+                  <select
+                    className={`w-full px-3 py-2 rounded-lg ${palette.input} ${palette.border} border`}
+                    value={editForm.user_type}
+                    onChange={handleEditUserTypeChange}
+                  >
+                    <option value="INTERNAL">Internal</option>
+                    <option value="EXTERNAL">External</option>
+                  </select>
+                </div>
+
+                {editForm.user_type === "EXTERNAL" && (
+                  <div>
+                    <label
+                      className={`block text-sm font-medium mb-1 ${palette.text}`}
+                    >
+                      Name of Contractor *
+                    </label>
+                    <input
+                      className={`w-full px-3 py-2 rounded-lg ${palette.input} ${palette.border} border`}
+                      value={editForm.contractor_name}
+                      onChange={(e) =>
+                        setEditForm((p) => ({
+                          ...p,
+                          contractor_name: e.target.value,
+                        }))
+                      }
+                      placeholder="Enter Contractor Name"
+                    />
+                  </div>
+                )}
+
+                <div
+                  className={`mb-4 p-3 rounded-lg ${
+                    theme === "dark" ? "bg-slate-900" : "bg-gray-50"
+                  } ${palette.border} border`}
+                >
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={safetyOfficerDraft}
+                      onChange={(e) => setSafetyOfficerDraft(e.target.checked)}
+                    />
+                    <div>
+                      <div className={`text-sm font-semibold ${palette.text}`}>
+                        Is Safety Officer
+                      </div>
+                      <div className={`text-xs ${palette.subtext}`}>
+                        Enable this if the user belongs to safety
+                        workflow/users.
+                      </div>
+                    </div>
+                  </label>
+                </div>
+
+                <div>
+                  <label
                     className={`block text-sm font-medium mb-2 ${palette.text}`}
                   >
                     New Password
@@ -2569,7 +2658,9 @@ const buildAccessPayloads = ({
                       </label>
                       <select
                         value={selectedBuildingIds[0]}
-                        onChange={(e) => setSelectedBuildingIds([e.target.value])}
+                        onChange={(e) =>
+                          setSelectedBuildingIds([e.target.value])
+                        }
                         disabled={!selectedProjectId}
                         className={`w-full rounded-lg border px-3 py-2 ${palette.input}`}
                       >

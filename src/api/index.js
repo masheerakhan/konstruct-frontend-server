@@ -1,17 +1,14 @@
-
 import axiosInstance from "./axiosInstance";
 import {
   projectInstance,
   checklistInstance,
   NEWchecklistInstance,
 } from "./axiosInstance";
-import { organnizationInstance } from "./axiosInstance"
+import { organnizationInstance } from "./axiosInstance";
 import axios from "axios";
-
 
 const __isLoggingOut = () => localStorage.getItem("__LOGGING_OUT__") === "1";
 const __hasAccess = () => !!localStorage.getItem("ACCESS_TOKEN");
-
 
 // helper: get root domain from axiosInstance baseURL safely
 const __getApiRoot = () => {
@@ -30,7 +27,12 @@ const __getApiRoot = () => {
 };
 
 // helper: try multiple URLs (useful when env/baseURL differs)
-const __postMultipartWithFallback = async (instance, urlList, formData, config = {}) => {
+const __postMultipartWithFallback = async (
+  instance,
+  urlList,
+  formData,
+  config = {},
+) => {
   let lastErr = null;
 
   for (const url of urlList) {
@@ -51,9 +53,6 @@ const __postMultipartWithFallback = async (instance, urlList, formData, config =
 
   throw lastErr;
 };
-
-
-
 
 const __getBlobWithFallback = async (instance, urlList, config = {}) => {
   let lastErr = null;
@@ -95,7 +94,7 @@ const __formsUrlCandidates = (path) => {
 
 const __jsonWithFallback = async (
   instance,
-  { method = "get", urlList = [], params, data, config = {} }
+  { method = "get", urlList = [], params, data, config = {} },
 ) => {
   let lastErr = null;
 
@@ -151,11 +150,14 @@ export function downloadBlob(blob, filename = "file.pdf") {
 export function filenameFromDisposition(disposition) {
   if (!disposition) return null;
   // attachment; filename="WIR_123.pdf"
-  const m = /filename\*=UTF-8''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i.exec(disposition);
-  const name = (m && (m[1] || m[2] || m[3])) ? decodeURIComponent(m[1] || m[2] || m[3]) : "";
+  const m =
+    /filename\*=UTF-8''([^;]+)|filename="([^"]+)"|filename=([^;]+)/i.exec(
+      disposition,
+    );
+  const name =
+    m && (m[1] || m[2] || m[3]) ? decodeURIComponent(m[1] || m[2] || m[3]) : "";
   return (name || "").trim() || null;
 }
-
 
 export const login = async (data) =>
   axiosInstance.post("/token/", data, {
@@ -187,14 +189,12 @@ export const createRoom = async (data) =>
     },
   });
 
-
 export const getRoomsByProject = async (projectId) =>
   projectInstance.get(`/rooms/by_project/?project_id=${projectId}`, {
     headers: {
       "Content-Type": "application/json",
     },
   });
-
 
 export const createOrganization = async (data) =>
   organnizationInstance.post("/organizations/", data, {
@@ -208,9 +208,13 @@ export const getOrganizationById = (orgId) => {
 };
 
 export const assignOrganizationToUser = async (user_id, organization_id) =>
-  organnizationInstance.post('/assign-user-org/', { user_id, organization_id }, {
-    headers: { "Content-Type": "application/json" }
-  });
+  organnizationInstance.post(
+    "/assign-user-org/",
+    { user_id, organization_id },
+    {
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 
 export const createCompany = async (data) =>
   organnizationInstance.post("/companies/", data, {
@@ -227,7 +231,8 @@ export const createProject = async (data) =>
   });
 
 export const GEtbyProjectID = async (id) =>
-  projectInstance.get(`/projects/${id}`, {  // ✅ Use the id parameter
+  projectInstance.get(`/projects/${id}`, {
+    // ✅ Use the id parameter
     headers: {
       "Content-Type": "multipart/form-data",
     },
@@ -275,7 +280,6 @@ export const getOrganization = async () =>
     },
   });
 
-
 export const getCompanyDetailsById = async (id) =>
   organnizationInstance.get(
     `/company/get-company-details-by-organization-id/?organization_id=${id}`,
@@ -283,21 +287,17 @@ export const getCompanyDetailsById = async (id) =>
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
 
 export const getProjectDetailsById = async (id) => {
   console.log(id, "id project");
-  return projectInstance.get(
-    `/project/get-project-details-by-company-id/`,
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
+  return projectInstance.get(`/project/get-project-details-by-company-id/`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 };
-
 
 export const getPRojectbyYourPErmission = async () =>
   projectInstance.get("projects/by_user_scope/", {
@@ -306,12 +306,10 @@ export const getPRojectbyYourPErmission = async () =>
     },
   });
 
-
 export const getProjectDetails = async () =>
   projectInstance.get("/project/get-project-details/", {
     headers: {
       "Content-Type": "application/json",
-
     },
   });
 
@@ -336,8 +334,6 @@ export const getMyChecklists = async () =>
     },
   });
 
-
-
 export const createPhase = async (data) =>
   projectInstance.post("phase/create-phases/", data, {
     headers: {
@@ -345,9 +341,15 @@ export const createPhase = async (data) =>
     },
   });
 
-
 export const getPhaseDetailsByProjectId = async (id) =>
   projectInstance.get(`phases/by-project/${id}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+export const getProjectPhases = async (projectid) =>
+  projectInstance.get(`phases/list/${projectid}/`, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -367,12 +369,22 @@ export const GetstagebyPhaseid = async (id) =>
     },
   });
 
+export const getProjectStages = async (phase_id) =>
+  projectInstance.get(
+    `stages/list/by_phase/${phase_id}/`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
 
-export const deleteStage = async (id) => projectInstance.delete(`stages/${id}/`, {
-  headers: {
-    "Content-Type": "application/json",
-  },
-})
+export const deleteStage = async (id) =>
+  projectInstance.delete(`stages/${id}/`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
 export const getStageDetailsByProjectId = async (id) =>
   projectInstance.get(`get-stage-details-by-project-id/${id}/`, {
@@ -380,7 +392,6 @@ export const getStageDetailsByProjectId = async (id) =>
       "Content-Type": "application/json",
     },
   });
-
 
 export const createTower = async (data) =>
   projectInstance.post("/buildings/", data, {
@@ -392,6 +403,14 @@ export const createTower = async (data) =>
 
 export const fetchTowersByProject = async (id) =>
   projectInstance.get(`/buildings/by_project/${id}/`, {
+    headers: {
+      "Content-Type": "application/json",
+      //   "Access-Control-Allow-Origin": "*",
+    },
+  });
+
+export const fetchTowerListByProject = async (id) =>
+  projectInstance.get(`/buildings/list/by_project/${id}/`, {
     headers: {
       "Content-Type": "application/json",
       //   "Access-Control-Allow-Origin": "*",
@@ -412,7 +431,7 @@ export const getBuildingnlevel = async (id) =>
       "Content-Type": "application/json",
       //   "Access-Control-Allow-Origin": "*",
     },
-  })
+  });
 
 export const updateTower = async (towerId, data) =>
   projectInstance.patch(`/buildings/${towerId}/`, data, {
@@ -421,15 +440,12 @@ export const updateTower = async (towerId, data) =>
     },
   });
 
-
-
 // export const getTowerDetailsByProjectId = async (id) =>
 //   axiosInstance.get(`/tower/get-tower-details-by-id/?project_id=${id}`, {
 //     headers: {
 //       "Content-Type": "application/json",
 //     },
 //   });
-
 
 export const createLevel = async (data) =>
   projectInstance.post("/levels/", data, {
@@ -439,14 +455,11 @@ export const createLevel = async (data) =>
   });
 
 export const getLevelsByTowerId = async (id) =>
-  projectInstance.get(`/levels/by_building/${id}`, {
+  projectInstance.get(`/levels/by_building/${id}/`, {
     headers: {
       "Content-Type": "application/json",
     },
-
   });
-
-
 
 export const getLevelsWithFlatsByBuilding = async (id) =>
   projectInstance.get(`/levels-with-flats/${id}/`, {
@@ -461,13 +474,14 @@ export const getBuildingsById = async (id) =>
     },
   });
 
-
-
 export const updateLevel = async ({ id, name, building }) =>
-  projectInstance.put(`/levels/${id}/`, { name, building }, {
-    headers: { "Content-Type": "application/json" },
-  });
-
+  projectInstance.put(
+    `/levels/${id}/`,
+    { name, building },
+    {
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 
 export const deleteLevel = async (id) =>
   projectInstance.delete(`/levels/${id}/`, {
@@ -482,19 +496,14 @@ export const NestedZonenSubzone = async (data) => {
       "Content-Type": "application/json",
     },
   });
-}
-
+};
 
 export const zonewithbluidlingwithlevel = async (id) =>
-  projectInstance.get(
-    `/buildings/with-levels-and-zones/by_project/${id}/`,
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    }
-  );
-
+  projectInstance.get(`/buildings/with-levels-and-zones/by_project/${id}/`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
 // export const createRoom = async (data) =>
 //   axiosInstance.post("/room/create-room/", data, {
@@ -521,10 +530,9 @@ export const getFlatTypes = async (id, token) =>
   projectInstance.get(`/flattypes/by_project/${id}/`, {
     headers: {
       "Content-Type": "application/json",
-      'Authorization': `Bearer ${token}`,
+      Authorization: `Bearer ${token}`,
     },
   });
-
 
 export const updateFlatType = async (data) => {
   console.log(data, "DATA FLAT TYPE");
@@ -535,10 +543,9 @@ export const updateFlatType = async (data) => {
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
 };
-
 
 export const createUnit = async (data) =>
   projectInstance.post("/flats/", data, {
@@ -547,14 +554,12 @@ export const createUnit = async (data) =>
     },
   });
 
-
 export const getUnits = async (id) =>
   projectInstance.get(`flats/by_project/${id}`, {
     headers: {
       "Content-Type": "application/json",
     },
   });
-
 
 export const allinfobuildingtoflat = async (id) =>
   projectInstance.get(`projects/${id}/buildings-details/`, {
@@ -563,7 +568,6 @@ export const allinfobuildingtoflat = async (id) =>
     },
   });
 
-
 export const updateUnit = async (data) =>
   projectInstance.put("/flats/", data, {
     headers: {
@@ -571,14 +575,12 @@ export const updateUnit = async (data) =>
     },
   });
 
-
 export const createTransferRule = async (data) =>
   projectInstance.post("/transfer-rules/", data, {
     headers: {
       "Content-Type": "application/json",
     },
   });
-
 
 export const getTransferRules = async (id) => {
   return projectInstance.get(`/transfer-rules/?project_id=${id}`, {
@@ -588,14 +590,12 @@ export const getTransferRules = async (id) => {
   });
 };
 
-
 export const createChecklistCategory = async (data) =>
   checklistInstance.post("/category/create-category/", data, {
     headers: {
       "Content-Type": "application/json",
     },
   });
-
 
 export const getChecklistCategories = async (id) =>
   checklistInstance.get(
@@ -604,7 +604,7 @@ export const getChecklistCategories = async (id) =>
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
 
 export const getchecklistbyProject = async (id) =>
@@ -614,6 +614,22 @@ export const getchecklistbyProject = async (id) =>
     },
   });
 
+export const getTowerOverview = async (id, params = {}) =>
+  checklistInstance.get(`tower-overview/${id}/`, {
+    params,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+export const getTowerOverviewPDF = async (id, params = {}) =>
+  checklistInstance.get(`/tower-overview-pdf/${id}/`, {
+    params,
+    responseType: "blob",
+    headers: {
+      Accept: "application/pdf",
+    },
+  });
 
 export const createChecklistSubCategory = async (data) =>
   axiosInstance.post("/sub-category/create-sub-category/", data, {
@@ -622,7 +638,6 @@ export const createChecklistSubCategory = async (data) =>
     },
   });
 
-
 export const getChecklistSubCategories = async (id) =>
   axiosInstance.get(
     `/sub-category/get-sub-category-details-by-organization-id/?organization_id=${id}`,
@@ -630,11 +645,11 @@ export const getChecklistSubCategories = async (id) =>
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
 
 export const getCategoriesSimpleByProject = async (projectId) =>
-  projectInstance.get(`/categories-simple/?project=${projectId}`, {
+  projectInstance.get(`/categories-simple/?project_id=${projectId}`, {
     headers: { "Content-Type": "application/json" },
   });
 
@@ -643,14 +658,12 @@ export const createCategorySimple = async (data) =>
     headers: { "Content-Type": "application/json" },
   });
 
-
 export const createChecklist = async (data) =>
-  NEWchecklistInstance.post("/checklists/", data,
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+  NEWchecklistInstance.post("/checklists/", data, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
 export const viewChecklist = async (checklistId) =>
   NEWchecklistInstance.get(`/checklist-items/${checklistId}/`, {
@@ -659,15 +672,12 @@ export const viewChecklist = async (checklistId) =>
     },
   });
 
-
-
 export const createChecklistItemOPTIONSS = async (data) =>
   NEWchecklistInstance.post("/options/", data, {
     headers: {
       "Content-Type": "application/json",
     },
   });
-
 
 export const createChecklistQuestion = async (data) =>
   NEWchecklistInstance.post("/items/", data, {
@@ -676,8 +686,6 @@ export const createChecklistQuestion = async (data) =>
     },
   });
 
-
-
 export const getChecklistDetails = async (id) =>
   axiosInstance.get(
     `/checklist-quest/get-checklist-details-by-organization-id/?organization_id=${id}`,
@@ -685,9 +693,8 @@ export const getChecklistDetails = async (id) =>
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
-
 
 export const createChecklistMapping = async (data) =>
   axiosInstance.post(
@@ -697,7 +704,7 @@ export const createChecklistMapping = async (data) =>
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
 export const getChecklistMappingDetails = async (id) =>
   axiosInstance.get(`/checklist-quest/get-mapping-data/?project_id=${id}`, {
@@ -705,6 +712,15 @@ export const getChecklistMappingDetails = async (id) =>
       "Content-Type": "application/json",
     },
   });
+
+export const getUsersWithRoles = async (projectId) => {
+  return axiosInstance.get(`user-list/list/?project_id=${projectId}`, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("access")}`,
+    },
+  });
+};
 
 export const createUserDetails = async (data) =>
   axiosInstance.post("/users/", data, {
@@ -721,62 +737,8 @@ export const updateChecklist = async (data) =>
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
-
-
-
-// ################################ SAFETY API USAGE ########################################
-
-// ---- Safety Setup (categories + templates) ----
-// export const listSafetyCategories = (params = {}) =>
-//   NEWchecklistInstance.get("/safety/categories/", {
-//     params: {
-//       org_id: params.org_id,
-//       project_id: params.project_id,
-//       active: params.active,
-//     },
-//     headers: { "Content-Type": "application/json" },
-//   });
-
-// export const createSafetyCategory = (payload) =>
-//   NEWchecklistInstance.post("/safety/categories/", payload, {
-//     headers: { "Content-Type": "application/json" },
-//   });
-
-// export const listSafetyTemplates = (params = {}) =>
-//   NEWchecklistInstance.get("/safety/templates/", {
-//     params: {
-//       org_id: params.org_id,
-//       project_id: params.project_id,
-//       category: params.category,
-//       status: params.status,
-//       is_latest: params.is_latest,
-//     },
-//     headers: { "Content-Type": "application/json" },
-//   });
-
-// export const getSafetyTemplate = (id) =>
-//   NEWchecklistInstance.get(`/safety/templates/${id}/`, {
-//     headers: { "Content-Type": "application/json" },
-//   });
-
-// export const createSafetyTemplate = (payload) =>
-//   NEWchecklistInstance.post("/safety/templates/", payload, {
-//     headers: { "Content-Type": "application/json" },
-//   });
-
-// export const deleteSafetyTemplate = (id) =>
-//   NEWchecklistInstance.delete(`/safety/templates/${id}/`, {
-//     headers: { "Content-Type": "application/json" },
-//   });
-
-// ---- Safety Checklist Instances (Manager creates from template) ----
-
-// export const createSafetyChecklist = (payload) =>
-//   NEWchecklistInstance.post("/safety/checklists/", payload, {
-//     headers: { "Content-Type": "application/json" },
-//   });
 
 export const getUsersByOrganizationId = async (id) =>
   organnizationInstance.get(`/user-orgnizationn-info/${id}`, {
@@ -784,8 +746,6 @@ export const getUsersByOrganizationId = async (id) =>
       "Content-Type": "application/json",
     },
   });
-
-
 
 export const updateUserDetails = async (data) =>
   axiosInstance.put("/user/update-user-details/", data, {
@@ -823,7 +783,7 @@ export const getFloorTypeDetails = async (id, projectId) =>
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
 
 export const getSubCategoryChecklist = async (id) =>
@@ -833,7 +793,7 @@ export const getSubCategoryChecklist = async (id) =>
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
 
 export const getRoomsWiseChecklist = async (checkListId, roomId) =>
@@ -843,7 +803,7 @@ export const getRoomsWiseChecklist = async (checkListId, roomId) =>
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
 
 export const getstageDetails = async (projectId) =>
@@ -853,9 +813,8 @@ export const getstageDetails = async (projectId) =>
       headers: {
         "Content-Type": "application/json",
       },
-    }
+    },
   );
-
 
 // export const getProjectUserDetails = async  =>
 //   projectInstance.get(
@@ -871,18 +830,14 @@ export const getstageDetails = async (projectId) =>
 //   );
 
 export const getProjectUserDetails = async () =>
-  projectInstance.get(
-    "/user-stage-role/get-projects-by-user/",
-    {
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("ACCESS_TOKEN") || localStorage.getItem("access")
-          }`,
-      },
-    }
-  );
-
-
+  projectInstance.get("/user-stage-role/get-projects-by-user/", {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${
+        localStorage.getItem("ACCESS_TOKEN") || localStorage.getItem("access")
+      }`,
+    },
+  });
 
 export const editStage = async (data) =>
   axiosInstance.put("/stage/update-stage-details/", data, {
@@ -891,28 +846,24 @@ export const editStage = async (data) =>
     },
   });
 
-
-
-export const getProjectsByOwnership = async ({ entity_id, company_id, organization_id }) => {
-  let query = '';
+export const getProjectsByOwnership = async ({
+  entity_id,
+  company_id,
+  organization_id,
+}) => {
+  let query = "";
   if (entity_id) query = `entity_id=${entity_id}`;
   else if (company_id) query = `company_id=${company_id}`;
   else if (organization_id) query = `organization_id=${organization_id}`;
   if (!__hasAccess() || __isLoggingOut()) return { data: [] };
-  return projectInstance.get(
-    `/projects/by_ownership/?${query}`,
-    {
-      headers: {
-        "Content-Type": "application/json",
-      }
-    }
-  );
+  return projectInstance.get(`/projects/by_ownership/?${query}`, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 };
 
-
-
 export const getProjectsByOrganization = async (organizationId) =>
-
   projectInstance.get(`/projects/by_organization/${organizationId}/`, {
     headers: {
       "Content-Type": "application/json",
@@ -936,19 +887,19 @@ export const createUserAccessRole = async (payload) =>
 
 // For existing user access creation
 export const createUserAccess = async (payload) =>
-    axiosInstance.post("/accesses/", payload, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+  axiosInstance.post("/accesses/", payload, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
 // For existing user role access creation
 export const createRoleForUserAccess = async (payload) =>
-    axiosInstance.post("/roles/", payload, {
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+  axiosInstance.post("/roles/", payload, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
 
 export const getProjectAccesses = async (userId, projectId) => {
   const token =
@@ -960,8 +911,8 @@ export const getProjectAccesses = async (userId, projectId) => {
     `/accesses/?user_id=${userId}&project_id=${projectId}`,
     {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
-       "Content-Type": "application/json",
-    }
+      "Content-Type": "application/json",
+    },
   );
 };
 
@@ -975,26 +926,51 @@ export const getStageByPhaseId = async (phaseId) =>
     headers: { "Content-Type": "application/json" },
   });
 
-export const getAccessibleChecklists = async (projectId, userId) =>
-  checklistInstance.get(`/accessible-checklists/?project_id=${projectId}&user_id=${userId}`, {
-    headers: {
-      "Content-Type": "application/json",
-    },
-  })
+// FETCH ASSIGNED PROJECTS
 
+export const getAssignedProjects = async (userId) => {
+  return axiosInstance.get(`/accesses/assigned-projects/?user_id=${userId}`);
+};
+export const getAccessibleChecklists = async (projectId, userId) =>
+  checklistInstance.get(
+    `/accessible-checklists/?project_id=${projectId}&user_id=${userId}`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+// ================= USERS BY ROLE =================
+export const getUsersByRoles = async (roles) =>
+  projectInstance.post(
+    "users/by-roles/",
+    {
+      roles,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
 
 export const assignChecklistToUser = async (checklistId) =>
-  checklistInstance.post('/create-checklistitemsubmissions-assign/', {
-    checklist_id: checklistId
-  }, {
-    headers: {
-      "Content-Type": "application/json",
+  checklistInstance.post(
+    "/create-checklistitemsubmissions-assign/",
+    {
+      checklist_id: checklistId,
     },
-  });
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
 
 // Get hierarchical verifications for checker
 export const getMyHierarchicalVerifications = async () =>
-  checklistInstance.get('/my-hierarchical-verifications/', {
+  checklistInstance.get("/my-hierarchical-verifications/", {
     headers: {
       "Content-Type": "application/json",
     },
@@ -1018,12 +994,14 @@ export const verifyChecklistItemSubmission = async (formData) => {
     console.warn("Could not attach FLOW_ROLE to formData", e);
   }
 
-  return checklistInstance.patch("/verify-checklist-item-submission/", formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  return checklistInstance.patch(
+    "/verify-checklist-item-submission/",
+    formData,
+    {
+      headers: { "Content-Type": "multipart/form-data" },
+    },
+  );
 };
-
-
 
 // by prathamesh
 
@@ -1035,7 +1013,7 @@ export const getProjectCategoryUserAccess = async (projectId, categoryId) => {
     const response = await axiosInstance.get("project-category-user-access/", {
       params: {
         project_id: projectId,
-        category_id: categoryId
+        category_id: categoryId,
       },
       headers: {
         "Content-Type": "application/json",
@@ -1044,13 +1022,11 @@ export const getProjectCategoryUserAccess = async (projectId, categoryId) => {
 
     console.log("User access data fetched:", response.data);
     return response.data;
-
   } catch (error) {
     console.error("Error fetching user access:", error);
     throw error;
   }
 };
-
 
 export const sendNotificationToUsers = async (data) => {
   console.log("Sending notification to users...", data);
@@ -1070,20 +1046,23 @@ export const sendNotificationToUsers = async (data) => {
   }
 };
 
-
 // Add this function to your index.js API file
 
 export const patchChecklistRoles = async (checklistId, rolesData) => {
   console.log("Patching checklist roles...", { checklistId, rolesData });
 
   try {
-    const response = await checklistInstance.patch(`/${checklistId}/patch-roles/`, {
-      roles_json: rolesData
-    }, {
-      headers: {
-        "Content-Type": "application/json",
+    const response = await checklistInstance.patch(
+      `/${checklistId}/patch-roles/`,
+      {
+        roles_json: rolesData,
       },
-    });
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
 
     console.log("Checklist roles updated successfully:", response.data);
     return response.data;
@@ -1092,9 +1071,6 @@ export const patchChecklistRoles = async (checklistId, rolesData) => {
     throw error;
   }
 };
-
-
-
 
 // ORGANIZATION PATCH & DELETE
 export const updateOrganization = async (id, data) =>
@@ -1129,48 +1105,42 @@ export const deleteEntity = async (id) =>
     headers: { "Content-Type": "application/json" },
   });
 
-
-
 export const editPurpose = (purposeId, payload) => {
   return projectInstance.patch(`/purposes/${purposeId}/`, payload, {
-    headers: { "Content-Type": "application/json" }
+    headers: { "Content-Type": "application/json" },
   });
 };
 
 export const deletePurpose = (purposeId) => {
   return projectInstance.delete(`/purposes/${purposeId}/`, {
-    headers: { "Content-Type": "application/json" }
+    headers: { "Content-Type": "application/json" },
   });
 };
 
-
 export const editPhase = (phaseId, payload) => {
   return projectInstance.patch(`/phases/${phaseId}/`, payload, {
-    headers: { "Content-Type": "application/json" }
+    headers: { "Content-Type": "application/json" },
   });
 };
 
 export const deletePhase = (phaseId) => {
   return projectInstance.delete(`/phases/${phaseId}/`, {
-    headers: { "Content-Type": "application/json" }
+    headers: { "Content-Type": "application/json" },
   });
 };
-
 
 export const patchStage = (id, payload) => {
   return projectInstance.patch(`/stages/${id}/`, payload, {
-    headers: { "Content-Type": "application/json" }
+    headers: { "Content-Type": "application/json" },
   });
 };
-
-
 
 // Get user dashboard analytics
 export const getUserDashboard = async () => {
   const token = localStorage.getItem("ACCESS_TOKEN");
   console.log(
     "Making API call to /user-dashboard/ with token:",
-    token ? "Present" : "Missing"
+    token ? "Present" : "Missing",
   );
 
   try {
@@ -1215,12 +1185,10 @@ export const updateChecklistById = async (checklistId, payload) =>
     },
   });
 
-
 export const createProjectSchedules = async (payload) =>
   projectInstance.post(`/v2/scheduling/`, payload, {
     headers: { "Content-Type": "application/json" },
   });
-
 
 export const getProjectsForCurrentUser = async () => {
   const roleRaw = localStorage.getItem("ROLE") || "";
@@ -1247,32 +1215,24 @@ export const getProjectsForCurrentUser = async () => {
   return getProjectsByOwnership({ entity_id, company_id, organization_id });
 };
 
-
-
 // api.js
 export const getProjectsByOrgOwnership = async (organizationId) =>
-
   projectInstance.get(`/projects/by_ownership/`, {
-
-    params: { organization_id: organizationId },   // -> https://konstruct.world/projects/projects/by_ownership/?organization_id=141
+    params: { organization_id: organizationId }, // -> https://konstruct.world/projects/projects/by_ownership/?organization_id=141
     headers: { "Content-Type": "application/json" },
   });
-
-
 
 export const getSchedulingSetup = (project_id) =>
   projectInstance.get("/v2/scheduling/setup/", {
     params: { project_id }, // -> ?project_id=36
   });
 
-
-
 /* ========= GUARD: STAFF & ATTENDANCE (v2) ========= */
 
 // 1) GET /v2/staff/?project_id=36[&q=raj]
 export const getStaffByProject = (projectId, q = "") =>
   axiosInstance.get("/v2/staff/", {
-    params: { project_id: projectId, q },   // if your API expects `search`, swap to { project_id, search: q }
+    params: { project_id: projectId, q }, // if your API expects `search`, swap to { project_id, search: q }
     headers: { "Content-Type": "application/json" },
   });
 
@@ -1280,12 +1240,12 @@ export const getStaffByProject = (projectId, q = "") =>
 // api.js
 export const onboardStaff = ({
   project_id,
-  username,                 // NEW
+  username, // NEW
   first_name,
   last_name = "",
   phone_number,
-  adharcard_nummber = "",   // keep backend’s exact field name
-  photo,                    // File/Blob
+  adharcard_nummber = "", // keep backend’s exact field name
+  photo, // File/Blob
 }) => {
   const fd = new FormData();
   fd.append("project_id", String(project_id));
@@ -1309,16 +1269,19 @@ export const onboardStaff = ({
 export const markAttendance = ({
   user_id,
   project_id,
-  photo,                 // File/Blob
+  photo, // File/Blob
   lat = null,
   lon = null,
-  force_action = null,   // "IN" | "OUT" | null
+  force_action = null, // "IN" | "OUT" | null
 }) => {
   const fd = new FormData();
   fd.append("user_id", user_id);
   fd.append("project_id", project_id);
   fd.append("photo", photo);
-  if (lat != null && lon != null) { fd.append("lat", lat); fd.append("lon", lon); }
+  if (lat != null && lon != null) {
+    fd.append("lat", lat);
+    fd.append("lon", lon);
+  }
   if (force_action) fd.append("force_action", force_action);
   return axiosInstance.post("/v2/attendance/mark/", fd, {
     headers: { "Content-Type": "multipart/form-data" },
@@ -1327,18 +1290,17 @@ export const markAttendance = ({
 
 // 4) GET /v2/attendance/?user_id=&project_id=&date=YYYY-MM-DD
 // or use start_date & end_date
-export const listAttendanceByUser = ({ user_id, project_id, date, start_date, end_date }) =>
+export const listAttendanceByUser = ({
+  user_id,
+  project_id,
+  date,
+  start_date,
+  end_date,
+}) =>
   axiosInstance.get("/v2/attendance/", {
     params: { user_id, project_id, date, start_date, end_date },
     headers: { "Content-Type": "application/json" },
   });
-
-
-
-
-
-
-
 
 export const getSnagStats = (project_id, extraParams = {}) =>
   NEWchecklistInstance.get("/stats/snags/", {
@@ -1350,26 +1312,23 @@ export const resolveActiveProjectId = () => {
   try {
     const qp = new URLSearchParams(window.location.search).get("project_id");
     if (qp) return Number(qp);
-  } catch { }
+  } catch {}
   const ls =
     localStorage.getItem("ACTIVE_PROJECT_ID") ||
     localStorage.getItem("PROJECT_ID");
   return Number(ls) || null;
 };
 
-
 export const resolveOrgId = () => {
   try {
-   const raw = localStorage.getItem("USER_DATA");
-   if (!raw || raw === "undefined") return null;
-   const data = JSON.parse(raw);
-   return data?.org ?? data?.organization_id ?? data?.org_id ?? null;
+    const raw = localStorage.getItem("USER_DATA");
+    if (!raw || raw === "undefined") return null;
+    const data = JSON.parse(raw);
+    return data?.org ?? data?.organization_id ?? data?.org_id ?? null;
   } catch {
-   return null;
+    return null;
   }
 };
-
-
 
 // ==== FACE TEMPLATE (image enroll) ====
 // POST /v2/face/enroll/  (multipart/form-data)
@@ -1387,15 +1346,6 @@ export const enrollFaceTemplate = ({ user_id, photo, replace = false }) => {
   return axiosInstance.post("/v2/face/enroll/", fd);
 };
 
-
-
-
-
-
-
-
-
-
 // --- USER ACCESS (roles per project) ---
 export const getUserAccessForProject = (userId, projectId) =>
   axiosInstance.get("/user-access/", {
@@ -1405,12 +1355,9 @@ export const getUserAccessForProject = (userId, projectId) =>
     },
   });
 
-
-
 export const getStagesByPhase = (phaseId) => {
   return projectInstance.get(`/stages/by_phase/${phaseId}/`);
 };
-
 
 export const getQuestionHotspots = (projectId, params = {}) =>
   NEWchecklistInstance.get("stats/questions/", {
@@ -1428,7 +1375,7 @@ export const fetchNestedProjectData = async (projectId) => {
           Authorization: `Bearer ${localStorage.getItem("ACCESS_TOKEN")}`,
           "Content-Type": "application/json",
         },
-      }
+      },
     );
 
     console.log("🏗️ Nested API Response:", response.data);
@@ -1446,14 +1393,10 @@ export function setActiveProjectId(projectId) {
 
 // NEW: manager projects by ownership
 export function getManagerOwnedProjects(organizationId) {
-  return axiosInstance.get(
-    "/projects/projects/by_ownership/",
-    { params: { organization_id: organizationId } }
-  );
+  return axiosInstance.get("/projects/projects/by_ownership/", {
+    params: { organization_id: organizationId },
+  });
 }
-
-
-
 
 // ==== MIR (Material Inspection Request) ====
 
@@ -1490,7 +1433,6 @@ export const updateMIR = async (id, data) =>
     },
   });
 
-
 export const getProjectUsersForMir = async (projectId) =>
   axiosInstance.get("/user-access-role/", {
     params: { project_id: projectId },
@@ -1526,12 +1468,10 @@ export const rejectMIR = async (id, payload = {}) =>
     },
   });
 
-
 export const getMIRDetail = (id) =>
   axiosInstance.get(`/mir/${id}/`, {
     headers: { "Content-Type": "application/json" },
   });
-
 
 // 👇 MIR ke liye: current creator ke saare users
 export const getUsersByCreator = async () =>
@@ -1568,10 +1508,6 @@ export const signProjectInchargeMIR = async (id, formData) =>
     },
   });
 
-
-
-
-
 // MIR complete history / timeline
 // GET /mir-actions/?mir_id=1
 export const getMIRActions = async (mirId) =>
@@ -1582,11 +1518,6 @@ export const getMIRActions = async (mirId) =>
     },
   });
 
-
-
-
-
-
 // MIR ke liye: project ke users laane ka simple API
 export const getUsersByProject = (projectId) =>
   axiosInstance.get("/by-project/", {
@@ -1595,7 +1526,6 @@ export const getUsersByProject = (projectId) =>
       "Content-Type": "application/json",
     },
   });
-
 
 // NEW FUNCTION TO GET USER BY IRGNIZAATION
 export const getUsersByOrganization = (organizationId) =>
@@ -1606,10 +1536,6 @@ export const getUsersByOrganization = (organizationId) =>
     },
   });
 
-
-
-
-
 export const getMyAssignedMIRs = (params = {}) =>
   axiosInstance.get("/mir/", {
     params: {
@@ -1617,10 +1543,6 @@ export const getMyAssignedMIRs = (params = {}) =>
       ...params, // future me pagination, project filter, etc.
     },
   });
-
-
-
-
 
 export const uploadMIRMaterialImages = (mirId, formData) =>
   axiosInstance.post(`/mir/${mirId}/material-images/`, formData, {
@@ -1632,8 +1554,8 @@ export const uploadMIRMaterialImages = (mirId, formData) =>
 // POST /mir/{id}/sign_store/
 export const signMIRStore = (mirId, { name, sign_date, file }) => {
   const fd = new FormData();
-  if (file) fd.append("signature", file);        // 👈 file required
-  if (name) fd.append("name", name);             // optional
+  if (file) fd.append("signature", file); // 👈 file required
+  if (name) fd.append("name", name); // optional
   if (sign_date) fd.append("sign_date", sign_date); // "YYYY-MM-DD" bhi chalega
 
   return axiosInstance.post(`/mir/${mirId}/sign_store/`, fd, {
@@ -1665,23 +1587,12 @@ export const signMIRProjectIncharge = (mirId, { name, sign_date, file }) => {
   });
 };
 
-
-
-
-
-
-
 export const uploadMIRAttachments = (mirId, formData) =>
   axiosInstance.post(`/mir/${mirId}/attachments/`, formData, {
     headers: {
       "Content-Type": "multipart/form-data",
     },
   });
-
-
-
-
-
 
 // Logo upload
 export function uploadMIRLogo(mirId, formData) {
@@ -1691,8 +1602,6 @@ export function uploadMIRLogo(mirId, formData) {
     },
   });
 }
-
-
 
 // api.js
 
@@ -1704,7 +1613,6 @@ export function createMIRFull(formData) {
     },
   });
 }
-
 
 // ✅ MIR PDF export (server generated) with route fallbacks
 // ✅ MIR PDF export (server generated) with route fallbacks
@@ -1744,7 +1652,7 @@ export const exportMIRPdf = async (mirId, includeAttachments = true) => {
     try {
       const j = JSON.parse(text);
       msg = j?.detail || j?.message || msg;
-    } catch { }
+    } catch {}
     throw new Error(msg);
   }
 
@@ -1754,8 +1662,6 @@ export const exportMIRPdf = async (mirId, includeAttachments = true) => {
   downloadBlob(res.data, filename);
   return true;
 };
-
-
 
 // ==== FORMS ENGINE (Dynamic Forms) ====
 
@@ -1787,8 +1693,6 @@ export const createFormTemplateVersion = (payload) =>
     },
   });
 
-
-
 // NEW: Excel → schema preview
 export const previewFormExcel = (file) => {
   const fd = new FormData();
@@ -1797,9 +1701,6 @@ export const previewFormExcel = (file) => {
     headers: { "Content-Type": "multipart/form-data" },
   });
 };
-
-
-
 
 // ---- Form Packs (bundles) ----
 
@@ -1861,14 +1762,10 @@ export const getAssignedFormsForProject = (projectId, extraParams = {}) =>
     headers: { "Content-Type": "application/json" },
   });
 
-
 export const createFormResponse = (payload) =>
   axiosInstance.post("/forms/responses/", payload, {
     headers: { "Content-Type": "application/json" },
   });
-
-
-
 
 // GET /users/forms/responses/:id/
 export const getFormResponse = (id) =>
@@ -1878,15 +1775,12 @@ export const getFormResponse = (id) =>
 export const forwardFormResponse = (id, payload) =>
   axiosInstance.post(`/forms/responses/${id}/forward/`, payload);
 
-
 // GET /users/forms/responses/
 export const listMyFormResponses = (params = {}) =>
   axiosInstance.get("/forms/responses/", {
     params,
     headers: { "Content-Type": "application/json" },
   });
-
-
 
 // api.js
 
@@ -1897,13 +1791,19 @@ export async function getFormTask(taskId) {
 
 export async function saveFormTask(taskId, payload) {
   // expects { data: {...} }
-  const { data } = await axiosInstance.patch(`/forms/tasks/${taskId}/`, payload);
+  const { data } = await axiosInstance.patch(
+    `/forms/tasks/${taskId}/`,
+    payload,
+  );
   return data;
 }
 
 export async function forwardFormTask(taskId, payload) {
   // expects { to_user_id: 123 }
-  const { data } = await axiosInstance.post(`/forms/tasks/${taskId}/forward/`, payload);
+  const { data } = await axiosInstance.post(
+    `/forms/tasks/${taskId}/forward/`,
+    payload,
+  );
   return data;
 }
 
@@ -1911,21 +1811,11 @@ export async function forwardFormTask(taskId, payload) {
 export const listFormTasks = (params = {}) =>
   axiosInstance.get("/forms/tasks/", { params });
 
-
-
 // PATCH /users/forms/responses/:id/
 export const updateFormResponse = (id, payload) =>
   axiosInstance.patch(`/forms/responses/${id}/`, payload, {
     headers: { "Content-Type": "application/json" },
   });
-
-
-
-
-
-
-
-
 
 //wir
 // ==== WIR (Work Inspection Request) ====
@@ -1987,7 +1877,8 @@ export const signWIRContractor = (wirId, { name, sign_date, file }) => {
 
   // backend commonly expects "signature"
   if (file) {
-    const filename = typeof file?.name === "string" ? file.name : "signature.png";
+    const filename =
+      typeof file?.name === "string" ? file.name : "signature.png";
     fd.append("signature", file, filename);
 
     // (safe fallback) some backends may expect "file"
@@ -2004,7 +1895,7 @@ export const signWIRContractor = (wirId, { name, sign_date, file }) => {
   const urls = [
     `${root}/users/wir/${wirId}/sign-contractor/`,
     `${root}/api/wir/${wirId}/sign-contractor/`, // just in case
-    `/wir/${wirId}/sign-contractor/`,            // if axios baseURL already /users
+    `/wir/${wirId}/sign-contractor/`, // if axios baseURL already /users
   ];
 
   return __postMultipartWithFallback(axiosInstance, urls, fd);
@@ -2014,7 +1905,8 @@ export const signWIRInspector = (wirId, { name, sign_date, file }) => {
   const fd = new FormData();
 
   if (file) {
-    const filename = typeof file?.name === "string" ? file.name : "signature.png";
+    const filename =
+      typeof file?.name === "string" ? file.name : "signature.png";
     fd.append("signature", file, filename);
     fd.append("file", file, filename); // fallback
   }
@@ -2051,11 +1943,6 @@ export function createWIRFull(formData) {
   });
 }
 
-
-
-
-
-
 // ==== WIR (Work Inspection Request) ====
 
 // List my assigned WIRs (same pattern as MIR)
@@ -2064,20 +1951,12 @@ export const getMyAssignedWIRs = (params = {}) =>
     params: { only_assigned: 1, ...params },
   });
 
-
-
-
-
 // ==== WIR ====
-
-
 
 export const uploadWIRAttachments = (id, formData) =>
   axiosInstance.post(`/wir/${id}/attachments/`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
-
-
 
 export const signWIRStore = (id, { name, sign_date, file }) => {
   const fd = new FormData();
@@ -2115,14 +1994,6 @@ export const uploadWIRLogos = (id, formData) =>
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-
-
-
-
-
-
-
-
 export const exportWIRPdf = async (wirId, includeAttachments = true) => {
   const res = await axiosInstance.get(`/wir/${wirId}/export-pdf/`, {
     params: { include_attachments: includeAttachments ? 1 : 0 },
@@ -2134,7 +2005,9 @@ export const exportWIRPdf = async (wirId, includeAttachments = true) => {
   if (contentType.includes("application/json")) {
     const text = await res.data.text();
     let msg = "Export failed";
-    try { msg = JSON.parse(text)?.detail || msg; } catch { }
+    try {
+      msg = JSON.parse(text)?.detail || msg;
+    } catch {}
     throw new Error(msg);
   }
 
@@ -2144,13 +2017,6 @@ export const exportWIRPdf = async (wirId, includeAttachments = true) => {
 
   return true;
 };
-
-
-
-
-
-
-
 
 // ✅ DASHBOARD: Unit Stage Role Summary (Top counters)
 
@@ -2163,7 +2029,8 @@ const __pickToken = () =>
 const __clean = (v) => {
   if (v === null || v === undefined) return null;
   const s = String(v).trim();
-  if (!s || ["null", "none", "undefined"].includes(s.toLowerCase())) return null;
+  if (!s || ["null", "none", "undefined"].includes(s.toLowerCase()))
+    return null;
   return v;
 };
 
@@ -2193,7 +2060,7 @@ const __buildSummaryParams = (p = {}) => {
   if (stage) params.stage_id = stage;
 
   const building = __toCsv(
-    p.building_id ?? p.building_ids ?? p.tower_id ?? p.tower_ids
+    p.building_id ?? p.building_ids ?? p.tower_id ?? p.tower_ids,
   );
   if (building) params.building_id = building;
 
@@ -2201,7 +2068,7 @@ const __buildSummaryParams = (p = {}) => {
   if (unit) params.unit_id = unit;
 
   const pendingFrom = __toCsv(
-    p.pending_from ?? p.pending_from_roles ?? p.role ?? p.roles
+    p.pending_from ?? p.pending_from_roles ?? p.role ?? p.roles,
   );
   if (pendingFrom) params.pending_from = pendingFrom;
 
@@ -2226,7 +2093,7 @@ export const getUnitStageRoleSummary = async (payload = {}) => {
 // ✅ Excel export download (direct)
 export const exportUnitStageRoleSummaryExcel = async (
   payload = {},
-  filename = "unit_stage_role_summary.xlsx"
+  filename = "unit_stage_role_summary.xlsx",
 ) => {
   const token = __pickToken();
   const params = { ...__buildSummaryParams(payload), export: true };
@@ -2237,7 +2104,7 @@ export const exportUnitStageRoleSummaryExcel = async (
       params,
       responseType: "blob",
       headers: token ? { Authorization: `Bearer ${token}` } : undefined,
-    }
+    },
   );
 
   // try filename from header
@@ -2250,15 +2117,6 @@ export const exportUnitStageRoleSummaryExcel = async (
   return true;
 };
 
-
-
-
-
-
-
-
-
-
 // ✅ WIP Breakdown (counts + optional rows)
 export const getUnitWorkInProgressBreakdown = (params = {}) =>
   NEWchecklistInstance.get("/api/unit-work-in-progress-breakdown/", { params });
@@ -2266,12 +2124,15 @@ export const getUnitWorkInProgressBreakdown = (params = {}) =>
 // ✅ WIP Breakdown Excel export
 export const exportUnitWorkInProgressBreakdownExcel = async (
   params = {},
-  filename = "unit_work_in_progress_breakdown.xlsx"
+  filename = "unit_work_in_progress_breakdown.xlsx",
 ) => {
-  const res = await NEWchecklistInstance.get("/api/unit-work-in-progress-breakdown/", {
-    params: { ...params, export: true },   // ✅ keep include_rows/limit from params
-    responseType: "blob",
-  });
+  const res = await NEWchecklistInstance.get(
+    "/api/unit-work-in-progress-breakdown/",
+    {
+      params: { ...params, export: true }, // ✅ keep include_rows/limit from params
+      responseType: "blob",
+    },
+  );
 
   const dispo = res.headers?.["content-disposition"];
   const name =
@@ -2308,7 +2169,7 @@ export const exportUnitChecklistReportExcel = async (params = {}) => {
     try {
       const j = JSON.parse(text);
       msg = j?.detail || j?.message || msg;
-    } catch { }
+    } catch {}
     throw new Error(msg);
   }
 
@@ -2321,8 +2182,10 @@ export const exportUnitChecklistReportExcel = async (params = {}) => {
   return true;
 };
 
-
-export const exportFormResponsePdf = async (responseId, { mode = "grid" } = {}) => {
+export const exportFormResponsePdf = async (
+  responseId,
+  { mode = "grid" } = {},
+) => {
   const token =
     localStorage.getItem("ACCESS_TOKEN") ||
     localStorage.getItem("TOKEN") ||
@@ -2351,7 +2214,7 @@ export const exportFormResponsePdf = async (responseId, { mode = "grid" } = {}) 
     let msg = "PDF export failed";
     try {
       msg = JSON.parse(text)?.detail || JSON.parse(text)?.message || msg;
-    } catch { }
+    } catch {}
     throw new Error(msg);
   }
 
@@ -2363,20 +2226,17 @@ export const exportFormResponsePdf = async (responseId, { mode = "grid" } = {}) 
   return true;
 };
 
-
-
 const API_BASE = "https://konstruct.world/checklists";
 // const API_BASE = "http://localhost:8001/api";
 
-
 const authHeaders = () => ({
-  Authorization: `Bearer ${localStorage.getItem("ACCESS_TOKEN") ||
+  Authorization: `Bearer ${
+    localStorage.getItem("ACCESS_TOKEN") ||
     localStorage.getItem("TOKEN") ||
     localStorage.getItem("token") ||
     ""
-    }`,
+  }`,
 });
-
 
 // ✅ SCHEDULING (Checklist service)
 // POST https://konstruct.world/checklists/api/scheduling/schedules/create/
@@ -2384,7 +2244,6 @@ export const createChecklistSchedule = (payload) =>
   NEWchecklistInstance.post("/scheduling/schedules/create/", payload, {
     headers: { "Content-Type": "application/json" },
   });
-
 
 export const myProjectSchedules = (projectId) => {
   return axios.get(`${API_BASE}/scheduling/my/`, {
@@ -2400,16 +2259,6 @@ export const listProjectSchedules = (projectId) => {
     headers: authHeaders(),
   });
 };
-
-
-
-
-
-
-
-
-
-
 
 /* ===================== SAFETY (Sessions + Quiz) ===================== */
 
@@ -2464,12 +2313,15 @@ export const assignSafetySessionUsers = (sessionId, user_ids = []) =>
   axiosInstance.post(
     `safety/sessions/${sessionId}/assign/`,
     { user_ids },
-    { headers: { "Content-Type": "application/json" } }
+    { headers: { "Content-Type": "application/json" } },
   );
 
 // ✅ UPLOAD ASSET (manager) multipart
 // asset_type: VIDEO | PPT | PDF | OTHER
-export const uploadSafetySessionAsset = (sessionId, { asset_type, title = "", file }) => {
+export const uploadSafetySessionAsset = (
+  sessionId,
+  { asset_type, title = "", file },
+) => {
   const fd = new FormData();
   fd.append("asset_type", asset_type);
   if (title) fd.append("title", title);
@@ -2482,7 +2334,10 @@ export const uploadSafetySessionAsset = (sessionId, { asset_type, title = "", fi
 };
 
 // ✅ UPLOAD PHOTO (manager, IN_PERSON only) multipart
-export const uploadSafetySessionPhoto = (sessionId, { image, caption = "" }) => {
+export const uploadSafetySessionPhoto = (
+  sessionId,
+  { image, caption = "" },
+) => {
   const fd = new FormData();
   if (image) {
     const filename = typeof image?.name === "string" ? image.name : "photo.jpg";
@@ -2498,7 +2353,7 @@ export const updateSafetySessionAttendance = (sessionId, items = []) =>
   axiosInstance.patch(
     `safety/sessions/${sessionId}/attendance/`,
     { items },
-    { headers: { "Content-Type": "application/json" } }
+    { headers: { "Content-Type": "application/json" } },
   );
 
 // ✅ REPORT (manager)
@@ -2533,9 +2388,13 @@ export const startSafetyQuizAttempt = (sessionId) =>
 // ✅ SUBMIT answers (submission endpoint)
 // body: { answers: [{question_id, selected_option_ids:[...]}, ...] }
 export const submitSafetyQuiz = (submissionId, payload) =>
-  axiosInstance.post(`safety/quiz-submissions/${submissionId}/submit/`, payload, {
-    headers: { "Content-Type": "application/json" },
-  });
+  axiosInstance.post(
+    `safety/quiz-submissions/${submissionId}/submit/`,
+    payload,
+    {
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 
 // ---------------- QUIZ (MANAGER) ----------------
 
@@ -2547,9 +2406,13 @@ export const setupSafetyQuiz = (sessionId, payload = {}) =>
 
 // ✅ ADD QUESTION
 export const addSafetyQuizQuestion = (sessionId, payload) =>
-  axiosInstance.post(`safety/sessions/${sessionId}/quiz_add_question/`, payload, {
-    headers: { "Content-Type": "application/json" },
-  });
+  axiosInstance.post(
+    `safety/sessions/${sessionId}/quiz_add_question/`,
+    payload,
+    {
+      headers: { "Content-Type": "application/json" },
+    },
+  );
 
 // ✅ ADD OPTION (payload must include question_id)
 export const addSafetyQuizOption = (sessionId, payload) =>
@@ -2569,12 +2432,12 @@ export const getSafetyQuizSubmissionById = (submissionId) =>
     headers: { "Content-Type": "application/json" },
   });
 
-
 export const bulkUploadSafetyQuizQuestions = (sessionId, payload) => {
-  return axiosInstance.post(`/safety/sessions/${sessionId}/quiz_bulk_upload/`, payload);
+  return axiosInstance.post(
+    `/safety/sessions/${sessionId}/quiz_bulk_upload/`,
+    payload,
+  );
 };
-
-
 
 // ✅ IN_PERSON leader roster
 export const getSafetySessionInPersonRoster = (sessionId) =>
@@ -2582,40 +2445,35 @@ export const getSafetySessionInPersonRoster = (sessionId) =>
 
 // ✅ Leader marks attendance
 export const leaderMarkSafetySessionAttendance = (sessionId, items) =>
-  axiosInstance.patch(`/safety/sessions/${sessionId}/leader_attendance/`, { items });
+  axiosInstance.patch(`/safety/sessions/${sessionId}/leader_attendance/`, {
+    items,
+  });
 
 // ✅ Leader submit report (locks leader edits)
 export const leaderSubmitSafetySessionReport = (sessionId) =>
   axiosInstance.post(`/safety/sessions/${sessionId}/leader_submit_report/`);
-
-
 
 export const leaderUploadSafetySessionPhoto = (sessionId, formData) =>
   axiosInstance.post(`/safety/sessions/${sessionId}/leader_photos/`, formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-
 export const leaderUpdateSafetySessionTopics = (sessionId, topics_discussed) =>
-  axiosInstance.patch(`/safety/sessions/${sessionId}/leader_topics/`, { topics_discussed });
-
-
-
-
+  axiosInstance.patch(`/safety/sessions/${sessionId}/leader_topics/`, {
+    topics_discussed,
+  });
 
 export const getMiniDashboardForProject = (projectId) => {
   // Checklist service endpoint (same domain)
-  return NEWchecklistInstance.get(`/stats/mini-dashboard/?project_id=${projectId}`);
+  return NEWchecklistInstance.get(
+    `/stats/mini-dashboard/?project_id=${projectId}`,
+  );
 };
-
 
 export const getProjectStageInfo = (stageId) => {
   // Project service endpoint
   return projectInstance.get(`/stages/${stageId}/info/`);
 };
-
-
-
 
 /* ===================== SAFETY OBSERVATION  ===================== */
 
@@ -2631,15 +2489,6 @@ export const getSafetyObservationById = (id) =>
   axiosInstance.get(`safety/observations/${id}/`, {
     headers: { "Content-Type": "application/json" },
   });
-
-
-
-
-
-
-
-
-
 
 /* ===================== FORMS: BASKETS + MANAGER DECISION ===================== */
 
@@ -2757,8 +2606,6 @@ export const saveFormBasketFlow = (basketId, payload) =>
 //     data: payload,
 //   });
 
-
-
 /* ===== FIXED endpoints as per your backend ===== */
 
 // GET /forms/baskets/:id/  (single source of truth for items/targets/flow)
@@ -2800,74 +2647,6 @@ export const startFormFromBasket = (basketId, payload) =>
     data: payload,
   });
 
-
-
-// ---- Safety Checklist Instances (Manager creates from template) ----
-// export const listSafetyChecklists = (params = {}) =>
-//   NEWchecklistInstance.get("/safety/checklists/", {
-//    params: {
-//      project_id: params.project_id,
-//      org_id: params.org_id ?? resolveOrgId(),
-//      assigned_to_me: params.assigned_to_me,
-//      status: params.status,
-//    },
-//    headers: { "Content-Type": "application/json" },
-//   });
-
-// Start/initialize a safety checklist (status not_started → in_progress)
-// export const startSafetyChecklist = (id, params = {}) =>
-//   NEWchecklistInstance.post(`/safety/checklists/${id}/initialize/`, {}, {
-//    params: {
-//      org_id: params.org_id ?? resolveOrgId(),
-//    },
-//    headers: { "Content-Type": "application/json" },
-//   });
-
-// export const getSafetyChecklist = (id, params = {}) =>
-//   NEWchecklistInstance.get(`/safety/checklists/${id}/`, {
-//    params: {
-//      org_id: params.org_id ?? resolveOrgId(),
-//    },
-//    headers: { "Content-Type": "application/json" },
-//   });
-
-// export const submitSafetyChecklist = (id, payload = {}) =>
-//   NEWchecklistInstance.post(`/safety/checklists/${id}/submit/`, payload, {
-//    params: {
-//      org_id: resolveOrgId(),
-//    },
-//    headers:
-//      payload instanceof FormData
-//        ? { "Content-Type": "multipart/form-data" }
-//        : { "Content-Type": "application/json" },
-//   });
-
-// export const approveSafetyChecklist = (id, payload = {}) =>
-//   NEWchecklistInstance.post(`/safety/checklists/${id}/approve/`, payload, {
-//    params: {
-//      org_id: resolveOrgId(),
-//    },
-//    headers:
-//      payload instanceof FormData
-//        ? { "Content-Type": "multipart/form-data" }
-//        : { "Content-Type": "application/json" },
-//   });
-
-// export const rejectSafetyChecklist = (id, payload) =>
-//   NEWchecklistInstance.post(`/safety/checklists/${id}/reject/`, payload, {
-//    params: {
-//      org_id: resolveOrgId(),
-//    },
-//    headers: { "Content-Type": "application/json" },
-//   });
-
-// export const downloadSafetyReport = (id, params = {}) =>
-//   NEWchecklistInstance.get(`/safety/checklists/${id}/report/`, {
-//    params: {
-//      org_id: params.org_id ?? resolveOrgId(),
-//    },
-//    responseType: "blob",
-//   });
 // ################################ SAFETY API USAGE ########################################
 
 // ---- Safety Setup (categories + templates) ----
@@ -2905,7 +2684,10 @@ export const getSafetyTemplate = (id) =>
 
 export const createSafetyTemplate = (payload) =>
   NEWchecklistInstance.post("/safety/templates/", payload, {
-    headers: { "Content-Type": "application/json" },
+    headers:
+      payload instanceof FormData
+        ? undefined
+        : { "Content-Type": "application/json" },
   });
 
 export const deleteSafetyTemplate = (id) =>
@@ -2927,12 +2709,16 @@ export const listSafetyChecklists = (params = {}) =>
 
 // Start/initialize a safety checklist (status not_started → in_progress)
 export const startSafetyChecklist = (id, params = {}) =>
-  NEWchecklistInstance.post(`/safety/checklists/${id}/initialize/`, {}, {
-    params: {
-      org_id: params.org_id ?? resolveOrgId(),
+  NEWchecklistInstance.post(
+    `/safety/checklists/${id}/initialize/`,
+    {},
+    {
+      params: {
+        org_id: params.org_id ?? resolveOrgId(),
+      },
+      headers: { "Content-Type": "application/json" },
     },
-    headers: { "Content-Type": "application/json" },
-  });
+  );
 
 export const getSafetyChecklist = (id, params = {}) =>
   NEWchecklistInstance.get(`/safety/checklists/${id}/`, {
@@ -2946,39 +2732,6 @@ export const createSafetyChecklist = (payload) =>
   NEWchecklistInstance.post("/safety/checklists/", payload, {
     headers: { "Content-Type": "application/json" },
   });
-
-// export const submitSafetyChecklist = (id, payload = {}) =>
-//   NEWchecklistInstance.post(`/safety/checklists/${id}/submit/`, payload, {
-//     params: {
-//       org_id: resolveOrgId(),
-//     },
-//     headers:
-//       payload instanceof FormData
-//         ? { "Content-Type": "multipart/form-data" }
-//         : { "Content-Type": "application/json" },
-//   });
-
-// export const approveSafetyChecklist = (id, payload = {}) =>
-//   NEWchecklistInstance.post(`/safety/checklists/${id}/approve/`, payload, {
-//     params: {
-//       org_id: resolveOrgId(),
-//     },
-//     headers:
-//       payload instanceof FormData
-//         ? { "Content-Type": "multipart/form-data" }
-//         : { "Content-Type": "application/json" },
-//   });
-
-// export const rejectSafetyChecklist = (id, payload) =>
-//   NEWchecklistInstance.post(`/safety/checklists/${id}/reject/`, payload, {
-//     params: {
-//       org_id: resolveOrgId(),
-//     },
-//     headers: payload instanceof FormData
-//       ? { "Content-Type": "multipart/form-data" }
-//       : { "Content-Type": "application/json" },
-//   });
-
 
 export const submitSafetyChecklist = (id, payload = {}) =>
   NEWchecklistInstance.post(`/safety/checklists/${id}/submit/`, payload, {
@@ -3013,11 +2766,50 @@ export const rejectSafetyChecklist = (id, payload = {}) =>
         : { "Content-Type": "application/json" },
   });
 
-
 export const downloadSafetyReport = (id, params = {}) =>
   NEWchecklistInstance.get(`/safety/checklists/${id}/report/`, {
     params: {
       org_id: params.org_id ?? resolveOrgId(),
+      mode: params.mode || "download",
     },
     responseType: "blob",
+  });
+
+export const getSafetyReportMeta = (id) =>
+  NEWchecklistInstance.get(`/safety/checklists/${id}/report-meta/`, {
+    params: { org_id: resolveOrgId() },
+  });
+
+export const updateSafetyReportMeta = (id, payload) =>
+  NEWchecklistInstance.patch(`/safety/checklists/${id}/report-meta/`, payload, {
+    params: { org_id: resolveOrgId() },
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const getSafetyChecklistHistory = (id, params = {}) =>
+  NEWchecklistInstance.get(`/safety/checklists/${id}/history/`, {
+    params: {
+      org_id: params.org_id ?? resolveOrgId(),
+    },
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const createAndSubmitSafetyChecklist = (payload) =>
+  NEWchecklistInstance.post("/safety/checklists/create-and-submit/", payload, {
+    params: {
+      org_id: resolveOrgId(),
+    },
+    headers:
+      payload instanceof FormData
+        ? undefined
+        : { "Content-Type": "application/json" },
+  });
+
+export const listContractorNamesByOrg = (orgId, projectId) =>
+  axiosInstance.get("/contractors/", {
+    params: {
+      org_id: orgId,
+      project_id: projectId,
+    },
+    headers: { "Content-Type": "application/json" },
   });

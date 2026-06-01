@@ -14,11 +14,7 @@ import toast from "react-hot-toast";
 import axios from "axios";
 import { useTheme } from "../ThemeContext";
 import { projectInstance } from "../api/axiosInstance";
-import {
-  getTowerOverview,
-  getTowerOverviewPDF,
-  getStageByPhaseId,
-} from "../api/index";
+
 const ProjectDetailsPage = () => {
   const { theme } = useTheme();
 
@@ -63,25 +59,8 @@ const ProjectDetailsPage = () => {
   const [phaseList, setPhaseList] = useState([]);
   const [selectedPhaseByTower, setSelectedPhaseByTower] = useState({});
   const [projectLevelData, setProjectLevelData] = useState([]);
-  const [activeModalTab, setActiveModalTab] = useState("checklists");
+
   const SELECTED_PROJECT_KEY = "SELECTED_PROJECT";
-  const [stageOptions, setStageOptions] = useState([]);
-  const [towerReportFilters, setTowerReportFilters] = useState({
-    checklistId: "",
-    fromDate: "",
-    toDate: "",
-    categoryId: "",
-    stageId: "",
-    status: "",
-    currentRole: "",
-    withPhotos: false,
-  });
-
-  const [towerReportLoading, setTowerReportLoading] = useState(false);
-
-  const [towerReportData, setTowerReportData] = useState(null);
-
-  const [towerReportError, setTowerReportError] = useState("");
 
   const safeJsonParse = (s) => {
     try {
@@ -318,34 +297,24 @@ const ProjectDetailsPage = () => {
     return getTowerPhaseCacheKey(towerId, phaseId);
   };
 
-  useEffect(() => {
-    const loadStages = async () => {
-      try {
-        const phaseId =
-          activeTower?.id && getSelectedPhaseIdForTower(activeTower.id);
+  // const flattenChecklists = (apiData) => {
+  //   const results = Array.isArray(apiData?.results) ? apiData.results : [];
+  //   const flattened = [];
 
-        if (!phaseId) {
-          setStageOptions([]);
-          return;
-        }
+  //   for (const r of results) {
+  //     const legacy = Array.isArray(r?.checklists) ? r.checklists : [];
+  //     const available = Array.isArray(r?.available_for_me)
+  //       ? r.available_for_me
+  //       : [];
+  //     const assigned = Array.isArray(r?.assigned_to_me) ? r.assigned_to_me : [];
 
-        const res = await getStageByPhaseId(phaseId);
+  //     for (const c of [...available, ...assigned, ...legacy]) {
+  //       if (c && c.id != null) flattened.push(c);
+  //     }
+  //   }
 
-        const stages = Array.isArray(res.data)
-          ? res.data
-          : res.data?.results || [];
-
-        setStageOptions(stages);
-      } catch (e) {
-        console.error("Error fetching stages:", e);
-        setStageOptions([]);
-      }
-    };
-
-    if (isModalOpen && activeModalTab === "reports" && activeTower?.id) {
-      loadStages();
-    }
-  }, [activeTower?.id, activeModalTab, isModalOpen, selectedPhaseByTower]);
+  //   return flattened;
+  // };
 
   const flattenChecklists = (apiData) => {
     const results = Array.isArray(apiData?.results) ? apiData.results : [];
@@ -1041,11 +1010,11 @@ const ProjectDetailsPage = () => {
       return;
     }
 
-    // const choice = String(option?.choice || "").toUpperCase();
-    // if (choice !== "P" && choice !== "N") {
-    //   toast.error("This option is not a YES/NO action.");
-    //   return;
-    // }
+    const choice = String(option?.choice || "").toUpperCase();
+    if (choice !== "P" && choice !== "N") {
+      toast.error("This option is not a YES/NO action.");
+      return;
+    }
 
     const key = `${checklistItemId}:${option.id}:${activeRoleId}`;
     if (verifyingKey[key]) return;
@@ -1076,9 +1045,9 @@ const ProjectDetailsPage = () => {
 
       const payload = res?.data || {};
 
-      // if (choice === "P") toast.success("Approved ✅");
-      // else toast.success("Rejected ✅");
-      toast.success("Action submitted ✅");
+      if (choice === "P") toast.success("Approved ✅");
+      else toast.success("Rejected ✅");
+
       setModalData((prev) =>
         applyItemUpdateIntoTransferResponse(prev, payload),
       );
@@ -1258,7 +1227,7 @@ const ProjectDetailsPage = () => {
       fd.append("role_id", "maker");
 
       if (remark) {
-        fd.append("maker_remark", remark);
+        fd.append("maker_remarks", remark);
         fd.append("remark", remark);
       }
 
@@ -1310,126 +1279,17 @@ const ProjectDetailsPage = () => {
     }
   };
 
-  const fetchTowerReport = async () => {
-    if (!activeTower?.id) return;
-
-    try {
-      setTowerReportLoading(true);
-      setTowerReportError("");
-
-      const params = {
-        project_id: projectId,
-        // tower_id: activeTower.id,
-        // building_id: activeTower.id,
-        phase_id: getSelectedPhaseIdForTower(activeTower.id) || undefined,
-        // role_id: activeRoleId || undefined,
-
-        stage_id: towerReportFilters.stageId || undefined,
-
-        category_id: towerReportFilters.categoryId || undefined,
-
-        status: towerReportFilters.status || undefined,
-
-        current_role: towerReportFilters.currentRole || undefined,
-
-        from_date: towerReportFilters.fromDate || undefined,
-
-        to_date: towerReportFilters.toDate || undefined,
-
-        with_photos: towerReportFilters.withPhotos ? "true" : undefined,
-
-        checklist_id: towerReportFilters.checklistId || undefined,
-      };
-
-      const res = await getTowerOverview(activeTower.id, params);
-
-      setTowerReportData(res?.data || null);
-    } catch (e) {
-      setTowerReportError(
-        e?.response?.data?.detail || "Could not load report.",
-      );
-    } finally {
-      setTowerReportLoading(false);
-    }
+  const isYesNoOption = (op) => {
+    const c = String(op?.choice || "").toUpperCase();
+    return c === "P" || c === "N";
   };
 
-  useEffect(() => {
-    if (isModalOpen && activeModalTab === "reports") {
-      fetchTowerReport();
-    }
-  }, [activeModalTab, activeTower?.id, towerReportFilters]);
-
-  const downloadTowerPdfReport = async () => {
-    if (!activeTower?.id) return;
-
-    try {
-      const params = {
-        project_id: projectId,
-        // tower_id: activeTower.id,
-        // building_id: activeTower.id,
-        phase_id: getSelectedPhaseIdForTower(activeTower.id) || undefined,
-        // role_id: activeRoleId || undefined,
-
-        stage_id: towerReportFilters.stageId || undefined,
-
-        category_id: towerReportFilters.categoryId || undefined,
-
-        status: towerReportFilters.status || undefined,
-
-        current_role: towerReportFilters.currentRole || undefined,
-
-        from_date: towerReportFilters.fromDate || undefined,
-
-        to_date: towerReportFilters.toDate || undefined,
-
-        with_photos: towerReportFilters.withPhotos ? "true" : undefined,
-      };
-
-      const res = await getTowerOverviewPDF(activeTower.id, params);
-
-      const blob = new Blob([res.data], { type: "application/pdf" });
-
-      const url = window.URL.createObjectURL(blob);
-
-      const a = document.createElement("a");
-
-      a.href = url;
-
-      const disposition = res.headers["content-disposition"] || "";
-
-      const match = disposition.match(/filename="?([^"]+)"?/);
-
-      a.download = match?.[1] || `tower_${activeTower.id}_report.pdf`;
-
-      document.body.appendChild(a);
-
-      a.click();
-
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
-    } catch {
-      toast.error("Failed to download report.");
-    }
+  const yesNoLabel = (op) => {
+    const c = String(op?.choice || "").toUpperCase();
+    if (c === "P") return "YES";
+    if (c === "N") return "NO";
+    return op?.name || "Option";
   };
-
-//  const yesNoLabel = (op) => {
-//    const name = String(op?.name || "")
-//      .trim()
-//      .toUpperCase();
-
-//    // ✅ explicit NA support
-//    if (name === "NA" || name === "N/A") {
-//      return "NA";
-//    }
-
-//    const c = String(op?.choice || "").toUpperCase();
-
-//    if (c === "P") return "YES";
-//    if (c === "N") return "NO";
-
-//    return op?.name || "Option";
-//  };
 
   const makerCanSubmitItem = (it) => {
     const st = String(it?.status || "").toLowerCase();
@@ -1446,7 +1306,7 @@ const ProjectDetailsPage = () => {
       className="flex min-h-screen transition-colors duration-300"
       style={{ backgroundColor: bgColor }}
     >
-      <div className="my-8 w-full max-w-6xl mt-8 mx-auto px-4">
+      <div className="my-8 w-full max-w-7xl mt-8 mx-auto px-4">
         <div
           className="relative pt-8 px-8 pb-10 rounded-2xl transition-all duration-300 hover:shadow-2xl"
           style={{
@@ -1502,7 +1362,7 @@ const ProjectDetailsPage = () => {
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-8">
                 {projectLevelData.map((proj, index) => {
                   const meta = towerChecklistMeta?.[proj.id];
-                  const showBadge = true;
+                  const showBadge = !!meta?.hasChecklist;
 
                   return (
                     <div
@@ -1573,7 +1433,7 @@ const ProjectDetailsPage = () => {
                           >
                             Loading…
                           </div>
-                        ) : (
+                        ) : showBadge ? (
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1582,17 +1442,30 @@ const ProjectDetailsPage = () => {
                               openChecklistModal(proj);
                             }}
                             className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold"
-                            title="Tower Reports & Checklists"
+                            title="Click to view checklist details"
                             style={{
                               backgroundColor: borderColor,
                               color: "#1b1b1b",
                               boxShadow: `0 6px 18px rgba(255, 190, 99, 0.35)`,
                             }}
                           >
-                            📋 Reports & Checklists
-                            {meta?.count ? ` (${meta.count})` : ""}
+                            🔔 Available Checklist{" "}
+                            {meta?.count ? `(${meta.count})` : ""}
                           </button>
-                        )}
+                        ) : meta?.error ? (
+                          <div
+                            className="absolute top-4 left-4 px-3 py-1 rounded-full text-xs font-bold"
+                            style={{
+                              backgroundColor:
+                                theme === "dark" ? "#ffffff12" : "#00000010",
+                              color: textColor,
+                              border: `1px solid ${borderColor}55`,
+                              backdropFilter: "blur(8px)",
+                            }}
+                          >
+                            Checklist: error
+                          </div>
+                        ) : null}
                       </div>
 
                       <div
@@ -1613,10 +1486,7 @@ const ProjectDetailsPage = () => {
                         </h3>
                         <div
                           className="h-1 rounded-full transition-all duration-500 group-hover:w-full"
-                          style={{
-                            backgroundColor: borderColor,
-                            width: "30%",
-                          }}
+                          style={{ backgroundColor: borderColor, width: "30%" }}
                         />
                       </div>
                     </div>
@@ -1640,18 +1510,7 @@ const ProjectDetailsPage = () => {
 
           {isModalOpen && (
             <div
-              className="
-    fixed
-    inset-0
-    z-[9999]
-    flex
-    items-start
-    justify-center
-    overflow-y-auto
-    overflow-x-hidden
-    p-2
-    md:p-4
-  "
+              className="fixed inset-0 z-[9999] flex items-center justify-center px-4"
               onClick={closeModal}
               style={{
                 backgroundColor: "rgba(0,0,0,0.55)",
@@ -1659,9 +1518,7 @@ const ProjectDetailsPage = () => {
               }}
             >
               <div
-                className="relative w-[98vw] md:w-[95vw] max-w-[1400px] max-h-[96vh]
-min-h-fit
-overflow-visible rounded-2xl overflow-hidden flex flex-col"
+                className="w-full max-w-4xl rounded-2xl overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
                 style={{
                   backgroundColor: cardColor,
@@ -1673,10 +1530,9 @@ overflow-visible rounded-2xl overflow-hidden flex flex-col"
                 }}
               >
                 <div
-                  className="px-6 py-4 flex items-center justify-between flex-wrap gap-3 sticky top-0 z-20"
+                  className="px-6 py-4 flex items-center justify-between flex-wrap gap-3"
                   style={{
                     borderBottom: `1px solid ${theme === "dark" ? "#ffffff18" : "#00000010"}`,
-                    backgroundColor: cardColor,
                   }}
                 >
                   <div>
@@ -1728,50 +1584,9 @@ overflow-visible rounded-2xl overflow-hidden flex flex-col"
                       ✕ Close
                     </button>
                   </div>
-                  <div className="flex items-center gap-2 mt-4">
-                    <button
-                      type="button"
-                      onClick={() => setActiveModalTab("checklists")}
-                      className="px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold flex-shrink-0 "
-                      style={{
-                        backgroundColor:
-                          activeModalTab === "checklists"
-                            ? borderColor
-                            : theme === "dark"
-                              ? "#ffffff10"
-                              : "#00000008",
-                        color:
-                          activeModalTab === "checklists"
-                            ? "#1b1b1b"
-                            : textColor,
-                        border: `1px solid ${borderColor}55`,
-                      }}
-                    >
-                      📋 Checklists
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveModalTab("reports")}
-                      className="px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold flex-shrink-0 "
-                      style={{
-                        backgroundColor:
-                          activeModalTab === "reports"
-                            ? borderColor
-                            : theme === "dark"
-                              ? "#ffffff10"
-                              : "#00000008",
-                        color:
-                          activeModalTab === "reports" ? "#1b1b1b" : textColor,
-                        border: `1px solid ${borderColor}55`,
-                      }}
-                    >
-                      📄 Reports
-                    </button>
-                  </div>
                 </div>
 
-                <div className="w-full px-2 md:px-4 lg:px-6 py-4 overflow-y-auto overflow-x-hidden flex-1 min-h-0">
+                <div className="px-6 py-5 max-h-[70vh] overflow-auto">
                   {modalLoading ? (
                     <div className="py-10 text-center">
                       <div
@@ -1793,7 +1608,7 @@ overflow-visible rounded-2xl overflow-hidden flex flex-col"
                     >
                       {modalError}
                     </div>
-                  ) : (
+                  ) : modalData ? (
                     <>
                       {Array.isArray(modalData?.stage_history) &&
                         modalData.stage_history.length > 0 && (
@@ -1845,9 +1660,30 @@ overflow-visible rounded-2xl overflow-hidden flex flex-col"
                             ))}
                           </div>
                         )}
-                      {activeModalTab === "checklists" && (
-                        <>
-                          {!modalData ? (
+
+                      <div className="flex items-center justify-between mb-3">
+                        <div
+                          className="text-xl font-extrabold"
+                          style={{ color: textColor }}
+                        >
+                          Available Checklists
+                        </div>
+                        <div
+                          className="px-3 py-1 rounded-full text-sm font-bold"
+                          style={{
+                            backgroundColor: borderColor,
+                            color: "#1b1b1b",
+                          }}
+                        >
+                          Total: {modalData?.count ?? 0}
+                        </div>
+                      </div>
+
+                      {(() => {
+                        const flattened = flattenChecklists(modalData);
+
+                        if (!flattened.length) {
+                          return (
                             <div
                               className="p-4 rounded-2xl"
                               style={{
@@ -1857,144 +1693,183 @@ overflow-visible rounded-2xl overflow-hidden flex flex-col"
                                 color: textColor,
                               }}
                             >
-                              No checklist data found.
+                              No checklists found for this tower.
                             </div>
-                          ) : (
-                            <>
-                              <div className="space-y-5">
-                                {flattenChecklists(modalData).length === 0 ? (
+                          );
+                        }
+
+                        return flattened.map((cl) => {
+                          const statusLower = String(
+                            cl?.status || "",
+                          ).toLowerCase();
+                          const isInitialized =
+                            !!cl?.initialized_at ||
+                            statusLower === "in_progress" ||
+                            statusLower === "work_in_progress";
+
+                          const isStarting = !!startingById[cl.id];
+
+                          return (
+                            <div
+                              key={cl.id}
+                              className="rounded-2xl p-4 mb-4"
+                              style={{
+                                backgroundColor:
+                                  theme === "dark" ? "#ffffff0c" : "#00000006",
+                                border: `1px solid ${borderColor}55`,
+                              }}
+                            >
+                              <div className="flex flex-wrap items-center justify-between gap-3">
+                                <div>
                                   <div
-                                    className="p-4 rounded-2xl"
+                                    className="text-lg font-extrabold"
+                                    style={{ color: textColor }}
+                                  >
+                                    {cl.name || `Checklist #${cl.id}`}
+                                  </div>
+                                  <div
+                                    className="text-sm opacity-80 mt-1"
+                                    style={{ color: textColor }}
+                                  >
+                                    <b>ID:</b> {cl.id} &nbsp; | &nbsp;
+                                    <b>Status:</b> {cl.status} &nbsp; | &nbsp;
+                                    <b>Created:</b> {fmtDateTime(cl.created_at)}
+                                  </div>
+                                  {cl.initialized_at && (
+                                    <div
+                                      className="text-sm opacity-80 mt-1"
+                                      style={{ color: textColor }}
+                                    >
+                                      <b>Initialized:</b>{" "}
+                                      {fmtDateTime(cl.initialized_at)}
+                                    </div>
+                                  )}
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                  <span
+                                    className="px-3 py-1 rounded-full text-xs font-bold"
                                     style={{
                                       backgroundColor:
                                         theme === "dark"
-                                          ? "#ffffff0c"
-                                          : "#00000006",
-                                      border: `1px solid ${borderColor}55`,
+                                          ? "#ffffff10"
+                                          : "#ffffff",
                                       color: textColor,
+                                      border: `1px solid ${borderColor}55`,
                                     }}
                                   >
-                                    No checklists found.
-                                  </div>
-                                ) : (
-                                  flattenChecklists(modalData).map((cl) => {
-                                    const checklistStarted =
-                                      String(cl?.status || "").toLowerCase() !==
-                                      "not_started";
+                                    Items:{" "}
+                                    {Array.isArray(cl.items)
+                                      ? cl.items.length
+                                      : 0}
+                                  </span>
+
+                                  <button
+                                    type="button"
+                                    disabled={isInitialized || isStarting}
+                                    onClick={() => startChecklist(cl.id)}
+                                    className="px-4 py-2 rounded-xl font-extrabold text-sm transition-all"
+                                    style={{
+                                      backgroundColor: isInitialized
+                                        ? theme === "dark"
+                                          ? "#ffffff10"
+                                          : "#00000010"
+                                        : borderColor,
+                                      color: isInitialized
+                                        ? textColor
+                                        : "#1b1b1b",
+                                      border: `1px solid ${borderColor}55`,
+                                      opacity: isInitialized ? 0.7 : 1,
+                                      cursor: isInitialized
+                                        ? "not-allowed"
+                                        : "pointer",
+                                      boxShadow: isInitialized
+                                        ? "none"
+                                        : `0 8px 22px rgba(255, 190, 99, 0.35)`,
+                                    }}
+                                    title={
+                                      isInitialized
+                                        ? "Already initialized"
+                                        : "Initialize this checklist"
+                                    }
+                                  >
+                                    {isStarting
+                                      ? "Initializing..."
+                                      : isInitialized
+                                        ? "Initialized ✅"
+                                        : "Start / Initialize"}
+                                  </button>
+                                </div>
+                              </div>
+
+                              <div className="mt-4 space-y-3">
+                                {(Array.isArray(cl.items) ? cl.items : []).map(
+                                  (it) => {
+                                    const itStatus = String(
+                                      it?.status || "",
+                                    ).toLowerCase();
+                                    const itemCompleted =
+                                      itStatus === "completed";
+
+                                    const makerAllowed = makerCanSubmitItem(it);
+                                    const makerSubmitting =
+                                      !!makerSubmittingByItemId[it.id];
 
                                     return (
                                       <div
-                                        key={cl.id}
-                                        className="rounded-2xl overflow-hidden w-full min-w-0"
+                                        key={it.id}
+                                        className="rounded-xl p-3"
                                         style={{
                                           backgroundColor:
                                             theme === "dark"
                                               ? "#ffffff08"
-                                              : "#00000005",
-                                          border: `1px solid ${
-                                            theme === "dark"
-                                              ? "#ffffff12"
-                                              : "#00000010"
-                                          }`,
+                                              : "#ffffff",
+                                          border: `1px solid ${theme === "dark" ? "#ffffff10" : "#00000010"}`,
                                         }}
                                       >
-                                        {/* HEADER */}
-
-                                        <div
-                                          className="p-4 border-b"
-                                          style={{
-                                            borderColor:
-                                              theme === "dark"
-                                                ? "#ffffff12"
-                                                : "#00000010",
-                                          }}
-                                        >
-                                          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 min-w-0">
-                                            <div>
-                                              <div
-                                                className="text-lg font-bold"
-                                                style={{ color: textColor }}
-                                              >
-                                                {cl?.checklist_name ||
-                                                  cl?.name ||
-                                                  cl?.title ||
-                                                  `Checklist ${cl?.id}`}
-                                              </div>
-
-                                              <div
-                                                className="text-sm opacity-80 mt-1"
-                                                style={{ color: textColor }}
-                                              >
-                                                Status: {cl?.status || "-"}
-                                              </div>
+                                        <div className="flex flex-wrap items-center justify-between gap-2">
+                                          <div>
+                                            <div
+                                              className="font-bold"
+                                              style={{ color: textColor }}
+                                            >
+                                              {it.title || `Item #${it.id}`}
+                                            </div>
+                                            <div
+                                              className="text-sm opacity-80 mt-1"
+                                              style={{ color: textColor }}
+                                            >
+                                              <b>Status:</b> {it.status}
+                                              {it.photo_required
+                                                ? " | 📷 Photo required"
+                                                : ""}
+                                              {it.ignore_now
+                                                ? " | (ignored)"
+                                                : ""}
                                             </div>
 
-                                            {!checklistStarted && (
-                                              <button
-                                                type="button"
-                                                onClick={() =>
-                                                  startChecklist(cl.id)
-                                                }
-                                                disabled={startingById[cl.id]}
-                                                className="px-4 py-2 rounded-xl font-bold"
-                                                style={{
-                                                  backgroundColor: borderColor,
-                                                  color: "#1b1b1b",
-                                                }}
-                                              >
-                                                {startingById[cl.id]
-                                                  ? "Starting..."
-                                                  : "Start Checklist"}
-                                              </button>
-                                            )}
-                                          </div>
-                                        </div>
-
-                                        {/* ITEMS */}
-
-                                        <div className="p-4 space-y-4">
-                                          {(cl?.items || []).map((item) => (
-                                            <div
-                                              key={item.id}
-                                              className="rounded-xl p-3 md:p-4"
-                                              style={{
-                                                backgroundColor:
-                                                  theme === "dark"
-                                                    ? "#ffffff06"
-                                                    : "#00000004",
-                                              }}
-                                            >
-                                              <div
-                                                className="font-semibold mb-2"
-                                                style={{ color: textColor }}
-                                              >
-                                                {item?.title ||
-                                                  item?.question ||
-                                                  `Item ${item?.id}`}
-                                              </div>
-
-                                              <div
-                                                className="text-sm opacity-80 mb-3"
-                                                style={{ color: textColor }}
-                                              >
-                                                Status: {item?.status || "-"}
-                                              </div>
-
-                                              {/* REMARK */}
-
-                                              <textarea
-                                                rows={3}
+                                            <div className="mt-2">
+                                              <input
                                                 value={
-                                                  remarkByItemId[item.id] || ""
+                                                  remarkByItemId[it.id] || ""
                                                 }
                                                 onChange={(e) =>
                                                   setRemarkByItemId((p) => ({
                                                     ...p,
-                                                    [item.id]: e.target.value,
+                                                    [it.id]: e.target.value,
                                                   }))
                                                 }
-                                                placeholder="Remarks..."
-                                                className="w-full p-3 rounded-xl mb-3 resize-none"
+                                                placeholder={
+                                                  activeRoleId === "maker"
+                                                    ? "Maker remarks…"
+                                                    : activeRoleId === "checker"
+                                                      ? "Checker remark (optional)…"
+                                                      : activeRoleId ===
+                                                          "supervisor"
+                                                        ? "Supervisor remark (optional)…"
+                                                        : "Optional remark…"
+                                                }
+                                                className="w-full px-3 py-2 rounded-xl text-sm"
                                                 style={{
                                                   backgroundColor:
                                                     theme === "dark"
@@ -2002,372 +1877,237 @@ overflow-visible rounded-2xl overflow-hidden flex flex-col"
                                                       : "#00000008",
                                                   color: textColor,
                                                   border: `1px solid ${borderColor}55`,
+                                                  outline: "none",
                                                 }}
                                               />
+                                            </div>
 
-                                              {/* FILES */}
-
-                                              {activeRoleId === "maker" && (
+                                            {activeRoleId === "maker" && (
+                                              <div className="mt-2">
                                                 <input
                                                   type="file"
                                                   multiple
+                                                  accept="image/*"
                                                   onChange={(e) => {
                                                     const files = Array.from(
                                                       e.target.files || [],
                                                     );
-
                                                     setMakerFilesByItemId(
                                                       (p) => ({
                                                         ...p,
-                                                        [item.id]: files,
+                                                        [it.id]: files,
                                                       }),
                                                     );
                                                   }}
-                                                  className="mb-3 block"
+                                                  className="w-full text-sm"
+                                                  style={{ color: textColor }}
                                                 />
-                                              )}
+                                                <div
+                                                  className="text-xs mt-1 opacity-80"
+                                                  style={{ color: textColor }}
+                                                >
+                                                  Selected:{" "}
+                                                  {
+                                                    (
+                                                      makerFilesByItemId[
+                                                        it.id
+                                                      ] || []
+                                                    ).length
+                                                  }
+                                                </div>
+                                              </div>
+                                            )}
+                                          </div>
 
-                                              {/* OPTIONS */}
+                                          <div
+                                            className="px-3 py-1 rounded-full text-xs font-bold"
+                                            style={{
+                                              backgroundColor:
+                                                theme === "dark"
+                                                  ? "#ffffff10"
+                                                  : "#00000008",
+                                              color: textColor,
+                                              border: `1px solid ${borderColor}55`,
+                                            }}
+                                          >
+                                            Options:{" "}
+                                            {Array.isArray(it.options)
+                                              ? it.options.length
+                                              : 0}
+                                          </div>
+                                        </div>
 
-                                              {/* ACTIONS */}
+                                        <div className="mt-3">
+                                          {activeRoleId === "maker" ? (
+                                            <div className="flex flex-wrap gap-2 items-center">
+                                              <button
+                                                type="button"
+                                                disabled={
+                                                  !makerAllowed ||
+                                                  itemCompleted ||
+                                                  makerSubmitting
+                                                }
+                                                onClick={() =>
+                                                  submitMakerDone({ item: it })
+                                                }
+                                                className="px-4 py-2 rounded-full text-xs font-extrabold transition-all"
+                                                title={
+                                                  !makerAllowed
+                                                    ? "This item is not pending for maker"
+                                                    : itemCompleted
+                                                      ? "Already completed"
+                                                      : "Submit to checker"
+                                                }
+                                                style={{
+                                                  backgroundColor:
+                                                    !makerAllowed ||
+                                                    itemCompleted
+                                                      ? theme === "dark"
+                                                        ? "#ffffff10"
+                                                        : "#00000010"
+                                                      : borderColor,
+                                                  color:
+                                                    !makerAllowed ||
+                                                    itemCompleted
+                                                      ? textColor
+                                                      : "#1b1b1b",
+                                                  border: `1px solid ${borderColor}55`,
+                                                  opacity:
+                                                    !makerAllowed ||
+                                                    itemCompleted
+                                                      ? 0.6
+                                                      : 1,
+                                                  cursor:
+                                                    !makerAllowed ||
+                                                    itemCompleted
+                                                      ? "not-allowed"
+                                                      : "pointer",
+                                                  boxShadow:
+                                                    !makerAllowed ||
+                                                    itemCompleted
+                                                      ? "none"
+                                                      : `0 8px 18px rgba(0,0,0,0.15)`,
+                                                }}
+                                              >
+                                                {makerSubmitting
+                                                  ? "Submitting..."
+                                                  : "Submit"}
+                                              </button>
 
-                                              <div className="flex flex-wrap items-center gap-2">
-                                                {/* CHECKER / SUPERVISOR ONLY */}
-                                                {(activeRoleId === "checker" ||
-                                                  activeRoleId ===
-                                                    "supervisor") &&
-                                                  (item?.options || []).map(
-                                                    (op) => {
-                                                      const verifyKey = `${item.id}:${op.id}:${activeRoleId}`;
+                                              <span
+                                                className="text-xs opacity-80"
+                                                style={{ color: textColor }}
+                                              >
+                                                (Maker only submits rejected
+                                                items)
+                                              </span>
+                                            </div>
+                                          ) : activeRoleId === "checker" ||
+                                            activeRoleId === "supervisor" ? (
+                                            Array.isArray(it.options) &&
+                                            it.options.length > 0 && (
+                                              <div className="flex flex-wrap gap-2">
+                                                {it.options.map((op) => {
+                                                  const isYN =
+                                                    isYesNoOption(op);
+                                                  const k = `${it.id}:${op.id}:${activeRoleId}`;
+                                                  const isVerifying =
+                                                    !!verifyingKey[k];
 
-                                                      return (
-                                                        <button
-                                                          key={op.id}
-                                                          type="button"
-                                                          disabled={
-                                                            verifyingKey[
-                                                              verifyKey
-                                                            ]
-                                                          }
-                                                          onClick={() =>
-                                                            verifyChecklistItem(
-                                                              {
-                                                                checklistItemId:
-                                                                  item.id,
-                                                                option: op,
-                                                                item,
-                                                              },
-                                                            )
-                                                          }
-                                                          className="px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold flex-shrink-0"
-                                                          style={{
-                                                            backgroundColor:
-                                                              borderColor,
-                                                            color: "#1b1b1b",
-                                                          }}
-                                                        >
-                                                          {verifyingKey[
-                                                            verifyKey
-                                                          ]
-                                                            ? "Please wait..."
-                                                            : op?.name ||
-                                                              "Option"}
-                                                        </button>
-                                                      );
-                                                    },
-                                                  )}
-
-                                                {/* MAKER ONLY */}
-                                                {activeRoleId === "maker" &&
-                                                  makerCanSubmitItem(item) && (
+                                                  return (
                                                     <button
+                                                      key={op.id}
                                                       type="button"
+                                                      disabled={
+                                                        !isYN ||
+                                                        itemCompleted ||
+                                                        isVerifying
+                                                      }
                                                       onClick={() =>
-                                                        submitMakerDone({
-                                                          item,
+                                                        verifyChecklistItem({
+                                                          checklistItemId:
+                                                            it.id,
+                                                          option: op,
+                                                          item: it,
                                                         })
                                                       }
-                                                      disabled={
-                                                        makerSubmittingByItemId[
-                                                          item.id
-                                                        ]
+                                                      className="px-3 py-2 rounded-full text-xs font-extrabold transition-all"
+                                                      title={
+                                                        !isYN
+                                                          ? "Only YES/NO options are clickable"
+                                                          : itemCompleted
+                                                            ? "Item already completed"
+                                                            : "Click to submit YES/NO"
                                                       }
-                                                      className="px-3 md:px-4 py-2 rounded-xl text-xs md:text-sm font-bold flex-shrink-0"
                                                       style={{
-                                                        backgroundColor:
-                                                          borderColor,
-                                                        color: "#1b1b1b",
+                                                        backgroundColor: !isYN
+                                                          ? theme === "dark"
+                                                            ? "#ffffff10"
+                                                            : "#00000010"
+                                                          : String(
+                                                                op.choice || "",
+                                                              ).toUpperCase() ===
+                                                              "P"
+                                                            ? borderColor
+                                                            : "#ff6b6b",
+                                                        color: !isYN
+                                                          ? textColor
+                                                          : "#1b1b1b",
+                                                        border: `1px solid ${borderColor}55`,
+                                                        opacity:
+                                                          !isYN || itemCompleted
+                                                            ? 0.6
+                                                            : 1,
+                                                        cursor:
+                                                          !isYN || itemCompleted
+                                                            ? "not-allowed"
+                                                            : "pointer",
+                                                        boxShadow:
+                                                          !isYN || itemCompleted
+                                                            ? "none"
+                                                            : `0 8px 18px rgba(0,0,0,0.15)`,
                                                       }}
                                                     >
-                                                      {makerSubmittingByItemId[
-                                                        item.id
-                                                      ]
+                                                      {isVerifying
                                                         ? "Submitting..."
-                                                        : "Submit"}
+                                                        : isYN
+                                                          ? yesNoLabel(op)
+                                                          : op.name}
                                                     </button>
-                                                  )}
+                                                  );
+                                                })}
                                               </div>
+                                            )
+                                          ) : (
+                                            <div
+                                              className="text-xs opacity-80"
+                                              style={{ color: textColor }}
+                                            >
+                                              (No actions available for role:{" "}
+                                              {String(
+                                                activeRoleId || "",
+                                              ).toUpperCase()}
+                                              )
                                             </div>
-                                          ))}
+                                          )}
                                         </div>
                                       </div>
                                     );
-                                  })
+                                  },
                                 )}
                               </div>
-                            </>
-                          )}
-                        </>
-                      )}
-                      {activeModalTab === "reports" && (
-                        <div
-                          className="p-4 rounded-2xl"
-                          style={{
-                            backgroundColor:
-                              theme === "dark" ? "#ffffff0c" : "#00000006",
-                            border: `1px solid ${borderColor}55`,
-                          }}
-                        >
-                          {/* HEADER */}
-
-                          <div className="flex items-center justify-between mb-5">
-                            <div
-                              className="text-xl font-extrabold"
-                              style={{ color: textColor }}
-                            >
-                              Tower Report
                             </div>
-
-                            <button
-                              type="button"
-                              onClick={downloadTowerPdfReport}
-                              className="px-4 py-2 rounded-xl font-bold"
-                              style={{
-                                backgroundColor: borderColor,
-                                color: "#1b1b1b",
-                              }}
-                            >
-                              📥 Download Report
-                            </button>
-                          </div>
-
-                          {/* FILTERS */}
-
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-5">
-                            {/* CHECKLIST */}
-
-                            <select
-                              value={towerReportFilters.checklistId || ""}
-                              onChange={(e) =>
-                                setTowerReportFilters((p) => ({
-                                  ...p,
-                                  checklistId: e.target.value,
-                                }))
-                              }
-                              className="px-3 py-2 rounded-xl"
-                            >
-                              <option value="">All Checklists</option>
-
-                              {(towerReportData?.checklists || []).map((cl) => (
-                                <option key={cl.id} value={cl.id}>
-                                  {cl.checklist_name ||
-                                    cl.name ||
-                                    cl.title ||
-                                    `Checklist ${cl.id}`}
-                                </option>
-                              ))}
-                            </select>
-
-                            {/* STAGE */}
-
-                            <select
-                              value={towerReportFilters.stageId}
-                              onChange={(e) =>
-                                setTowerReportFilters((p) => ({
-                                  ...p,
-                                  stageId: e.target.value,
-                                }))
-                              }
-                              className="px-3 py-2 rounded-xl"
-                            >
-                              <option value="">All Stages</option>
-
-                              {stageOptions.map((st) => (
-                                <option
-                                  key={st.stage_id || st.id}
-                                  value={st.stage_id || st.id}
-                                >
-                                  {st.stage_name || st.name}
-                                </option>
-                              ))}
-                            </select>
-
-                            {/* STATUS */}
-
-                            <select
-                              value={towerReportFilters.status}
-                              onChange={(e) =>
-                                setTowerReportFilters((p) => ({
-                                  ...p,
-                                  status: e.target.value,
-                                }))
-                              }
-                              className="px-3 py-2 rounded-xl"
-                            >
-                              <option value="">All Status</option>
-
-                              <option value="completed">Completed</option>
-
-                              <option value="in_progress">In Progress</option>
-
-                              <option value="not_started">Not Started</option>
-                            </select>
-                          </div>
-
-                          {/* APPLY FILTER */}
-
-                          <button
-                            type="button"
-                            onClick={fetchTowerReport}
-                            className="px-4 py-2 rounded-xl font-bold mb-5"
-                            style={{
-                              backgroundColor: borderColor,
-                              color: "#1b1b1b",
-                            }}
-                          >
-                            Apply Filters
-                          </button>
-
-                          {/* REPORT CONTENT */}
-
-                          {towerReportLoading ? (
-                            <div style={{ color: textColor }}>
-                              Loading report...
-                            </div>
-                          ) : towerReportError ? (
-                            <div style={{ color: textColor }}>
-                              {towerReportError}
-                            </div>
-                          ) : Array.isArray(towerReportData?.checklists) ? (
-                            <div className="space-y-4">
-                              {towerReportData.checklists.map((report) => (
-                                <div
-                                  key={report.id}
-                                  className="rounded-2xl p-4"
-                                  style={{
-                                    backgroundColor:
-                                      theme === "dark"
-                                        ? "#ffffff08"
-                                        : "#ffffff",
-                                    border: `1px solid ${
-                                      theme === "dark"
-                                        ? "#ffffff10"
-                                        : "#00000010"
-                                    }`,
-                                  }}
-                                >
-                                  <div
-                                    className="text-lg font-bold"
-                                    style={{ color: textColor }}
-                                  >
-                                    {report.checklist_name ||
-                                      report.name ||
-                                      `Checklist ${report.id}`}
-                                  </div>
-
-                                  <div
-                                    className="text-sm mt-2"
-                                    style={{ color: textColor }}
-                                  >
-                                    Status: {report.status}
-                                  </div>
-
-                                  <div
-                                    className="text-sm"
-                                    style={{ color: textColor }}
-                                  >
-                                    Current Role: {report.current_role}
-                                  </div>
-
-                                  <div
-                                    className="text-sm"
-                                    style={{ color: textColor }}
-                                  >
-                                    Started: {fmtDateTime(report.started_at)}
-                                  </div>
-
-                                  <div
-                                    className="text-sm"
-                                    style={{ color: textColor }}
-                                  >
-                                    Completed:{" "}
-                                    {fmtDateTime(report.completed_at)}
-                                  </div>
-
-                                  {Array.isArray(
-                                    report.items || report.questions,
-                                  ) &&
-                                    report.items.length > 0 && (
-                                      <div className="mt-4 space-y-2">
-                                        {(report.items || report.questions).map(
-                                          (item) => (
-                                            <div
-                                              key={item.id}
-                                              className="rounded-xl p-3"
-                                              style={{
-                                                backgroundColor:
-                                                  theme === "dark"
-                                                    ? "#ffffff06"
-                                                    : "#00000005",
-                                              }}
-                                            >
-                                              <div
-                                                className="font-semibold"
-                                                style={{ color: textColor }}
-                                              >
-                                                {item.title}
-                                              </div>
-
-                                              <div
-                                                className="text-sm mt-1"
-                                                style={{ color: textColor }}
-                                              >
-                                                Status: {item.status}
-                                              </div>
-
-                                              {item.maker_remark && (
-                                                <div
-                                                  className="text-sm mt-1"
-                                                  style={{ color: textColor }}
-                                                >
-                                                  Maker: {item.maker_remark}
-                                                </div>
-                                              )}
-
-                                              {item.check_remark && (
-                                                <div
-                                                  className="text-sm mt-1"
-                                                  style={{ color: textColor }}
-                                                >
-                                                  Checker: {item.check_remark}
-                                                </div>
-                                              )}
-                                            </div>
-                                          ),
-                                        )}
-                                      </div>
-                                    )}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div style={{ color: textColor }}>
-                              No reports found.
-                            </div>
-                          )}
-                        </div>
-                      )}
+                          );
+                        });
+                      })()}
                     </>
+                  ) : (
+                    <div
+                      className="text-center py-10 opacity-80"
+                      style={{ color: textColor }}
+                    >
+                      No data
+                    </div>
                   )}
                 </div>
 
