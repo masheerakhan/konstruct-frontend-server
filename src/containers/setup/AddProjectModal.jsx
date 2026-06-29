@@ -3,8 +3,8 @@ import { AiOutlineClose } from "react-icons/ai";
 import { createProject, allorgantioninfototalbyUser_id } from "../../api";
 import { showToast } from "../../utils/toast";
 import { useSelector } from "react-redux";
-import { useTheme } from "../../ThemeContext";// THEME!
-import axios from 'axios';
+import { useTheme } from "../../ThemeContext"; // THEME!
+import axios from "axios";
 
 function AddProjectModal({ onClose, onSave }) {
   const { theme } = useTheme();
@@ -25,6 +25,7 @@ function AddProjectModal({ onClose, onSave }) {
   const [selectedOrg, setSelectedOrg] = useState("");
   const [selectedCompany, setSelectedCompany] = useState("");
   const [selectedEntity, setSelectedEntity] = useState("");
+  const [projectCategory, setProjectCategory] = useState("greenfield"); //Newly added
 
   // Other form state
   const [projectName, setProjectName] = useState("");
@@ -36,19 +37,22 @@ function AddProjectModal({ onClose, onSave }) {
     const fetchUserOrgs = async () => {
       try {
         if (userId) {
-          const resp =  await axios.get(
-      `https://konstruct.world/organizations/user-orgnizationn-info/${userId}/`,
-      {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("ACCESS_TOKEN")}`,
-        },}
-);
+          const resp = await axios.get(
+            `https://konstruct.world/organizations/user-orgnizationn-info/${userId}/`,
+            {
+              headers: {
+                Authorization: `Bearer ${localStorage.getItem("ACCESS_TOKEN")}`,
+              },
+            },
+          );
           setOrgOptions(resp.data.organizations || []);
+          console.log("Fetched organizations info:", resp.data.companies);
           setCompanyOptions(resp.data.companies || []);
+
           setEntityOptions(resp.data.entities || []);
         }
       } catch (e) {
-        showToast("Failed to load organizations info.",'error');
+        showToast("Failed to load organizations info.", "error");
       }
     };
     fetchUserOrgs();
@@ -65,22 +69,24 @@ function AddProjectModal({ onClose, onSave }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!projectName) {
-      showToast("Project name is required",'info');
+      showToast("Project name is required", "info");
       return;
     }
     if (!selectedOrg) {
-      showToast("Please select an organization",'info');
+      showToast("Please select an organization", "info");
       return;
     }
-    if (!selectedCompany) {
-      showToast("Please select a company",'info');
-      return;
-    }
+    // if (!selectedCompany) {
+    //   showToast("Please select a company", "info");
+    //   return;
+    // }
     const formData = new FormData();
     formData.append("name", projectName);
     formData.append("created_by", userId);
     formData.append("organization_id", selectedOrg);
     formData.append("company_id", selectedCompany);
+    formData.append("project_category", projectCategory);
+
     if (selectedEntity) formData.append("entity_id", selectedEntity);
     if (!useDefaultImage && image) {
       formData.append("image", image);
@@ -96,7 +102,8 @@ function AddProjectModal({ onClose, onSave }) {
           error.response?.data?.detail ||
           JSON.stringify(error.response?.data) ||
           error.message ||
-          "Error creating project",'error'
+          "Error creating project",
+        "error",
       );
     }
   };
@@ -122,41 +129,47 @@ function AddProjectModal({ onClose, onSave }) {
     : [];
 
   // Palette
-  const palette = theme === "dark"
-    ? {
-        modal: "bg-[#22232a] border border-amber-400/30 text-white",
-        title: "text-yellow-300",
-        label: "text-yellow-200",
-        input: "bg-[#2c2c34] text-yellow-50 border-yellow-300",
-        inputFocus: "focus:bg-[#23232e] focus:border-yellow-400 focus:ring-yellow-300",
-        select: "bg-[#2c2c34] text-yellow-50 border-yellow-300",
-        selectFocus: "focus:bg-[#23232e] focus:border-yellow-400 focus:ring-yellow-300",
-        fileBtn: "file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200",
-        buttonMain: "bg-yellow-400 hover:bg-yellow-300 text-yellow-900",
-        buttonAlt: "bg-[#23232e] text-yellow-100 hover:bg-[#191921]",
-        borderColor: "border-yellow-400",
-        close: "text-yellow-300 hover:text-yellow-200",
-        selectPlaceholder: "text-gray-400"
-      }
-    : {
-        modal: "bg-white border border-gray-200 text-gray-900",
-        title: "text-[#ea6822]",
-        label: "text-gray-700",
-        input: "bg-white text-gray-900 border-gray-300",
-        inputFocus: "focus:border-blue-500 focus:ring-blue-200",
-        select: "bg-white text-gray-900 border-gray-300",
-        selectFocus: "focus:border-blue-500 focus:ring-blue-200",
-        fileBtn: "file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100",
-        buttonMain: "bg-blue-600 hover:bg-blue-700 text-white",
-        buttonAlt: "bg-gray-100 text-gray-700 hover:bg-gray-200",
-        borderColor: "border-gray-300",
-        close: "text-gray-600 hover:text-gray-900",
-        selectPlaceholder: "text-gray-400"
-      };
+  const palette =
+    theme === "dark"
+      ? {
+          modal: "bg-[#22232a] border border-amber-400/30 text-white",
+          title: "text-yellow-300",
+          label: "text-yellow-200",
+          input: "bg-[#2c2c34] text-yellow-50 border-yellow-300",
+          inputFocus:
+            "focus:bg-[#23232e] focus:border-yellow-400 focus:ring-yellow-300",
+          select: "bg-[#2c2c34] text-yellow-50 border-yellow-300",
+          selectFocus:
+            "focus:bg-[#23232e] focus:border-yellow-400 focus:ring-yellow-300",
+          fileBtn:
+            "file:bg-yellow-100 file:text-yellow-700 hover:file:bg-yellow-200",
+          buttonMain: "bg-yellow-400 hover:bg-yellow-300 text-yellow-900",
+          buttonAlt: "bg-[#23232e] text-yellow-100 hover:bg-[#191921]",
+          borderColor: "border-yellow-400",
+          close: "text-yellow-300 hover:text-yellow-200",
+          selectPlaceholder: "text-gray-400",
+        }
+      : {
+          modal: "bg-white border border-gray-200 text-gray-900",
+          title: "text-[#ea6822]",
+          label: "text-gray-700",
+          input: "bg-white text-gray-900 border-gray-300",
+          inputFocus: "focus:border-blue-500 focus:ring-blue-200",
+          select: "bg-white text-gray-900 border-gray-300",
+          selectFocus: "focus:border-blue-500 focus:ring-blue-200",
+          fileBtn: "file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100",
+          buttonMain: "bg-blue-600 hover:bg-blue-700 text-white",
+          buttonAlt: "bg-gray-100 text-gray-700 hover:bg-gray-200",
+          borderColor: "border-gray-300",
+          close: "text-gray-600 hover:text-gray-900",
+          selectPlaceholder: "text-gray-400",
+        };
 
   return (
     <div className="fixed inset-0 bg-gray-800 bg-opacity-75 flex justify-center items-center z-50">
-      <div className={`p-6 rounded-xl shadow-2xl w-11/12 max-w-2xl relative transition-all duration-200 ${palette.modal}`}>
+      <div
+        className={`p-6 rounded-xl shadow-2xl w-11/12 max-w-2xl relative transition-all duration-200 ${palette.modal}`}
+      >
         <button
           onClick={onClose}
           className={`absolute top-4 right-4 p-2 rounded-lg transition-colors ${palette.close}`}
@@ -170,7 +183,9 @@ function AddProjectModal({ onClose, onSave }) {
         <div className="space-y-4 mb-6">
           {/* Organization Dropdown */}
           <div>
-            <label className={`block text-sm font-medium mb-2 ${palette.label}`}>
+            <label
+              className={`block text-sm font-medium mb-2 ${palette.label}`}
+            >
               Organization <span className="text-red-500">*</span>
             </label>
             <select
@@ -182,7 +197,9 @@ function AddProjectModal({ onClose, onSave }) {
                 setSelectedEntity("");
               }}
             >
-              <option value="" className={palette.selectPlaceholder}>Select Organization</option>
+              <option value="" className={palette.selectPlaceholder}>
+                Select Organization
+              </option>
               {orgOptions.map((org) => (
                 <option key={org.id} value={org.id}>
                   {org.organization_name || org.name}
@@ -194,8 +211,11 @@ function AddProjectModal({ onClose, onSave }) {
           {/* Company Dropdown */}
           {selectedOrg && (
             <div>
-              <label className={`block text-sm font-medium mb-2 ${palette.label}`}>
-                Company <span className="text-red-500">*</span>
+              <label
+                className={`block text-sm font-medium mb-2 ${palette.label}`}
+              >
+                Company
+                {/* Company <span className="text-red-500">*</span> */}
               </label>
               <select
                 className={`w-full rounded-lg px-4 py-3 border ${palette.select} ${palette.selectFocus}`}
@@ -205,7 +225,9 @@ function AddProjectModal({ onClose, onSave }) {
                   setSelectedEntity("");
                 }}
               >
-                <option value="" className={palette.selectPlaceholder}>Select Company</option>
+                <option value="" className={palette.selectPlaceholder}>
+                  Select Company
+                </option>
                 {filteredCompanies.length > 0 ? (
                   filteredCompanies.map((comp) => (
                     <option key={comp.id} value={comp.id}>
@@ -213,7 +235,9 @@ function AddProjectModal({ onClose, onSave }) {
                     </option>
                   ))
                 ) : (
-                  <option disabled>No companies found for this organization</option>
+                  <option disabled>
+                    No companies found for this organization
+                  </option>
                 )}
               </select>
             </div>
@@ -222,7 +246,9 @@ function AddProjectModal({ onClose, onSave }) {
           {/* Entity Dropdown */}
           {selectedCompany && (
             <div>
-              <label className={`block text-sm font-medium mb-2 ${palette.label}`}>
+              <label
+                className={`block text-sm font-medium mb-2 ${palette.label}`}
+              >
                 Entity <span className="text-gray-400">(Optional)</span>
               </label>
               <select
@@ -230,7 +256,9 @@ function AddProjectModal({ onClose, onSave }) {
                 value={selectedEntity}
                 onChange={(e) => setSelectedEntity(e.target.value)}
               >
-                <option value="" className={palette.selectPlaceholder}>Select Entity (Optional)</option>
+                <option value="" className={palette.selectPlaceholder}>
+                  Select Entity (Optional)
+                </option>
                 {filteredEntities.length > 0 ? (
                   filteredEntities.map((ent) => (
                     <option key={ent.id} value={ent.id}>
@@ -257,6 +285,24 @@ function AddProjectModal({ onClose, onSave }) {
             placeholder="Enter project name"
           />
         </div>
+
+        {/* PROJECT CATEGORY SELECTION */}
+        <div className="mb-6">
+          <label className={`block text-sm font-medium mb-2 ${palette.label}`}>
+            Project Category <span className="text-red-500">*</span>
+          </label>
+
+          <select
+            value={projectCategory}
+            onChange={(e) => setProjectCategory(e.target.value)}
+            className={`w-full rounded-lg px-4 py-3 border ${palette.select} ${palette.selectFocus}`}
+            required
+          >
+            <option value="greenfield">Greenfield</option>
+            <option value="brownfield">Brownfield</option>
+          </select>
+        </div>
+
         <div className="mb-6">
           <label className={`block text-sm font-medium mb-3 ${palette.label}`}>
             Project Image

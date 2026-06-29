@@ -1,0 +1,487 @@
+{
+  "organization_company": {
+    "label": "Organization / Company",
+    "items": [
+      {
+        "slNo": 1,
+        "text": "Company profile – Group structure, parent/subsidiary companies, registered office & branches, business information, memberships, accreditations & certifications (QCI, ISO 9001, 14001, 45001, 17025)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 2,
+        "text": "List of prestigious clients & projects (previous & ongoing), testimonials / references / letters of completion",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 3,
+        "text": "Human resources – Organization chart, departments, communication matrix & key personnel contact details (corporate & regional level)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 4,
+        "text": "Statutory compliance – Company registration, Udyam, environmental clearance, NOC, licenses, permits, municipal clearance, GST/PF/ESI/PAN",
+        "remarksHint": "GST Registration #:PF Registration #:ESI Registration #:PAN #:"
+      },
+      {
+        "slNo": 5,
+        "text": "Operational capability – Management structure, project management, supply chain, approved vendors / suppliers",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 6,
+        "text": "Technical criteria – Staff qualifications, equipment & technology",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 7,
+        "text": "Financial criteria – Turnover, net worth, liquidity ratio, financial statements, credit rating & insurance coverage",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 8,
+        "text": "Logistics plan – List of vehicles, transport & delivery facilities & capacities",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 9,
+        "text": "Quality assurance & control – Procedure / plan, quality policy & objectives",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 10,
+        "text": "Health & safety plan – HS policy & objectives",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 11,
+        "text": "Any other documents, references / photographs",
+        "remarksHint": ""
+      }
+    ]
+  },
+  "manufacturer_factory": {
+    "label": "Manufacturer / Factory",
+    "items": [
+      {
+        "slNo": 1,
+        "text": "Company profile – Group structure, parent/subsidiary companies, registered office & branches",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 2,
+        "text": "List of prestigious clients & projects (previous & current)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 3,
+        "text": "Human resources – Organization chart, departments, key personnel contact details (corporate & plant level)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 4,
+        "text": "Factory / warehouse locations, distance to site, map",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 5,
+        "text": "Statutory compliance – Company registration, Udyam, environmental clearance, NOC, licenses, permits, municipal clearance, GST/PF/ESI/PAN",
+        "remarksHint": "GST Registration #:PF Registration #:ESI Registration #:PAN #:"
+      },
+      {
+        "slNo": 6,
+        "text": "Accreditations & certifications (QCI, ISO 9001, 14001, 45001, 17025), product certifications",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 7,
+        "text": "Operational & production capacity – Maximum production & delivery output",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 8,
+        "text": "Technical criteria – Product ranges, shelf life, staff qualifications, equipment, R&D & technology capabilities",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 9,
+        "text": "List of plant, production equipment, machineries & tools",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 10,
+        "text": "Calibration certificates & validation records for production equipment & machinery",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 11,
+        "text": "Quality control procedure / plan, quality policy, material testing plan & testing facilities (pre & post production)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 12,
+        "text": "Sample test reports (pre-production / raw materials & post-production / final product)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 13,
+        "text": "List of testing / measuring equipment, tools, calibrations & validation records",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 14,
+        "text": "Calibration certificates & validation reports for measuring & testing equipment",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 15,
+        "text": "Raw materials & finished product storage, stockyard, warehousing & infrastructure facilities",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 16,
+        "text": "Supply chain management – Raw material sources, approved vendors / suppliers",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 17,
+        "text": "Logistics plan – List of vehicles, transport & delivery facilities & capacities",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 18,
+        "text": "Health & safety plan, HS policy & objectives",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 19,
+        "text": "Any other documents, references / photographs",
+        "remarksHint": ""
+      }
+    ]
+  },
+  "supplier": {
+    "label": "Supplier",
+    "items": [
+      {
+        "slNo": 1,
+        "text": "Company profile – Group structure, parent/subsidiary companies, registered office & branches",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 2,
+        "text": "List of prestigious clients & projects (previous & current)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 3,
+        "text": "Human resources – Organization chart, departments, key personnel contact details (corporate & plant level)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 4,
+        "text": "Quarry / factory / warehouse locations, distance to site, map",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 5,
+        "text": "Statutory compliance – Company registration, Udyam, environmental clearance, NOC, licenses, permits, municipal clearance, GST/PF/ESI/PAN",
+        "remarksHint": "GST Registration #:PF Registration #:ESI Registration #:PAN #:"
+      },
+      {
+        "slNo": 6,
+        "text": "Accreditations & certifications (QCI, ISO 9001, 14001, 45001, 17025), product certifications",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 7,
+        "text": "Name & details of manufacturer, authorised dealer letter",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 9,
+        "text": "Operational & supply capacity – Production capacity, scalability & maximum supply / delivery output",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 10,
+        "text": "Technical criteria – Product ranges, shelf life, staff qualifications, equipment, R&D & technology capabilities",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 11,
+        "text": "Delivery – Ability to meet schedules, lead times & flexibility in demand changes",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 12,
+        "text": "Finished product storage, stockyard, warehousing & infrastructure facilities",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 13,
+        "text": "Logistics plan – List of vehicles, transport & delivery facilities & capacities",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 14,
+        "text": "Quality assurance & control – Procedure / plan, quality policy, product quality, certifications & track record",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 15,
+        "text": "Health & safety plan, HS policy & objectives",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 16,
+        "text": "Any other documents, references / photographs",
+        "remarksHint": ""
+      }
+    ]
+  },
+  "testing_agencies": {
+    "label": "Testing Agencies",
+    "items": [
+      {
+        "slNo": 1,
+        "text": "Company profile – Group structure, registered office & branches, accreditations & certifications (ISO 9001, 14001, 45001, 17025)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 2,
+        "text": "Laboratory address, locations & distance",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 3,
+        "text": "List of prestigious clients & projects (previous & ongoing)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 4,
+        "text": "Human resources – Organization chart, departments & key personnel contact details",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 5,
+        "text": "Statutory compliance – Company registration, Udyam, environmental clearance, NOC, licenses, permits, municipal clearance, GST/PF/ESI/PAN",
+        "remarksHint": "GST Registration #:PF Registration #:ESI Registration #:PAN #:"
+      },
+      {
+        "slNo": 6,
+        "text": "QCI / NABL accreditations with scope of certifications (list of tests)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 7,
+        "text": "Operational capability – Testing facilities, lab setup & space",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 8,
+        "text": "Technical criteria – Staff & technician qualifications, equipment & technology",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 9,
+        "text": "List of testing / measuring equipment, tools, calibrations & validation certificates",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 10,
+        "text": "Quality assurance procedure / plan, quality policy & objectives",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 11,
+        "text": "Health & safety plan, HS policy & objectives",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 12,
+        "text": "Any other documents, references / photographs",
+        "remarksHint": ""
+      }
+    ]
+  },
+  "ready_mix_plant": {
+    "label": "Ready mix plant",
+    "items": [
+      {
+        "slNo": 1,
+        "text": "Company profile – Group structure, parent/subsidiary companies, registered office & branches",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 2,
+        "text": "Plant locations, distance, map",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 3,
+        "text": "List of prestigious clients & projects (previous & ongoing), testimonials / references",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 4,
+        "text": "Human resources – Organization chart, departments, key personnel contact details (corporate, regional & plant level)",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 5,
+        "text": "Statutory compliance – Company registration, Udyam, environmental clearance, NOC, licenses, permits, municipal clearance, GST/PF/ESI/PAN",
+        "remarksHint": "GST Registration #:PF Registration #:ESI Registration #:PAN #:"
+      },
+      {
+        "slNo": 6,
+        "text": "List of plant, equipment, machinery, tools & infrastructure facilities",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 7,
+        "text": "Calibration certificates & validation records for production equipment, RMC plant & weigh bridge",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 8,
+        "text": "Operational & production capacity – Maximum output, pumps, etc.",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 9,
+        "text": "Technical criteria – Design mix, concrete grades, staff qualifications, equipment & technology",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 10,
+        "text": "Design mix grades & slump retention period details",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 11,
+        "text": "List of testing / measuring equipment, tools, calibrations & validation records",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 12,
+        "text": "Supply chain management – Raw material sources, approved vendors / suppliers",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 13,
+        "text": "Raw material storage / stockyard facilities",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 14,
+        "text": "Logistics plan – List of vehicles, transport, transit mixers & delivery capacities",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 15,
+        "text": "Quality assurance & control – Procedure / plan, quality policy, material testing plan & sample test reports",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 16,
+        "text": "Health & safety plan, HS policy & objectives",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 17,
+        "text": "Environmental & social responsibility – Sustainability practices, CSR policies",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 18,
+        "text": "Temperature control for raw materials – Sprinklers, transit protection, chilled water / ice plant",
+        "remarksHint": ""
+      }
+    ]
+  },
+  "source_quarry": {
+    "label": "Source / Quarry",
+    "items": [
+      {
+        "slNo": 1,
+        "text": "Supplier: Registered / Unregistered Company",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 2,
+        "text": "Supplier: Company licence / GST registration",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 3,
+        "text": "Quarry: Licensed or not",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 4,
+        "text": "Permits from Ministries / Departments / Local Administration",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 5,
+        "text": "Area & quantity / volume allowed to quarry by departments",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 6,
+        "text": "Infrastructure – Internal & external access roads, distance from site / route map",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 7,
+        "text": "Logistics – Vehicles, heavy earth-moving machineries & equipment",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 8,
+        "text": "Initial tests conducted by company / quarry",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 9,
+        "text": "3rd party samples collected at various depths & locations",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 10,
+        "text": "Visual observation of raw material quality",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 11,
+        "text": "Consistency / variation of raw material throughout the quarry",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 12,
+        "text": "Possibility of contamination – Vegetation, organic materials, oil / hazardous chemical spillage",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 13,
+        "text": "Overburden removal prior to loading",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 14,
+        "text": "Dumps & stockpiles locations",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 15,
+        "text": "Supply risk / possibility of interruptions",
+        "remarksHint": ""
+      },
+      {
+        "slNo": 16,
+        "text": "Other, if any",
+        "remarksHint": ""
+      }
+    ]
+  }
+}

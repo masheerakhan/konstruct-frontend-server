@@ -430,7 +430,10 @@ const CreateSafetyInspection = () => {
         question_overrides,
       });
       showToast("Safety checklist created successfully", "success");
-      navigate("/safetyInspections");
+      const returnPath = window.location.pathname.includes("observations")
+        ? "/safety/observations"
+        : "/safetyInspections";
+      navigate(returnPath);
     } catch (err) {
       const msg =
         err?.response?.data?.template_id?.[0] ||
@@ -443,7 +446,12 @@ const CreateSafetyInspection = () => {
     }
   };
 
-  const handleCancel = () => navigate("/safetyInspections");
+  const handleCancel = () => {
+    const returnPath = window.location.pathname.includes("observations")
+      ? "/safety/observations"
+      : "/safetyInspections";
+    navigate(returnPath);
+  };
 
   // const userLabel = (u) =>
   //     u?.name || [u?.first_name, u?.last_name].filter(Boolean).join(" ") || u?.username || `User #${u?.id}`;

@@ -13,15 +13,14 @@ import { showToast } from "../../utils/toast";
 import { useTheme } from "../../ThemeContext";
 import { useSidebar } from "../../components/SidebarContext";
 import axios from "axios";
+import axiosInstance, { projectInstance } from "../../api/axiosInstance";
 import {
   createUserDetails,
   allorgantioninfototalbyUser_id,
   getCategoryTreeByProject,
   getProjectsByOrganization,
   createUserAccessRole,
-  getPurposeByProjectId,
-  getPhaseByPurposeId,
-  getStageByPhaseId,
+  getUserGroups,
 } from "../../api";
 import { FaPlus } from "react-icons/fa";
 
@@ -115,6 +114,7 @@ function User() {
   const [organizations, setOrganizations] = useState([]);
   const [selectedOrgId, setSelectedOrgId] = useState("");
 
+
   // ========== STEP 1: BASIC USER DETAILS (ALL CREATORS) ==========
   const [showBasicDetailsModal, setShowBasicDetailsModal] = useState(false);
   const [basicUserDetails, setBasicUserDetails] = useState({
@@ -160,6 +160,23 @@ function User() {
   const [phases, setPhases] = useState([]);
   const [stages, setStages] = useState([]);
   const [categoryTree, setCategoryTree] = useState([]);
+
+  const [availableGroups, setAvailableGroups] = useState([]);
+  const [selectedGroupIds, setSelectedGroupIds] = useState([]);
+  const [isGroupDropdownOpen, setIsGroupDropdownOpen] = useState(false);
+  const groupDropdownRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (groupDropdownRef.current && !groupDropdownRef.current.contains(event.target)) {
+        setIsGroupDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
   const [availableBuildings, setAvailableBuildings] = useState([]);
   const [availableZones, setAvailableZones] = useState([]);
 
@@ -192,11 +209,8 @@ function User() {
     { value: "MAKER", label: "MAKER" },
     { value: "SECURITY_GUARD", label: "SECURITY GUARD" },
     { value: "Intializer", label: "INITIALIZER" },
-    { value: "ENGINEER", label: "ENGINEER" },
-    { value: "QUALITY ENGINEER", label: "QUALITY ENGINEER" },
   ];
   const MANAGER_ROLE_OPTIONS = [
-    { value: "MANAGER", label: "Manager" },
     { value: "PROJECT_MANAGER", label: "Project Manager" },
     { value: "PROJECT_HEAD", label: "Project Head" },
   ];
@@ -320,11 +334,11 @@ function User() {
   // ========== FETCH PURPOSES ==========
   const fetchPurposes = async (projectId) => {
     try {
-      const res = await getPurposeByProjectId(projectId);
-
+      const res = await projectInstance.get(
+        `/purpose/get-purpose-details-by-project-id/${projectId}/`
+      );
       setPurposes(res.data || []);
     } catch (err) {
-      console.error(err);
       showToast("Failed to fetch purposes", "error");
       setPurposes([]);
     }
@@ -333,11 +347,11 @@ function User() {
   // ========== FETCH PHASES ==========
   const fetchPhases = async (purposeId) => {
     try {
-      const res = await getPhaseByPurposeId(purposeId);
-
+      const res = await projectInstance.get(
+        `/phases/by-purpose/${purposeId}/`
+      );
       setPhases(res.data || []);
     } catch (err) {
-      console.error(err);
       showToast("Failed to fetch phases", "error");
       setPhases([]);
     }
@@ -346,11 +360,11 @@ function User() {
   // ========== FETCH STAGES ==========
   const fetchStages = async (phaseId) => {
     try {
-      const res = await getStageByPhaseId(phaseId);
-
+      const res = await projectInstance.get(
+        `/stages/by_phase/${phaseId}/`
+      );
       setStages(res.data || []);
     } catch (err) {
-      console.error(err);
       showToast("Failed to fetch stages", "error");
       setStages([]);
     }
@@ -396,12 +410,12 @@ function User() {
 
       // 🔥 SAME URL AS OLD FILE
       const res = await axios.get(
-        `http://localhost:8003/api/user-orgnizationn-info/${userId}/`,
+        `/orgs-api/user-orgnizationn-info/${userId}/`,
         {
           headers: {
             Authorization: `Bearer ${localStorage.getItem("ACCESS_TOKEN")}`,
           },
-        },
+        }
       );
 
       // old API shape: { organizations: [ { id, organization_name, ...}, ... ], ... }
@@ -421,11 +435,16 @@ function User() {
     }
   }, [userId]);
 
+
+
+
+
   useEffect(() => {
     if (canSeeOrganization) {
       fetchOrganizations();
     }
   }, [canSeeOrganization, fetchOrganizations]);
+
 
   // ========== HANDLERS FOR CURRENT MAPPING ==========
   useEffect(() => {
@@ -433,6 +452,8 @@ function User() {
       // fetchOrganizations();
     }
   }, [canSeeOrganization]);
+
+
 
   const handleUserTypeChange = (e) => {
     const nextType = e.target.value;
@@ -443,6 +464,7 @@ function User() {
       contractor_name: nextType === "EXTERNAL" ? prev.contractor_name : "",
     }));
   };
+
 
   // Roles multi-select
   const handleRoleToggle = (roleValue) => {
@@ -511,7 +533,7 @@ function User() {
 
       // Get buildings for this project
       const selectedProjectObj = availableProjects.find(
-        (project) => project.id === parseInt(projectId),
+        (project) => project.id === parseInt(projectId)
       );
       if (selectedProjectObj && selectedProjectObj.buildings) {
         setAvailableBuildings(selectedProjectObj.buildings);
@@ -575,7 +597,7 @@ function User() {
 
     if (categoryId) {
       const selectedCategoryObj = categoryTree.find(
-        (cat) => cat.id === parseInt(categoryId),
+        (cat) => cat.id === parseInt(categoryId)
       );
       if (selectedCategoryObj && selectedCategoryObj.level1) {
         setAvailableLevel1(selectedCategoryObj.level1);
@@ -606,7 +628,7 @@ function User() {
 
     if (level1Id) {
       const selectedLevel1Obj = availableLevel1.find(
-        (item) => item.id === parseInt(level1Id),
+        (item) => item.id === parseInt(level1Id)
       );
       if (selectedLevel1Obj && selectedLevel1Obj.level2) {
         setAvailableLevel2(selectedLevel1Obj.level2);
@@ -634,7 +656,7 @@ function User() {
 
     if (level2Id) {
       const selectedLevel2Obj = availableLevel2.find(
-        (item) => item.id === parseInt(level2Id),
+        (item) => item.id === parseInt(level2Id)
       );
       if (selectedLevel2Obj && selectedLevel2Obj.level3) {
         setAvailableLevel3(selectedLevel2Obj.level3);
@@ -660,7 +682,7 @@ function User() {
 
     if (level3Id) {
       const selectedLevel3Obj = availableLevel3.find(
-        (item) => item.id === parseInt(level3Id),
+        (item) => item.id === parseInt(level3Id)
       );
       if (selectedLevel3Obj && selectedLevel3Obj.level4) {
         setAvailableLevel4(selectedLevel3Obj.level4);
@@ -684,7 +706,7 @@ function User() {
 
     if (level4Id) {
       const selectedLevel4Obj = availableLevel4.find(
-        (item) => item.id === parseInt(level4Id),
+        (item) => item.id === parseInt(level4Id)
       );
       if (selectedLevel4Obj && selectedLevel4Obj.level5) {
         setAvailableLevel5(selectedLevel4Obj.level5);
@@ -706,7 +728,7 @@ function User() {
 
     if (level5Id) {
       const selectedLevel5Obj = availableLevel5.find(
-        (item) => item.id === parseInt(level5Id),
+        (item) => item.id === parseInt(level5Id)
       );
       if (selectedLevel5Obj && selectedLevel5Obj.level6) {
         setAvailableLevel6(selectedLevel5Obj.level6);
@@ -737,7 +759,7 @@ function User() {
 
     if (buildingId) {
       const selectedBuildingObj = availableBuildings.find(
-        (building) => building.id === parseInt(buildingId),
+        (building) => building.id === parseInt(buildingId)
       );
       if (selectedBuildingObj && selectedBuildingObj.zones) {
         setAvailableZones(selectedBuildingObj.zones);
@@ -763,7 +785,7 @@ function User() {
     // Get display names for bucket view
     const projectName =
       availableProjects.find(
-        (p) => p.id === parseInt(currentMapping.project_id),
+        (p) => p.id === parseInt(currentMapping.project_id)
       )?.name || "";
 
     const purposeName =
@@ -788,41 +810,42 @@ function User() {
     const categoryName = currentMapping.all_cat
       ? "All Categories"
       : categoryTree.find((c) => c.id === parseInt(currentMapping.category))
-          ?.name || "";
+        ?.name || "";
 
     const level1Name =
       availableLevel1.find(
-        (l) => l.id === parseInt(currentMapping.CategoryLevel1),
+        (l) => l.id === parseInt(currentMapping.CategoryLevel1)
       )?.name || "";
     const level2Name =
       availableLevel2.find(
-        (l) => l.id === parseInt(currentMapping.CategoryLevel2),
+        (l) => l.id === parseInt(currentMapping.CategoryLevel2)
       )?.name || "";
     const level3Name =
       availableLevel3.find(
-        (l) => l.id === parseInt(currentMapping.CategoryLevel3),
+        (l) => l.id === parseInt(currentMapping.CategoryLevel3)
       )?.name || "";
     const level4Name =
       availableLevel4.find(
-        (l) => l.id === parseInt(currentMapping.CategoryLevel4),
+        (l) => l.id === parseInt(currentMapping.CategoryLevel4)
       )?.name || "";
     const level5Name =
       availableLevel5.find(
-        (l) => l.id === parseInt(currentMapping.CategoryLevel5),
+        (l) => l.id === parseInt(currentMapping.CategoryLevel5)
       )?.name || "";
     const level6Name =
       availableLevel6.find(
-        (l) => l.id === parseInt(currentMapping.CategoryLevel6),
+        (l) => l.id === parseInt(currentMapping.CategoryLevel6)
       )?.name || "";
 
     const buildingName =
       availableBuildings.find(
-        (b) => b.id === parseInt(currentMapping.building_id),
+        (b) => b.id === parseInt(currentMapping.building_id)
       )?.name || "";
 
     const zoneName =
-      availableZones.find((z) => z.id === parseInt(currentMapping.zone_id))
-        ?.name || "";
+      availableZones.find(
+        (z) => z.id === parseInt(currentMapping.zone_id)
+      )?.name || "";
 
     const newMapping = {
       ...currentMapping,
@@ -916,6 +939,7 @@ function User() {
                 ? basicUserDetails.contractor_name.trim()
                 : "",
             is_safetyOfficer: !!basicUserDetails.is_safetyOfficer,
+            group_ids: selectedGroupIds,
           },
           access: {
             project_id: null,
@@ -964,6 +988,7 @@ function User() {
               basicUserDetails.user_type === "EXTERNAL"
                 ? basicUserDetails.contractor_name.trim()
                 : "",
+            group_ids: selectedGroupIds,
           },
           access: {
             project_id: null,
@@ -985,6 +1010,7 @@ function User() {
           },
           roles: [],
         };
+
       } else {
         // Fallback: if some other role hits this (unlikely)
         payload = {
@@ -1006,6 +1032,7 @@ function User() {
               basicUserDetails.user_type === "EXTERNAL"
                 ? basicUserDetails.contractor_name.trim()
                 : "",
+            group_ids: selectedGroupIds,
           },
           access: {
             project_id: null,
@@ -1029,6 +1056,7 @@ function User() {
         };
       }
       console.log("Manager create payload:", payload);
+
 
       const response = await createUserAccessRole(payload);
 
@@ -1089,10 +1117,7 @@ function User() {
           let v = String(r).trim();
 
           // Normalise initializer spelling to backend's choice
-          if (
-            v.toLowerCase() === "initializer" ||
-            v.toLowerCase() === "intializer"
-          ) {
+          if (v.toLowerCase() === "initializer" || v.toLowerCase() === "intializer") {
             v = "Intializer"; // 👈 EXACT value backend uses
           }
 
@@ -1142,7 +1167,7 @@ function User() {
                 rl === "initializer" ||
                 rl === "security_guard"
               );
-            }),
+            })
           ) || mappingBucket[0];
 
         if (initializerOrGuardMapping) {
@@ -1270,8 +1295,9 @@ function User() {
               ? basicUserDetails.contractor_name.trim()
               : "",
           is_safetyOfficer: !!basicUserDetails.is_safetyOfficer,
+          group_ids: selectedGroupIds,
         },
-        access: baseAccess, // 🔴 THIS IS THE IMPORTANT CHANGE
+        access: baseAccess,   // 🔴 THIS IS THE IMPORTANT CHANGE
         roles: rolesPayload,
       };
 
@@ -1289,14 +1315,8 @@ function User() {
       const newUserId = createdUserObj.id || createdUserObj.user_id;
 
       if (!newUserId) {
-        console.error(
-          "Could not find new user id in response:",
-          createResp.data,
-        );
-        showToast(
-          "User created but ID not returned. Please contact support.",
-          "error",
-        );
+        console.error("Could not find new user id in response:", createResp.data);
+        showToast("User created but ID not returned. Please contact support.", "error");
         setIsSubmitting(false);
         return;
       }
@@ -1308,18 +1328,10 @@ function User() {
       let hasInitializerOnlyMappings = false;
 
       mappingBucket.forEach((mapping) => {
-        const projectId = mapping.project_id
-          ? parseInt(mapping.project_id, 10)
-          : null;
-        const purposeId = mapping.purpose_id
-          ? parseInt(mapping.purpose_id, 10)
-          : null;
-        const phaseId = mapping.phase_id
-          ? parseInt(mapping.phase_id, 10)
-          : null;
-        const stageIds = (mapping.stage_ids || []).map((id) =>
-          parseInt(id, 10),
-        );
+        const projectId = mapping.project_id ? parseInt(mapping.project_id, 10) : null;
+        const purposeId = mapping.purpose_id ? parseInt(mapping.purpose_id, 10) : null;
+        const phaseId = mapping.phase_id ? parseInt(mapping.phase_id, 10) : null;
+        const stageIds = (mapping.stage_ids || []).map((id) => parseInt(id, 10));
 
         const rawRoles = mapping.roles || [];
 
@@ -1327,8 +1339,7 @@ function User() {
         const roles = rawRoles.filter((r) => {
           const rl = r.toLowerCase();
           return (
-            rl !== "intializer" &&
-            rl !== "initializer" &&
+            rl !== "intializer" && rl !== "initializer" &&
             rl !== "security_guard"
           );
         });
@@ -1353,13 +1364,7 @@ function User() {
         }
 
         // For Maker/Checker/Supervisor, we still require purpose/phase/stage
-        if (
-          !projectId ||
-          !purposeId ||
-          !phaseId ||
-          stageIds.length === 0 ||
-          roles.length === 0
-        ) {
+        if (!projectId || !purposeId || !phaseId || stageIds.length === 0 || roles.length === 0) {
           return;
         }
 
@@ -1387,13 +1392,15 @@ function User() {
           mappings: Object.entries(purposesObj).map(
             ([purposeId, phasesObj]) => ({
               purpose_id: Number(purposeId),
-              phases: Object.entries(phasesObj).map(([phaseId, stagesArr]) => ({
-                phase_id: Number(phaseId),
-                stages: stagesArr,
-              })),
-            }),
+              phases: Object.entries(phasesObj).map(
+                ([phaseId, stagesArr]) => ({
+                  phase_id: Number(phaseId),
+                  stages: stagesArr,
+                })
+              ),
+            })
           ),
-        }),
+        })
       );
 
       // 🔥 If there is NO stage mapping, but we DO have Initializer-only mappings,
@@ -1402,18 +1409,19 @@ function User() {
         if (hasInitializerOnlyMappings) {
           showToast(
             "User created successfully with project-level Initializer access.",
-            "success",
+            "success"
           );
           resetAllForms();
         } else {
           showToast(
             "User created, but no valid stage mappings found. Please check mappings.",
-            "error",
+            "error"
           );
         }
         setIsSubmitting(false);
         return;
       }
+
 
       const stageTreePayload = {
         user_id: newUserId,
@@ -1422,17 +1430,9 @@ function User() {
 
       console.log("Payload for /users/access-stage-tree/:", stageTreePayload);
 
-      const token = localStorage.getItem("ACCESS_TOKEN");
-
-      const treeResp = await axios.post(
-        // "http://localhost:8000/api/access-stage-tree/",
-        "https://konstruct.world/users/access-stage-tree/",
-        stageTreePayload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
+      const treeResp = await axiosInstance.post(
+        "/access-stage-tree/",
+        stageTreePayload
       );
 
       if (treeResp.status === 201 || treeResp.status === 200) {
@@ -1446,20 +1446,26 @@ function User() {
 
       if (error.response && error.response.data) {
         console.error("Error response data:", error.response.data);
-        showToast(
-          "Error creating user or mappings. Please check data.",
-          "error",
-        );
+        const errorData = error.response.data;
+        if (errorData.user && errorData.user.username) {
+          showToast(`Username error: ${errorData.user.username[0]}`, "error");
+        } else if (errorData.user && errorData.user.email) {
+          showToast(`Email error: ${errorData.user.email[0]}`, "error");
+        } else if (typeof errorData === 'object' && Object.keys(errorData).length > 0) {
+          const firstKey = Object.keys(errorData)[0];
+          const firstError = Array.isArray(errorData[firstKey]) ? errorData[firstKey][0] : errorData[firstKey];
+          showToast(`Validation error on ${firstKey}: ${firstError}`, "error");
+        } else {
+          showToast("Error creating user or mappings. Please check data.", "error");
+        }
       } else {
-        showToast(
-          "Error creating user or mappings. Please try again.",
-          "error",
-        );
+        showToast("Error creating user or mappings. Please try again.", "error");
       }
     } finally {
       setIsSubmitting(false);
     }
   };
+
 
   // ========== RESET ALL FORMS ==========
   const resetAllForms = () => {
@@ -1500,24 +1506,57 @@ function User() {
     setCategoryTree([]);
     setAvailableBuildings([]);
     setAvailableZones([]);
+    setSelectedGroupIds([]);
     resetCategorySelections();
-    setSelectedOrgId(""); // optional
+    setSelectedOrgId("");   // optional
     setManagerRole("");
   };
 
-  // ========== LOAD PROJECTS ON MAPPING MODAL OPEN ==========
+  // ========== FETCH USER GROUPS ==========
+  const fetchUserGroups = useCallback(async () => {
+    try {
+      const res = await getUserGroups();
+      // Handle both paginated and plain array responses
+      const data = res.data?.results ? res.data.results : res.data;
+      setAvailableGroups(data || []);
+    } catch (err) {
+      showToast("Failed to load groups", "error");
+    }
+  }, []);
+
+  // ========== LOAD PROJECTS AND GROUPS ON MAPPING MODAL OPEN ==========
   useEffect(() => {
     if (showMappingModal && availableProjects.length === 0) {
       fetchProjectsForManager();
     }
-  }, [showMappingModal, availableProjects.length, fetchProjectsForManager]);
+    if (showMappingModal && availableGroups.length === 0) {
+      fetchUserGroups();
+    }
+  }, [showMappingModal, availableProjects.length, fetchProjectsForManager, availableGroups.length, fetchUserGroups]);
+
+  // ========== SAFETY OFFICER COMPATIBILITY ==========
+  useEffect(() => {
+    if (basicUserDetails.is_safetyOfficer && availableGroups.length > 0) {
+      const safetyGroup = availableGroups.find(g => g.code === "SAFETY_OFFICER");
+      if (safetyGroup) {
+        setSelectedGroupIds(prev => {
+          if (!prev.includes(safetyGroup.id)) {
+            return [...prev, safetyGroup.id];
+          }
+          return prev;
+        });
+      }
+    }
+  }, [basicUserDetails.is_safetyOfficer, availableGroups]);
 
   // Check if roles need Purpose/Phase/Stage
   const needsPurposePhaseStage = useMemo(() => {
     const hasInitializer = currentMapping.roles.includes("Intializer");
     const hasSecurityGuard = currentMapping.roles.includes("SECURITY_GUARD");
     return (
-      !hasInitializer && !hasSecurityGuard && currentMapping.roles.length > 0
+      !hasInitializer &&
+      !hasSecurityGuard &&
+      currentMapping.roles.length > 0
     );
   }, [currentMapping.roles]);
 
@@ -1641,6 +1680,7 @@ function User() {
                 : "0 2px 8px 0 rgba(100,70,10,0.09)",
           }}
         >
+
           {/* ===== HEADER ===== */}
           <div className="mb-6 flex items-center justify-between">
             <div>
@@ -1774,8 +1814,7 @@ function User() {
                     <div className="grid grid-cols-3 gap-3 items-start">
                       <div />
                       <p className="col-span-2 text-xs opacity-70">
-                        For internal users, contractor name will be auto-filled
-                        from organization name.
+                        For internal users, contractor name will be auto-filled from organization name.
                       </p>
                     </div>
                   )}
@@ -1783,8 +1822,7 @@ function User() {
                   {basicUserDetails.user_type === "EXTERNAL" && (
                     <div className="grid grid-cols-3 gap-3 items-center">
                       <label className="text-sm font-medium text-end">
-                        Name of Contractor
-                        <span className="text-red-500">*</span>
+                        Name of Contractor<span className="text-red-500">*</span>
                       </label>
                       <input
                         type="text"
@@ -1830,6 +1868,7 @@ function User() {
                       required
                     />
                   </div>
+
 
                   {/* First Name */}
                   <div className="grid grid-cols-3 gap-3 items-center">
@@ -2006,6 +2045,8 @@ function User() {
                     </div>
                   )}
 
+
+
                   {/* Buttons */}
                   <div className="flex gap-3 pt-4">
                     <button
@@ -2119,6 +2160,68 @@ function User() {
                       Selection Panel
                     </h3>
 
+                    {/* User Groups (Multi-select Dropdown) */}
+                    {availableGroups.length > 0 && (
+                      <div className="mb-4" ref={groupDropdownRef}>
+                        <label className="block font-medium mb-2">
+                          User Groups<span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                          <button
+                            type="button"
+                            onClick={() => setIsGroupDropdownOpen(!isGroupDropdownOpen)}
+                            className="w-full text-left border rounded p-2 flex justify-between items-center"
+                            style={{ borderColor, color: textColor, backgroundColor: cardColor }}
+                          >
+                            <span className="truncate pr-4">
+                              {(() => {
+                                if (selectedGroupIds.length === 0) return "Select User Groups";
+                                const selectedNames = availableGroups
+                                  .filter((g) => selectedGroupIds.includes(g.id))
+                                  .map((g) => g.name);
+                                if (selectedNames.length <= 3) return selectedNames.join(", ");
+                                return `${selectedNames.slice(0, 2).join(", ")} +${selectedNames.length - 2} more`;
+                              })()}
+                            </span>
+                            <span className="text-gray-500 text-xs">&#9660;</span>
+                          </button>
+
+                          {isGroupDropdownOpen && (
+                            <div 
+                              className="absolute z-10 w-full mt-1 border rounded shadow-lg max-h-60 overflow-auto"
+                              style={{ borderColor, backgroundColor: cardColor }}
+                            >
+                              <div className="p-2 space-y-2">
+                                {availableGroups.map((group) => (
+                                  <label
+                                    key={group.id}
+                                    className="flex items-center gap-2 cursor-pointer p-1 rounded"
+                                    style={{
+                                      backgroundColor: theme === "dark" ? "#2a2a35" : "#f9f9f9",
+                                    }}
+                                  >
+                                    <input
+                                      type="checkbox"
+                                      checked={selectedGroupIds.includes(group.id)}
+                                      onChange={() => {
+                                        setSelectedGroupIds((prev) =>
+                                          prev.includes(group.id)
+                                            ? prev.filter((id) => id !== group.id)
+                                            : [...prev, group.id]
+                                        );
+                                      }}
+                                      className="h-4 w-4"
+                                    />
+                                    <span style={{ color: textColor }}>{group.name}</span>
+                                  </label>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Roles (Multi-select with checkboxes) */}
                     <div className="border rounded p-4" style={{ borderColor }}>
                       <label className="block font-medium mb-2">
@@ -2133,7 +2236,7 @@ function User() {
                             <input
                               type="checkbox"
                               checked={currentMapping.roles.includes(
-                                role.value,
+                                role.value
                               )}
                               onChange={() => handleRoleToggle(role.value)}
                               className="h-4 w-4"
@@ -2267,7 +2370,10 @@ function User() {
                         </div>
 
                         {/* Category Tree */}
-                        <div className="border-t pt-4" style={{ borderColor }}>
+                        <div
+                          className="border-t pt-4"
+                          style={{ borderColor }}
+                        >
                           <label className="block font-medium mb-2">
                             Category Access
                           </label>
@@ -2319,7 +2425,8 @@ function User() {
                                   value={currentMapping.category}
                                   onChange={handleCategoryChange}
                                   disabled={
-                                    categoryLoading || categoryTree.length === 0
+                                    categoryLoading ||
+                                    categoryTree.length === 0
                                   }
                                 >
                                   <option value="">
@@ -2330,10 +2437,7 @@ function User() {
                                         : "Select Category"}
                                   </option>
                                   {categoryTree.map((category) => (
-                                    <option
-                                      key={category.id}
-                                      value={category.id}
-                                    >
+                                    <option key={category.id} value={category.id}>
                                       {category.name}
                                     </option>
                                   ))}
@@ -2357,9 +2461,7 @@ function User() {
                                       value={currentMapping.CategoryLevel1}
                                       onChange={handleLevel1Change}
                                     >
-                                      <option value="">
-                                        Select (Optional)
-                                      </option>
+                                      <option value="">Select (Optional)</option>
                                       {availableLevel1.map((item) => (
                                         <option key={item.id} value={item.id}>
                                           {item.name}
@@ -2385,9 +2487,7 @@ function User() {
                                       value={currentMapping.CategoryLevel2}
                                       onChange={handleLevel2Change}
                                     >
-                                      <option value="">
-                                        Select (Optional)
-                                      </option>
+                                      <option value="">Select (Optional)</option>
                                       {availableLevel2.map((item) => (
                                         <option key={item.id} value={item.id}>
                                           {item.name}
@@ -2413,9 +2513,7 @@ function User() {
                                       value={currentMapping.CategoryLevel3}
                                       onChange={handleLevel3Change}
                                     >
-                                      <option value="">
-                                        Select (Optional)
-                                      </option>
+                                      <option value="">Select (Optional)</option>
                                       {availableLevel3.map((item) => (
                                         <option key={item.id} value={item.id}>
                                           {item.name}
@@ -2441,9 +2539,7 @@ function User() {
                                       value={currentMapping.CategoryLevel4}
                                       onChange={handleLevel4Change}
                                     >
-                                      <option value="">
-                                        Select (Optional)
-                                      </option>
+                                      <option value="">Select (Optional)</option>
                                       {availableLevel4.map((item) => (
                                         <option key={item.id} value={item.id}>
                                           {item.name}
@@ -2469,9 +2565,7 @@ function User() {
                                       value={currentMapping.CategoryLevel5}
                                       onChange={handleLevel5Change}
                                     >
-                                      <option value="">
-                                        Select (Optional)
-                                      </option>
+                                      <option value="">Select (Optional)</option>
                                       {availableLevel5.map((item) => (
                                         <option key={item.id} value={item.id}>
                                           {item.name}
@@ -2497,9 +2591,7 @@ function User() {
                                       value={currentMapping.CategoryLevel6}
                                       onChange={handleLevel6Change}
                                     >
-                                      <option value="">
-                                        Select (Optional)
-                                      </option>
+                                      <option value="">Select (Optional)</option>
                                       {availableLevel6.map((item) => (
                                         <option key={item.id} value={item.id}>
                                           {item.name}
@@ -2517,7 +2609,10 @@ function User() {
                     {/* Location: Building & Zone */}
                     {currentMapping.project_id &&
                       availableBuildings.length > 0 && (
-                        <div className="border-t pt-4" style={{ borderColor }}>
+                        <div
+                          className="border-t pt-4"
+                          style={{ borderColor }}
+                        >
                           <label className="block font-medium mb-2">
                             Location (Optional)
                           </label>
@@ -2573,6 +2668,7 @@ function User() {
                         </div>
                       )}
 
+
                     <div className="border rounded p-4" style={{ borderColor }}>
                       <label className="flex items-center gap-3 cursor-pointer">
                         <input
@@ -2600,9 +2696,7 @@ function User() {
                       type="button"
                       className="w-full py-3 rounded font-semibold mt-6"
                       style={{
-                        background: isCurrentMappingValid()
-                          ? iconColor
-                          : "#ccc",
+                        background: isCurrentMappingValid() ? iconColor : "#ccc",
                         color: "#23232c",
                         cursor: isCurrentMappingValid()
                           ? "pointer"
@@ -2689,19 +2783,21 @@ function User() {
                               )}
                               <div>
                                 <strong>Category:</strong>{" "}
-                                {mapping.all_cat
-                                  ? "All Categories"
-                                  : [
-                                      mapping.displayNames.category,
-                                      mapping.displayNames.level1,
-                                      mapping.displayNames.level2,
-                                      mapping.displayNames.level3,
-                                      mapping.displayNames.level4,
-                                      mapping.displayNames.level5,
-                                      mapping.displayNames.level6,
-                                    ]
-                                      .filter(Boolean)
-                                      .join(" > ")}
+                                {mapping.all_cat ? (
+                                  "All Categories"
+                                ) : (
+                                  [
+                                    mapping.displayNames.category,
+                                    mapping.displayNames.level1,
+                                    mapping.displayNames.level2,
+                                    mapping.displayNames.level3,
+                                    mapping.displayNames.level4,
+                                    mapping.displayNames.level5,
+                                    mapping.displayNames.level6,
+                                  ]
+                                    .filter(Boolean)
+                                    .join(" > ")
+                                )}
                               </div>
                               {mapping.displayNames.building && (
                                 <div>
@@ -2747,7 +2843,8 @@ function User() {
                     type="button"
                     className="flex-1 py-3 rounded font-semibold"
                     style={{
-                      background: mappingBucket.length > 0 ? "#7c3aed" : "#ccc",
+                      background:
+                        mappingBucket.length > 0 ? "#7c3aed" : "#ccc",
                       color: "#fff",
                       cursor:
                         mappingBucket.length > 0 && !isSubmitting

@@ -3,12 +3,15 @@ import { Shield, Search, SlidersHorizontal, Plus, Eye, Trash2, X } from "lucide-
 import { useNavigate } from "react-router-dom";
 import { showToast } from "../../../utils/toast";
 import {
-  listSafetyTemplates,
-  deleteSafetyTemplate,
-  getProjectsForCurrentUser,
-  getSafetyTemplate,
+    listSafetyTemplates,
+    deleteSafetyTemplate,
+    getProjectsForCurrentUser,
+    getSafetyTemplate,
 } from "../../../api";
 import SafetyReportTemplate from "./SafetyReportTemplate";
+import SafetyReportTemplateHorizontal from "./SafetyReportTemplateHorizontal";
+import HousekeepingReportTemplate from "../Housekeeping_setup/HousekeepingReportTemplate";
+import ObservationReportTemplate from "./ObservationReportTemplate";
 
 // Column config: add or remove columns here; table stays consistent
 const COLUMNS = [
@@ -158,7 +161,9 @@ function SafetyFormats() {
         setLoading(true);
         setError(null);
         try {
-            const res = await listSafetyTemplates({ org_id: orgId });
+            const res = await listSafetyTemplates({ 
+                org_id: orgId
+            });
             const data = res?.data ?? res;
             const list = Array.isArray(data) ? data : data?.results ?? [];
             setTemplates(list);
@@ -288,7 +293,7 @@ function SafetyFormats() {
                         {COLUMNS.map((col) => (
                             <div
                                 key={col.id}
-                                className="px-3 py-3.5 border-b border-border"
+                                className="px-3 py-3.5 border-b border-border text-center"
                             >
                                 {col.label}
                             </div>
@@ -328,7 +333,7 @@ function SafetyFormats() {
                                     {COLUMNS.map((col) => {
                                         if (col.id === "actions") {
                                             return (
-                                                <div key={col.id} className="flex items-center gap-3">
+                                                <div key={col.id} className="flex items-center justify-center gap-3">
                                                     <button
                                                         type="button"
                                                         onClick={(e) => handleView(e, template)}
@@ -351,7 +356,7 @@ function SafetyFormats() {
                                         return (
                                             <div
                                                 key={col.id}
-                                                className="px-0 truncate"
+                                                className="px-0 break-words text-center"
                                                 title={typeof value === "string" ? value : undefined}
                                             >
                                                 {value}
@@ -383,11 +388,57 @@ function SafetyFormats() {
                                 {viewLoading ? (
                                     <div className="rounded-xl bg-white p-8 text-center text-muted-foreground">Loading template preview...</div>
                                 ) : viewingTemplate ? (
-                                    <SafetyReportTemplate
-                                        initialTemplateData={viewingTemplate}
-                                        previewOnly
-                                        selectedQuestions={[]}
-                                    />
+                                    viewingTemplate?.report_layout?.is_horizontal ? (
+                                        <SafetyReportTemplateHorizontal
+                                            schema={{
+                                                type: viewingTemplate?.report_layout?.horizontal_format || "HORIZONTAL",
+                                                headers: (viewingTemplate?.questions || []).map((q) => ({
+                                                    ...q,
+                                                    options: Array.isArray(q.options)
+                                                        ? q.options.map((opt) => {
+                                                            if (opt == null) return "";
+                                                            if (typeof opt === 'object') {
+                                                                return opt.label || opt.name || opt.value || "";
+                                                            }
+                                                            return String(opt);
+                                                        })
+                                                        : typeof q.options === 'string'
+                                                            ? [q.options]
+                                                            : []
+                                                }))
+                                            }}
+                                            reportTitle={viewingTemplate?.title || viewingTemplate?.name}
+                                            initialTemplateData={viewingTemplate}
+                                            previewOnly={true}
+                                        />
+                                    ) : (
+                                        <SafetyReportTemplate
+                                            initialTemplateData={viewingTemplate}
+                                            previewOnly
+                                            selectedQuestions={[]}
+                                        />
+                                    )
+                                    (() => {
+                                        const catName = viewingTemplate?.category_name || viewingTemplate?.category?.name || "";
+                                        const isObservation = catName.toLowerCase() === "safety & housekeeping observation";
+                                        
+                                        if (isObservation) {
+                                            return (
+                                                <ObservationReportTemplate
+                                                    initialTemplateData={viewingTemplate}
+                                                    previewOnly
+                                                    selectedQuestions={[]}
+                                                />
+                                            );
+                                        }
+                                        return (
+                                            <SafetyReportTemplate
+                                                initialTemplateData={viewingTemplate}
+                                                previewOnly
+                                                selectedQuestions={[]}
+                                            />
+                                        );
+                                    })()
                                 ) : (
                                     <div className="rounded-xl bg-white p-8 text-center text-muted-foreground">No template data available.</div>
                                 )}

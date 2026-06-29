@@ -370,14 +370,11 @@ export const GetstagebyPhaseid = async (id) =>
   });
 
 export const getProjectStages = async (phase_id) =>
-  projectInstance.get(
-    `stages/list/by_phase/${phase_id}/`,
-    {
-      headers: {
-        "Content-Type": "application/json",
-      },
+  projectInstance.get(`stages/list/by_phase/${phase_id}/`, {
+    headers: {
+      "Content-Type": "application/json",
     },
-  );
+  });
 
 export const deleteStage = async (id) =>
   projectInstance.delete(`stages/${id}/`, {
@@ -2479,14 +2476,14 @@ export const getProjectStageInfo = (stageId) => {
 
 // LIST safety observations (for SafetyObservationList)
 export const listSafetyObservations = (params = {}) =>
-  axiosInstance.get("safety/observations/", {
+  checklistInstance.get("safety/observations/", {
     params,
     headers: { "Content-Type": "application/json" },
   });
 
 // GET single safety observation (for detail page)
 export const getSafetyObservationById = (id) =>
-  axiosInstance.get(`safety/observations/${id}/`, {
+  checklistInstance.get(`safety/observations/${id}/`, {
     headers: { "Content-Type": "application/json" },
   });
 
@@ -2573,22 +2570,6 @@ export const getFormBasketTargets = (basketId) =>
     urlList: __formsUrlCandidates(`/baskets/${basketId}/set-targets/`),
   });
 
-// POST /forms/baskets/:id/targets/  payload: { user_ids:[...], group_ids:[...] }
-export const setFormBasketTargets = (basketId, payload) =>
-  __jsonWithFallback(axiosInstance, {
-    method: "post",
-    urlList: __formsUrlCandidates(`/baskets/${basketId}/set-targets/`),
-    data: payload,
-  });
-
-// ---- Basket flow (tree) ----
-// GET /forms/baskets/:id/flow/
-export const getFormBasketFlow = (basketId) =>
-  __jsonWithFallback(axiosInstance, {
-    method: "get",
-    urlList: __formsUrlCandidates(`/baskets/${basketId}/set-flow/`),
-  });
-
 // POST /forms/baskets/:id/flow/   payload: { nodes:[...], edges:[...] }
 export const saveFormBasketFlow = (basketId, payload) =>
   __jsonWithFallback(axiosInstance, {
@@ -2673,6 +2654,8 @@ export const listSafetyTemplates = (params = {}) =>
       category: params.category,
       status: params.status,
       is_latest: params.is_latest,
+      module: "safety",
+      template_type: params.template_type,
     },
     headers: { "Content-Type": "application/json" },
   });
@@ -2694,6 +2677,14 @@ export const deleteSafetyTemplate = (id) =>
   NEWchecklistInstance.delete(`/safety/templates/${id}/`, {
     headers: { "Content-Type": "application/json" },
   });
+
+// --- Housekeeping Aliases (temporarily pointing to Safety backend) ---
+export const listHousekeepingCategories = listSafetyCategories;
+export const createHousekeepingCategory = createSafetyCategory;
+export const listHousekeepingTemplates = listSafetyTemplates;
+export const getHousekeepingTemplate = getSafetyTemplate;
+export const createHousekeepingTemplate = createSafetyTemplate;
+export const deleteHousekeepingTemplate = deleteSafetyTemplate;
 
 // ---- Safety Checklist Instances (Manager creates from template) ----
 export const listSafetyChecklists = (params = {}) =>
@@ -2813,3 +2804,656 @@ export const listContractorNamesByOrg = (orgId, projectId) =>
     },
     headers: { "Content-Type": "application/json" },
   });
+
+/* ===================== SAFETY OBSERVATION  ===================== */
+
+export const createSafetyObservation = (data) =>
+  checklistInstance.post("safety/observations/", data, {
+    // Let browser set Content-Type for FormData
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+
+export const updateSafetyObservation = (id, data) =>
+  checklistInstance.patch(`safety/observations/${id}/`, data, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+export const downloadSafetyObservationReport = (params = {}) =>
+  checklistInstance.get("safety/observations/report/", {
+    params,
+    responseType: "blob",
+  });
+
+// QHSE
+
+export const getDmsBoxFileRegister = (params = {}) =>
+  axiosInstance.get("/dms/box-file-register/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const saveDmsBoxFileRegister = (payload) =>
+  axiosInstance.put("/dms/box-file-register/", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+/** POST multipart `file` to a persisted row UUID. */
+export const uploadDmsBoxFileRowAttachment = (rowId, file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return axiosInstance.post(
+    `/dms/box-file-register/rows/${rowId}/attachments/`,
+    formData,
+    {
+      headers: { Accept: "application/json" },
+    },
+  );
+};
+
+export const getDmsCommunicationMatrix = (params = {}) =>
+  axiosInstance.get("/dms/communication-matrix/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const getDmsEscalationMatrix = (params = {}) =>
+  axiosInstance.get("/dms/escalation-matrix/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+/**
+ * Construction Programs — Minutes of Meeting (folder-scoped).
+ * GET returns `{ count, results }` when listing; `folder` query param (UUID) is required.
+ */
+export const listDmsMinutesOfMeeting = (params = {}) =>
+  axiosInstance.get("/dms/minutes-of-meeting/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const createDmsMinutesOfMeeting = (data) =>
+  axiosInstance.post("/dms/minutes-of-meeting/", data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const deleteDmsMinutesOfMeeting = (id) =>
+  axiosInstance.delete(`/dms/minutes-of-meeting/${id}/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const uploadDmsMomAttachment = (minutesId, file) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  return axiosInstance.post(
+    `/dms/minutes-of-meeting/${minutesId}/attachments/`,
+    formData,
+    {
+      headers: { Accept: "application/json" },
+    },
+  );
+};
+
+// =============================================================================
+// DMS — QC ASSETS (NEW)
+// -----------------------------------------------------------------------------
+// Backend routes: GET/POST /dms/qc-assets/masters/, GET/POST/PATCH/DELETE /dms/qc-assets/requirements/
+// Consumers:
+//   - QcAssetsCreateForm.jsx     → getProjectsForCurrentUser; submit uses bulk create (createDmsQcAssetRequirementsFromDescriptions)
+//   - QCAssetsRegisterTable.jsx  → updateDmsQcAssetRequirement, deleteDmsQcAssetRequirement (+ refresh via parent)
+//   - Documents.jsx              → listDmsQcAssetRequirements (filter scope = QC_ASSETS_REGISTER_SCOPE), batch create below
+// =============================================================================
+
+/**
+ * Fixed scope stored for every QC register row (UI does not collect scope).
+ * Backend still requires `scope` on QCAssetRequirement; we always use this value.
+ */
+export const QC_ASSETS_REGISTER_SCOPE = "General";
+
+/** Master catalog (instruments/equipment). Query: org_id, project_id, category, is_active, search */
+export const listDmsQcAssetMasters = (params = {}) =>
+  axiosInstance.get("/dms/qc-assets/masters/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+/** Project / org requirement lines. Query: org_id, project_id, scope, status, ordering */
+export const listDmsQcAssetRequirements = (params = {}) =>
+  axiosInstance.get("/dms/qc-assets/requirements/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+/** Single requirement (detail / edit prefetch). */
+export const getDmsQcAssetRequirement = (id) =>
+  axiosInstance.get(`/dms/qc-assets/requirements/${id}/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+/** Create one requirement row. */
+export const createDmsQcAssetRequirement = (data) =>
+  axiosInstance.post("/dms/qc-assets/requirements/", data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+/** Partial update (quantities, remarks, status, etc.). */
+export const updateDmsQcAssetRequirement = (id, data) =>
+  axiosInstance.patch(`/dms/qc-assets/requirements/${id}/`, data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+/** Soft-delete on server (same pattern as manpower). */
+export const deleteDmsQcAssetRequirement = (id) =>
+  axiosInstance.delete(`/dms/qc-assets/requirements/${id}/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+/** Create one project-scoped master row (admin / catalog tooling). */
+export const createDmsQcAssetMaster = (data) =>
+  axiosInstance.post("/dms/qc-assets/masters/", data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+/** Bulk-create QC requirements; server resolves/creates project-scoped masters per line. */
+export const bulkCreateDmsQcAssetRequirements = (body) =>
+  axiosInstance.post("/dms/qc-assets/requirements/bulk-create/", body, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+/**
+ * Batch-create QC requirement rows from the simplified form (project + lines with free-text description).
+ * Each line: { description, minimumNo?, actual?, remark? }. Scope is fixed to QC_ASSETS_REGISTER_SCOPE.
+ * Server get-or-creates `QCAssetMaster` per description and inserts requirements in one transaction.
+ *
+ * @param {string} orgId
+ * @param {{ projectId: string, requirements: Array<{ description: string, minimumNo?: string, actual?: string, remark?: string }> }} payload
+ * @returns {Promise<{ ok: boolean, count: number }>}
+ */
+export const createDmsQcAssetRequirementsFromDescriptions = async (
+  orgId,
+  payload,
+) => {
+  const lines = (payload.requirements || [])
+    .map((r) => ({
+      description: String(r.description || "").trim(),
+      minimum_no: String(r.minimumNo ?? "").trim(),
+      actual: String(r.actual ?? "").trim(),
+      remark: String(r.remark ?? "").trim(),
+    }))
+    .filter((line) => line.description);
+  if (!lines.length) {
+    return { ok: true, count: 0 };
+  }
+  const res = await bulkCreateDmsQcAssetRequirements({
+    org_id: String(orgId),
+    project_id: String(payload.projectId),
+    scope: QC_ASSETS_REGISTER_SCOPE,
+    lines,
+  });
+  const created = res.data?.created;
+  return {
+    ok: true,
+    count: typeof created === "number" ? created : lines.length,
+  };
+};
+
+// POST /forms/baskets/:id/targets/  payload: { user_ids:[...], group_ids:[...] }
+export const setFormBasketTargets = (basketId, payload) =>
+  __jsonWithFallback(axiosInstance, {
+    method: "post",
+    urlList: __formsUrlCandidates(`/baskets/${basketId}/set-targets/`),
+    data: payload,
+  });
+
+// ---- Basket flow (tree) ----
+// GET /forms/baskets/:id/flow/
+export const getFormBasketFlow = (basketId) =>
+  __jsonWithFallback(axiosInstance, {
+    method: "get",
+    urlList: __formsUrlCandidates(`/baskets/${basketId}/set-flow/`),
+  });
+
+// Vendor
+
+/**
+ * Vendor directory & onboarding (user_service).
+ * GET /vendors/directory/?project_id=&search=
+ * POST /vendors/invite/  { project_id, emails[], invitation_message }
+ * GET /vendors/invitations/verify/<token>/  (public)
+ * POST /vendors/invitations/complete/<token>/  (public)
+ */
+export const fetchVendorDirectory = async (params = {}) =>
+  axiosInstance.get(`/vendors/directory/`, {
+    params,
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+export const inviteVendors = async (payload) =>
+  axiosInstance.post(`/vendors/invite/`, payload, {
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+export const verifyVendorInvitation = async (token) =>
+  axiosInstance.get(
+    `/vendors/invitations/verify/${encodeURIComponent(token)}/`,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+export const completeVendorOnboarding = async (token, payload) =>
+  axiosInstance.post(
+    `/vendors/invitations/complete/${encodeURIComponent(token)}/`,
+    payload,
+    {
+      headers: {
+        "Content-Type": "application/json",
+      },
+    },
+  );
+
+export const getRootFolders = async (params = {}) =>
+  withNormalizedDmsFolders(
+    axiosInstance.get("/dms/folders/", {
+      params,
+      headers: { "Content-Type": "application/json" },
+    }),
+    { many: true },
+  );
+
+export const getFolderDetail = async (folderId, params = {}) =>
+  withNormalizedDmsFolders(
+    axiosInstance.get(`/dms/folders/${folderId}/`, {
+      params,
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+
+export const createFolder = async (data) =>
+  withNormalizedDmsFolders(
+    axiosInstance.post("/dms/folders/", data, {
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+
+export const updateFolder = async (folderId, data) =>
+  withNormalizedDmsFolders(
+    axiosInstance.patch(`/dms/folders/${folderId}/`, data, {
+      headers: { "Content-Type": "application/json" },
+    }),
+  );
+
+export const deleteFolder = async (folderId) =>
+  axiosInstance.delete(`/dms/folders/${folderId}/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const postDmsFilesZipDownload = async (fileIds) =>
+  axiosInstance.post(
+    `/dms/files/download_zip/`,
+    { file_ids: fileIds },
+    {
+      headers: { "Content-Type": "application/json" },
+      responseType: "blob",
+    },
+  );
+
+// Files
+export const uploadDmsFile = async (formData) =>
+  axiosInstance.post("/dms/files/upload/", formData, {
+    // don't set multipart boundary manually
+    headers: { Accept: "application/json" },
+  });
+
+export const getDmsFile = async (fileId, params = {}) =>
+  axiosInstance.get(`/dms/files/${fileId}/`, {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+// export const getDmsFileOpenLink = async (fileId, params = {}) =>
+//   axiosInstance.get(`/dms/files/${fileId}/open/`, {
+//     params,
+//     headers: { "Content-Type": "application/json" },
+//   });
+
+// DRIVE FILE UPLOAD
+export const getDmsFileOpenLink = async (fileId, params = {}) =>
+  axiosInstance.get(`/dms/files/${fileId}/open/`, {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const downloadDmsFile = async (fileId) =>
+  axiosInstance.get(`/dms/files/${fileId}/download/`, {
+    responseType: "blob",
+  });
+
+export const deleteDmsFile = async (fileId) =>
+  axiosInstance.delete(`/dms/files/${fileId}/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const patchDmsFileReorder = async (folderId, items) =>
+  axiosInstance.patch(
+    `/dms/folders/${folderId}/reorder_files/`,
+    { items },
+    { headers: { "Content-Type": "application/json" } },
+  );
+
+export const createDmsDocument = async (data) =>
+  axiosInstance.post("/dms/documents/", data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+// Documents (transmittals)
+export const listDmsDocuments = async (params = {}) =>
+  axiosInstance.get("/dms/documents/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+// Drafts
+export const listDmsDrafts = async (params = {}) =>
+  axiosInstance.get("/dms/drafts/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const createDmsDraft = async (data) =>
+  axiosInstance.post("/dms/drafts/", data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const deleteDmsDraft = async (draftId) =>
+  axiosInstance.delete(`/dms/drafts/${draftId}/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+// ---- DMS: session / tenancy helper (manpower + QC assets) ----
+/** Org id from JWT (user service); required for DMS manpower & QC asset tenancy. */
+export const getSessionOrgId = () => {
+  try {
+    const token =
+      localStorage.getItem("ACCESS_TOKEN") ||
+      localStorage.getItem("access") ||
+      localStorage.getItem("accessToken") ||
+      "";
+    if (!token || token.split(".").length < 2) return null;
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    if (payload.org != null && payload.org !== "") return String(payload.org);
+  } catch {
+    /* ignore */
+  }
+  return null;
+};
+
+// ---- DMS: minimum manpower register ----
+export const listDmsManpowerPositions = (params = {}) =>
+  axiosInstance.get("/dms/manpower/positions/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const listDmsManpowerRequirements = (params = {}) =>
+  axiosInstance.get("/dms/manpower/requirements/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const createDmsManpowerRequirement = (data) =>
+  axiosInstance.post("/dms/manpower/requirements/", data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const updateDmsManpowerRequirement = (id, data) =>
+  axiosInstance.patch(`/dms/manpower/requirements/${id}/`, data, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const normalizeDmsList = (data) =>
+  Array.isArray(data) ? data : (data?.results ?? []);
+
+const __sliceField = (v, max = 128) => String(v ?? "").slice(0, max);
+
+/** Normalize minimum manpower "actual deploy" for API: B | P | S or empty. */
+export function normalizeDmsManpowerActualDeploy(raw) {
+  const c = String(raw ?? "")
+    .trim()
+    .toUpperCase()
+    .slice(0, 1);
+  if (c === "B" || c === "P" || c === "S") return c;
+  return "";
+}
+
+/** MMR register line: deployment legend B | P | S or empty. */
+export function normalizeDmsMmrDeployment(raw) {
+  return normalizeDmsManpowerActualDeploy(raw);
+}
+
+/**
+ * Create new requirement rows only (POST). Callers should check for duplicate positions first.
+ * Backend: min_experience / number_required as text; actual_deploy as B | P | S (deployment legend).
+ * Free-text "actual deployment" detail is appended to remark when present.
+ */
+export const createDmsManpowerRequirementsForScope = async (orgId, payload) => {
+  const { projectId, scope, requirements } = payload;
+  const oid = String(orgId);
+  const pid = String(projectId);
+  let count = 0;
+  for (const line of requirements || []) {
+    const posId = String(line.positionId || "").trim();
+    if (!posId) continue;
+    const deployLegend =
+      normalizeDmsManpowerActualDeploy(line.deployment) ||
+      normalizeDmsManpowerActualDeploy(line.actualDeploy);
+    const rawActual = String(line.actualDeploy ?? "").trim();
+    const isSameAsLegend =
+      rawActual.length === 1 &&
+      ["B", "P", "S"].includes(rawActual.toUpperCase()) &&
+      rawActual.toUpperCase() === deployLegend;
+    const actualDetail = isSameAsLegend ? "" : rawActual;
+    const baseRemark = String(line.remark || "").trim();
+    const extra = actualDetail
+      ? `\nActual deployment${deployLegend ? " (detail)" : ""}: ${actualDetail.slice(0, 2000)}`
+      : "";
+    const remark = (baseRemark + extra).trim().slice(0, 5000);
+    const body = {
+      org_id: oid,
+      project_id: pid,
+      position: Number(posId),
+      scope,
+      min_experience: __sliceField(line.minExp),
+      number_required: __sliceField(line.numberRequired),
+      actual_deploy: deployLegend,
+      remark,
+      status: "open",
+      approval_status: "not_applicable",
+    };
+    await createDmsManpowerRequirement(body);
+    count += 1;
+  }
+  return { ok: true, count };
+};
+
+/** @deprecated Use createDmsManpowerRequirementsForScope (POST-only; no PATCH). */
+export const upsertDmsManpowerRequirementsForScope =
+  createDmsManpowerRequirementsForScope;
+
+// ---- DMS: resource register (master-template + transactional entry) ----
+/** Combined MMR + QC (legacy); prefer split endpoints below. */
+export const getDmsResourceRegister = (params = {}) =>
+  axiosInstance.get("/dms/resource-register/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const saveDmsResourceRegister = (payload) =>
+  axiosInstance.post("/dms/resource-register/", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const getDmsMinimumManpowerRegister = (params = {}) =>
+  axiosInstance.get("/dms/resource-register/minimum-manpower/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const saveDmsMinimumManpowerRegister = (payload) =>
+  axiosInstance.post("/dms/resource-register/minimum-manpower/", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const getDmsQcAssetsRegister = (params = {}) =>
+  axiosInstance.get("/dms/resource-register/qc-assets/", {
+    params,
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const saveDmsQcAssetsRegister = (payload) =>
+  axiosInstance.post("/dms/resource-register/qc-assets/", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+// ************************************************** DMS **************************************************
+// Base path: axiosInstance `/dms/...` (user service). Sub-sections below: core folders/files, manpower, QC assets.
+const normalizeDmsFolderOwnerNames = (node) => {
+  if (!node || typeof node !== "object") return node;
+  const next = { ...node };
+  if (next.created_by != null) {
+    next.created_by = String(next.created_by);
+  }
+  if (Array.isArray(next.children)) {
+    next.children = next.children.map(normalizeDmsFolderOwnerNames);
+  }
+  return next;
+};
+
+const withNormalizedDmsFolders = async (
+  requestPromise,
+  { many = false } = {},
+) => {
+  const response = await requestPromise;
+  if (many && Array.isArray(response?.data)) {
+    response.data = response.data.map(normalizeDmsFolderOwnerNames);
+  } else if (!many && response?.data && typeof response.data === "object") {
+    response.data = normalizeDmsFolderOwnerNames(response.data);
+  }
+  return response;
+};
+
+
+// Templates
+export const listPTWTemplates = (params = {}) =>
+  NEWchecklistInstance.get("/templates/", {
+    params: {
+      code: params.code,
+    },
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const getPTWTemplate = (id) =>
+  NEWchecklistInstance.get(`/templates/${id}/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+// Approval flows
+export const listPTWApprovalFlows = () =>
+  NEWchecklistInstance.get("/approval-flows/", {
+    headers: { "Content-Type": "application/json" },
+  });
+
+// Permits
+export const listPermits = (params = {}) =>
+  NEWchecklistInstance.get("/permits/", {
+    params: {
+      template_id: params.template_id,
+      selected_flow_id: params.selected_flow_id,
+      current_status: params.current_status,
+      current_stage: params.current_stage,
+      project_id: params.project_id,
+      organization_id: params.organization_id,
+      created_by_id: params.created_by_id,
+      created_by_me: params.created_by_me,
+      assigned_to_me: params.assigned_to_me,
+    },
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const getPermit = (id, params = {}) =>
+  NEWchecklistInstance.get(`/permits/${id}/`, {
+    headers: { "Content-Type": "application/json" },
+    params,
+  });
+
+export const createPermit = (payload) =>
+  NEWchecklistInstance.post("/permits/", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const updatePermit = (id, payload) =>
+  NEWchecklistInstance.patch(`/permits/${id}/`, payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const submitPermit = (id) =>
+  NEWchecklistInstance.post(`/permits/${id}/submit/`, {}, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const permitWorkflowAction = (id, payload) =>
+  NEWchecklistInstance.post(`/permits/${id}/action/`, payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const getPermitWorkflowLogs = (id) =>
+  NEWchecklistInstance.get(`/permits/${id}/workflow-logs/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const listPermitLogs = async (params = {}) => {
+  const permitsRes = await listPermits(params);
+  const permits = Array.isArray(permitsRes?.data)
+    ? permitsRes.data
+    : permitsRes?.data?.results || [];
+
+  const logResponses = await Promise.all(
+    permits.map(async (permit) => {
+      try {
+        const res = await getPermitWorkflowLogs(permit.id);
+        const logs = Array.isArray(res?.data) ? res.data : res?.data?.results || [];
+        return logs.map((log) => ({
+          ...log,
+          permit_id: log?.permit_id ?? permit.id,
+          current_stage: log?.current_stage ?? permit.current_stage ?? "",
+          current_status: log?.current_status ?? permit.current_status ?? "",
+        }));
+      } catch {
+        return [];
+      }
+    })
+  );
+
+  return {
+    data: logResponses.flat().sort((a, b) => {
+      const aTime = new Date(
+        a?.performed_at || a?.created_at || a?.timestamp || 0
+      ).getTime();
+      const bTime = new Date(
+        b?.performed_at || b?.created_at || b?.timestamp || 0
+      ).getTime();
+      return bTime - aTime;
+    }),
+  };
+};
+
+
+export const getUserGroups = () => axiosInstance.get("/user-groups/");

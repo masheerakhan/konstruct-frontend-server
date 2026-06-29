@@ -1,0 +1,60 @@
+{
+  "source": "1. Design Mix Submission Index Sheet.xlsx",
+  "rows": [
+    {
+      "slNo": "1",
+      "kind": "row",
+      "document": "Checklist"
+    },
+    {
+      "slNo": "2",
+      "kind": "row",
+      "document": "Calculation Sheet"
+    },
+    {
+      "slNo": "3",
+      "kind": "row",
+      "document": "Trail Mix Record"
+    },
+    {
+      "slNo": "4",
+      "kind": "row",
+      "document": "ACT / Compressive Strength @ 28 days"
+    },
+    {
+      "slNo": "5",
+      "kind": "row",
+      "document": "All Raw Materials Test Reports"
+    },
+    {
+      "slNo": "5.1",
+      "kind": "row",
+      "document": "Cement"
+    },
+    {
+      "slNo": "5.2",
+      "kind": "row",
+      "document": "Coarse & Fine Aggregates"
+    },
+    {
+      "slNo": "5.3",
+      "kind": "row",
+      "document": "Mineral Admixtures - Fly ash/GGBS/ Micro Silica"
+    },
+    {
+      "slNo": "5.4",
+      "kind": "row",
+      "document": "Chemical Admixtures (Superplasticizer)"
+    },
+    {
+      "slNo": "5.5",
+      "kind": "row",
+      "document": "Additional Admixtures"
+    },
+    {
+      "slNo": "5.6",
+      "kind": "row",
+      "document": "Water"
+    }
+  ]
+}

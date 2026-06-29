@@ -88,6 +88,7 @@ function SideBarSetup({ overrideNavItems }) {
       { name: "Checklist", path: "/Checklist" },
       { name: "Category management", path: "/category-sidebar" },
       { name: "Users Management", path: "/UsersManagement" },
+      { name: "Vendors", path: "/Vendors" },
       { name: "Scheduling", path: "/scheduling" },
       // { name: "Forms Setup", path: "/project-forms/setup" },
       { name: "Attendance", path: "/attendance/project" },
@@ -98,6 +99,7 @@ function SideBarSetup({ overrideNavItems }) {
       { name: "Safety", path: "/safety" },
       // { name: "Safety Observation", path: "/safetyObservation" },
       // { name: "DMS", path: "/documents" }
+      { name: "QHSE", path: "/documents" },
     ];
   } else if (rolee === "super admin") {
     navItems = [
@@ -111,6 +113,7 @@ function SideBarSetup({ overrideNavItems }) {
       { name: "Form Packs", path: "/form-packs" },
       { name: "Project Forms", path: "/project-forms" },
       { name: "Purpose Management", path: "/create-purpose" },
+      { name: "QHSE", path: "/documents" },
     ];
   } else {
     navItems = [
@@ -123,7 +126,7 @@ function SideBarSetup({ overrideNavItems }) {
       { name: "Safety", path: "/safety" },
       // { name: "DMS", path: "/documents" }
 
-
+      { name: "DMS", path: "/documents" },
     ];
   }
 

@@ -19,6 +19,7 @@ const API = {
   projects: "https://konstruct.world/projects/",
   organizations: "https://konstruct.world/organizations/",
   checklists: "https://konstruct.world/checklists/",
+  qhse: "https://konstruct.world/qhse/",
 };
 
 /* ---------------- TOKEN helpers ---------------- */
@@ -55,6 +56,10 @@ const makeCanceledError = (message) => {
   return err;
 };
 
+export const qhseInstance = axios.create({
+  baseURL: API.qhse,
+  timeout: 45000,
+});
 /* ---------------- refresh single-flight (IMPORTANT) ---------------- */
 let refreshPromise = null;
 
@@ -193,5 +198,6 @@ attachTokenInterceptor(projectInstance);
 attachTokenInterceptor(organnizationInstance);
 attachTokenInterceptor(checklistInstance);
 attachTokenInterceptor(NEWchecklistInstance);
+attachTokenInterceptor(qhseInstance);
 
 export default axiosInstance;

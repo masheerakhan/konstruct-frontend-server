@@ -4,6 +4,9 @@ import {
     CheckCircle2,
     AlertTriangle,
     Image as ImageIcon,
+    UserRound,
+    Eye,
+    Signature,
 } from "lucide-react";
 
 // import { getSafetyChecklist } from "../../../../../services/checklist";
@@ -100,7 +103,7 @@ const QuestionStatusBadge = ({ sub, pendingStatusLabel }) => {
     }
 
     return (
-        <span className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+        <span className="inline-flex items-center rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-500">
             Pending for Review
         </span>
     );
@@ -215,6 +218,234 @@ const ReadonlyInfoCard = ({ detail }) => {
         </div>
     );
 };
+
+
+const getLatestCheckerIdFromSubmissions = (detail) => {
+    for (const item of detail?.items || []) {
+        for (const sub of item?.submissions || []) {
+            if (sub?.checker_id) {
+                return `User ${sub.checker_id}`;
+            }
+        }
+    }
+
+    return "";
+};
+
+
+const getLatestNameFromSubmissions = (detail, keys = []) => {
+    for (const item of detail?.items || []) {
+        for (const sub of item?.submissions || []) {
+            for (const key of keys) {
+                const value = String(sub?.[key] || "").trim();
+
+                if (value) {
+                    return value;
+                }
+            }
+        }
+    }
+
+    return "";
+};
+
+const getLatestSignatureFromDetail = (detail, role) => {
+    if (!detail) return "";
+
+    if (role === "maker") {
+        return (
+            detail.latest_maker_signature ||
+            detail.maker_signature ||
+            detail.maker_signature_url ||
+            detail.maker_signature_file ||
+            detail.created_by_signature ||
+            ""
+        );
+    }
+
+    if (role === "checker") {
+        return (
+            detail.latest_checker_signature ||
+            detail.checker_signature ||
+            detail.checker_signature_url ||
+            detail.checker_signature_file ||
+            detail.verified_by_signature ||
+            ""
+        );
+    }
+
+    return "";
+};
+
+const getSignOffUsers = (detail) => {
+    const makerName =
+        detail?.maker_name ||
+        detail?.created_by_name ||
+        detail?.created_by ||
+        getLatestNameFromSubmissions(detail, [
+            "latest_maker_name",
+            "maker_name",
+            "created_by_name",
+        ]) ||
+        "Maker";
+
+    const checkerName =
+        detail?.checker_name ||
+        detail?.verified_by_name ||
+        detail?.approved_by_name ||
+        getLatestNameFromSubmissions(detail, [
+            "latest_checker_name",
+            "checker_name",
+            "approved_by_name",
+        ]) ||
+        getLatestCheckerIdFromSubmissions(detail) ||
+        "Checker";
+
+    return {
+        maker: {
+            role: "maker",
+            label: "Checked by",
+            name: makerName,
+            designation: "",
+            signature: getLatestSignatureFromDetail(detail, "maker"),
+        },
+        checker: {
+            role: "checker",
+            label: "Verified by",
+            name: checkerName,
+            designation: "",
+            signature: getLatestSignatureFromDetail(detail, "checker"),
+        },
+    };
+};
+
+export const SignatureViewModal = ({ open, onClose, user }) => {
+    if (!open || !user) return null;
+
+    const signatureUrl = resolveMediaUrl(user.signature);
+
+    return (
+        <div className="fixed inset-0 z-[260] flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+            <div className="w-full max-w-xl overflow-hidden rounded-2xl border border-border bg-white shadow-2xl">
+                <div className="flex items-start justify-between border-b border-border px-5 py-4">
+                    <div>
+                        <h3 className="text-base font-bold text-foreground">
+                            {user.label}
+                        </h3>
+
+                        <p className="mt-1 text-sm text-muted-foreground">
+                            {user.name}{" "}
+                            <span className="font-medium">
+                                ({user.designation})
+                            </span>
+                        </p>
+                    </div>
+
+                    <button
+                        type="button"
+                        onClick={onClose}
+                        className="rounded-lg border border-border p-2 text-muted-foreground hover:bg-muted hover:text-foreground"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+
+                <div className="p-5">
+                    {signatureUrl ? (
+                        <div className="rounded-xl border border-border bg-muted/20 p-4">
+                            <img
+                                src={signatureUrl}
+                                alt={`${user.designation} signature`}
+                                className="mx-auto max-h-72 w-full object-contain"
+                            />
+                        </div>
+                    ) : (
+                        <div className="flex min-h-[180px] flex-col items-center justify-center rounded-xl border border-dashed border-border bg-muted/20 text-center">
+                            <Signature className="mb-2 h-8 w-8 text-muted-foreground" />
+
+                            <p className="text-sm font-semibold text-foreground">
+                                No signature available
+                            </p>
+
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                Latest signature was not found for this user.
+                            </p>
+                        </div>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const SignOffRow = ({ user, onView }) => {
+    const hasSignature = Boolean(String(user?.signature || "").trim());
+
+    return (
+        <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/20 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <UserRound className="h-5 w-5" />
+                </div>
+
+                <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                        {user.label}
+                    </p>
+
+                    <p className="text-sm font-bold text-foreground">
+                        {user.name}{" "}
+                        
+                    </p>
+                </div>
+            </div>
+
+            <button
+                type="button"
+                onClick={() => onView(user)}
+                disabled={!hasSignature}
+                className={`inline-flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition ${hasSignature
+                    ? "border border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100"
+                    : "cursor-not-allowed border border-border bg-muted text-muted-foreground"
+                    }`}
+            >
+                <Eye className="h-3.5 w-3.5" />
+                View
+            </button>
+        </div>
+    );
+};
+
+const SignOffSection = ({ detail, onViewSignature }) => {
+    const users = getSignOffUsers(detail);
+
+    return (
+        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+            <div className="mb-4">
+                <h3 className="text-sm font-bold text-foreground">
+                    Sign Off
+                </h3>
+
+                <p className="mt-1 text-xs text-muted-foreground">
+                    Latest checklist signatures from Maker and Checker.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+                <SignOffRow
+                    user={users.maker}
+                    onView={onViewSignature}
+                />
+
+                <SignOffRow
+                    user={users.checker}
+                    onView={onViewSignature}
+                />
+            </div>
+        </div>
+    );
+};
+
 
 const ReadonlyQuestionCard = ({ item, idx, pendingStatusLabel }) => {
     const sub = item?.submissions?.[0];
@@ -401,10 +632,12 @@ function SafetyChecklistReadonlyModal({
 }) {
     const [loading, setLoading] = useState(false);
     const [detail, setDetail] = useState(null);
+    const [signatureUser, setSignatureUser] = useState(null);
 
     useEffect(() => {
         if (!open || !checklistId) {
             setDetail(null);
+            setSignatureUser(null);
             return;
         }
 
@@ -414,6 +647,7 @@ function SafetyChecklistReadonlyModal({
             try {
                 setLoading(true);
                 setDetail(null);
+                setSignatureUser(null);
 
                 const res = await getSafetyChecklist(checklistId);
 
@@ -458,11 +692,11 @@ function SafetyChecklistReadonlyModal({
                                 Read Only View
                             </span>
 
-                            {detail?.status && (
+                            {/* {detail?.status && (
                                 <span className="inline-flex rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground">
                                     {detail.status}
                                 </span>
-                            )}
+                            )} */}
                         </div>
 
                         <h2 className="text-xl font-bold text-foreground">
@@ -507,10 +741,23 @@ function SafetyChecklistReadonlyModal({
                                     />
                                 ))}
                             </div>
+
+                            {/* SIGN OFF */}
+                            <SignOffSection
+                                detail={detail}
+                                onViewSignature={setSignatureUser}
+                            />
                         </div>
                     )}
                 </div>
             </div>
+
+            <SignatureViewModal
+                open={!!signatureUser}
+                user={signatureUser}
+                onClose={() => setSignatureUser(null)}
+            />
+
         </div>
     );
 }

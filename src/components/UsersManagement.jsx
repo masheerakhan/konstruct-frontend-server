@@ -70,6 +70,7 @@ function UsersManagement() {
   const [adminProjectsLoading, setAdminProjectsLoading] = useState(false);
   const [buildingsByProjectCache, setBuildingsByProjectCache] = useState({});
   // const [selectedBuildingId, setSelectedBuildingId] = useState("");
+    const [availableGroups, setAvailableGroups] = useState([]);
 const [selectedBuildingIds, setSelectedBuildingIds] = useState([]);
 
   const { theme } = useTheme(); 
@@ -157,8 +158,19 @@ const [selectedBuildingIds, setSelectedBuildingIds] = useState([]);
     }
   };
 
+   const fetchGroups = async () => {
+     try {
+       const res = await axiosInstance.get("/user-groups/");
+       const data = res.data?.results ? res.data.results : res.data;
+       setAvailableGroups(data || []);
+     } catch (err) {
+       console.error("Failed to load user groups", err);
+     }
+   };
+
   useEffect(() => {
     fetchUsers();
+    fetchGroups();
   }, []);
 
   const storedUserData = useMemo(() => {
@@ -733,6 +745,15 @@ const fetchBuildingsByProject = async (projectId, force = false) => {
     );
   }, [accessUser, selectedAccessId]);
 
+  // const toggleRoleDraft = (role) => {
+  //   setRolesDraft((prev) => {
+  //     const s = new Set(prev);
+  //     if (s.has(role)) s.delete(role);
+  //     else s.add(role);
+  //     return Array.from(s);
+  //   });
+  // };
+
   const getUniqueRoles = () => {
     const roles = new Set();
     users.forEach((user) => {
@@ -939,6 +960,8 @@ const toggleSelectAllBuildings = () => {
     const u = users.find((x) => x.id === userId);
     if (!u) return;
 
+      const currentGroupIds = (u.groups || []).map((g) => g.id);
+
     setEditErr("");
     setEditUser(u);
     setSafetyOfficerDraft(!!(u.is_safetyOfficer ?? u.is_safetyOfficer));
@@ -952,6 +975,7 @@ const toggleSelectAllBuildings = () => {
       phone_number: u.phone_number || "",
       new_password: "",
       confirm_password: "",
+      group_ids: currentGroupIds,
     });
     setEditOpen(true);
   };
@@ -971,6 +995,7 @@ const toggleSelectAllBuildings = () => {
       phone_number: "",
       new_password: "",
       confirm_password: "",
+      group_ids: [],
     });
   };
 
@@ -1013,6 +1038,8 @@ const toggleSelectAllBuildings = () => {
       last_name: (editForm.last_name || "").trim(),
       email: (editForm.email || "").trim(),
       phone_number: (editForm.phone_number || "").trim(),
+      group_ids: editForm.group_ids || [],
+
       ...(np ? { password: np } : {}),
     };
 
@@ -2352,7 +2379,6 @@ const buildAccessPayloads = ({
                     }
                   />
                 </div>
-
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${palette.text}`}
@@ -2370,7 +2396,6 @@ const buildAccessPayloads = ({
                     }
                   />
                 </div>
-
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${palette.text}`}
@@ -2388,7 +2413,6 @@ const buildAccessPayloads = ({
                     }
                   />
                 </div>
-
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${palette.text}`}
@@ -2406,7 +2430,6 @@ const buildAccessPayloads = ({
                     }
                   />
                 </div>
-
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${palette.text}`}
@@ -2424,7 +2447,6 @@ const buildAccessPayloads = ({
                     }
                   />
                 </div>
-
                 <div>
                   <label
                     className={`block text-sm font-medium mb-1 ${palette.text}`}
@@ -2440,7 +2462,6 @@ const buildAccessPayloads = ({
                     <option value="EXTERNAL">External</option>
                   </select>
                 </div>
-
                 {editForm.user_type === "EXTERNAL" && (
                   <div>
                     <label
@@ -2461,7 +2482,6 @@ const buildAccessPayloads = ({
                     />
                   </div>
                 )}
-
                 <div
                   className={`mb-4 p-3 rounded-lg ${
                     theme === "dark" ? "bg-slate-900" : "bg-gray-50"
@@ -2484,7 +2504,61 @@ const buildAccessPayloads = ({
                     </div>
                   </label>
                 </div>
+                <div className="md:col-span-2">
+                <label className={`block text-sm font-medium mb-1 ${palette.text}`}>
+                  User Groups
+                </label>
+                <div
+                  className={`grid grid-cols-2 md:grid-cols-3 gap-2 p-3 rounded-lg ${
+                    theme === "dark" ? "bg-slate-900" : "bg-gray-50"
+                  } ${palette.border} border`}
+                >
+                  {availableGroups.length > 0 ? (
+                    availableGroups.map((g) => (
+                      <label
+                        key={g.id}
+                        className={`flex items-center gap-2 text-sm rounded-md px-2 py-1 ${
+                          theme === "dark"
+                            ? "hover:bg-slate-800"
+                            : "hover:bg-white"
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={editForm.group_ids?.includes(g.id)}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
 
+                            setEditForm((prev) => {
+                              const currentGroups = prev.group_ids || [];
+
+                              if (checked) {
+                                return {
+                                  ...prev,
+                                  group_ids: [...currentGroups, g.id],
+                                };
+                              }
+
+                              return {
+                                ...prev,
+                                group_ids: currentGroups.filter(
+                                  (id) => id !== g.id,
+                                ),
+                              };
+                            });
+                          }}
+                        />
+
+                        <span className={palette.text}>{g.name || g.code}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <div className={`text-sm ${palette.subtext} col-span-full`}>
+                      No user groups available.
+                    </div>
+                  )}
+                </div>
+                </div>
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${palette.text}`}
@@ -2503,7 +2577,6 @@ const buildAccessPayloads = ({
                     }
                   />
                 </div>
-
                 <div>
                   <label
                     className={`block text-sm font-medium mb-2 ${palette.text}`}

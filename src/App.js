@@ -214,7 +214,20 @@ import ViewReport from "./components/Safety/Safety_Inspection/ViewReport";
 import ChecklistManager from "./containers/setup/checklists/ChecklistManager";
 import UserChecklistDashboard from "./components/Safety/Safety_Inspection/UserChecklistDashboard"
 import ManualLocationChecklistPanel from "./components/ManualLocationChecklistPanel";
-
+// import TransmittalMAS from "./components/QHSE/Transmittal/Documents";
+import ObservationsDashboard from "./components/Safety/Safety_Inspection/ObservationsDashboard";
+import Documents from "./components/QHSE/Transmittal/Documents";
+import Vendors from "./components/Vendor/Vendor";
+import VendorOnboarding from "./components/Vendor/VendorOnboarding/VendorOnboardingForm";
+import QHSEChecklistDashboard from "./components/QHSEChecklistDashboard";
+import QHSEChecklistInboxPage from "./components/QHSEChecklistInboxPage";
+import QHSEChecklistFormPage from "./components/QHSEChecklistFormPage";
+import QHSEChecklistCreatePage from "./components/QHSEChecklistCreatePage";
+import Index from "./components/QHSE/MIR/MaterialInspectionRequest/MIR";
+import MobileLogin from "./components/pages/MobileLogin";
+import MIRChecklist from "./components/QHSE/MIR/MaterialInspectionRequest/MIRChecklist";
+import PermitToWorkDashboard from "./components/Safety/Permit_to_work/PermitToWorkDashboard";
+import UserPermitDashboard from "./components/Safety/Permit_to_work/PermitDashboard/UserPermitDashboard";
 
 // For body background
 function BodyBgController() {
@@ -297,13 +310,212 @@ function ProjectOverviewGuard({ children }) {
 }
 
 // Your main app routes
+// function AppRoutes() {
+//   const location = useLocation();
+
+//   if (location.pathname === "/login") {
+//     return (
+//       <Routes>
+//         <Route path="/login" element={<Login />} />
+//       </Routes>
+//     );
+//   }
+
+//   return (
+//     <Layout1>
+//       <Routes>
+//         <Route path="/" element={<Navigate to="/login" replace />} />
+//         <Route
+//           path="/overview/project/:id"
+//           element={
+//             <ProjectOverviewGuard>
+//               <ProjectOverview />
+//             </ProjectOverviewGuard>
+//           }
+//         />
+//         <Route path="/config" element={<Configuration />} />
+//         <Route path="/all-checklists" element={<AllChecklists />} />
+//         <Route path="/my-ongoing-checklist" element={<MyOngoingChecklist />} />
+//         <Route path="/checker-inbox" element={<CheckerInbox />} />
+//         <Route path="/create-purpose" element={<CreatePurposePage />} />
+//         <Route
+//           path="/user-management-setup"
+//           element={<UserManagementSetup />}
+//         />
+//         <Route
+//           path="/projects/:id/flat-report/:flatId"
+//           element={<FlatReport />}
+//         />
+//         <Route
+//           path="/project-forms/setup"
+//           element={<ProjectFormsManagerSetupPage />}
+//         />
+//         <Route path="/project/:id" element={<ProjectDetails />} />
+//         <Route path="/snagging/:id" element={<Snagging />} />
+//         {/* <Route path="/Level/:id" element={<FlatMatrixTable />} /> */}
+//         <Route
+//           path="/project/:projectId/tower/:towerId"
+//           element={<FlatMatrixTable />}
+//         />
+//         <Route path="/checklistfloor/:id" element={<ChecklistFloor />} />
+//         <Route path="/checklistpage/:id" element={<ChecklistPage />} />
+//         <Route path="/casetup" element={<CASetup />} />
+//         <Route path="/SiteConfig" element={<SiteConfig />} />
+//         <Route path="/UserHome" element={<UserHome />} />
+//         <Route path="/SlotConfig" element={<SlotConfig />} />
+//         <Route path="/RequestManagement" element={<RequestManagement />} />
+//         <Route path="/CoustemerHandover" element={<CoustemerHandover />} />
+//         <Route path="/Chif" element={<Chif />} />
+//         <Route path="/analytics" element={<UserDashboard />} />
+//         <Route
+//           path="/PendingSupervisorItems"
+//           element={<PendingSupervisorItems />}
+//         />
+//         <Route path="/safety" element={<Safety />} />
+//         <Route
+//           path="/safety/sessions"
+//           element={<SafetySessionsManagerList />}
+//         />
+//         <Route
+//           path="/safety/sessions/create"
+//           element={<SafetySessionCreatePage />}
+//         />
+//         <Route path="/safety/permit-to-work" element={<PermitToWork />} />
+//         <Route path="/safetyInspections" element={<SafetyInspectionList />} />
+//         <Route
+//           path="/safetyInpection/create"
+//           element={<CreateSafetyInspection />}
+//         />
+//         <Route path="/safety/permit" element={<UserPermitDashboard />} />
+//         <Route
+//           path="/safety/observations/create"
+//           element={<CreateSafetyInspection />}
+//         />
+//         <Route
+//           path="/safety/observations"
+//           element={<ObservationsDashboard />}
+//         />
+//         {/* <Route path="/safetySetup" element={<SafetySetup />} /> */}
+//         <Route path="/safetySetup" element={<SafetyFormats />} />
+//         <Route path="/safetySetup/create" element={<SafetyWizard />} />
+//         {/* <Route path="/safety/inspection-checker" element={<CheckerView />} /> */}
+//         {/*  TRANSMITAL FORMS */}
+//         <Route path="/documents/*" element={<Documents />} />
+//         {/* Vendor */}
+//         <Route path="/Vendors" element={<Vendors />} />
+//         <Route path="/mir" element={<Index />} />
+//         <Route path="/mir/checklist" element={<MIRChecklist />} />
+//         <Route
+//           path="/safety/inspection-checker"
+//           element={<UserChecklistDashboard />}
+//         />
+//         <Route
+//           path="/safety/observations"
+//           element={<ObservationsDashboard />}
+//         />
+//         <Route path="/safety/inspection-report/:id" element={<ViewReport />} />
+//         <Route path="/safety/document-pro" element={<DocumentPro />} />
+//         {/* <Route path="/overview/project/:projectId" element={<ProjectOverviewPage />} /> */}
+//         <Route path="/forms" element={<FormsEnginePage />} />
+//         <Route path="/form-packs" element={<FormPacksPage />} />
+//         {/* <Route path="/project-forms" element={<ProjectFormsAssignedPage />} /> */}
+//         <Route
+//           path="/project-forms"
+//           element={<ManualLocationChecklistPanel />}
+//         />
+//         <Route path="/project-forms/fill" element={<ProjectFormFillPage />} />
+//         <Route path="/mir/create" element={<MIRCreatePage />} />
+//         <Route path="/mir/:id" element={<MIRDetailPage />} />
+//         <Route path="/mir/inbox" element={<MIRInboxPage />} />
+//         <Route path="/wir/create" element={<WIRCreatePage />} />
+//         <Route
+//           path="/wir/inbox"
+//           element={<Navigate to="/mir/inbox" replace />}
+//         />
+//         <Route path="/wir/:id" element={<WIRDetailPage />} />
+//         <Route path="/safety/my-sessions" element={<SafetyMySessionsList />} />
+//         {/* Checklists New Standalone Dashboard */}
+//         <Route path="/checklists" element={<QHSEChecklistDashboard />} />
+//         <Route
+//           path="/checklists/create"
+//           element={<QHSEChecklistCreatePage />}
+//         />
+//         <Route path="/checklists/inbox" element={<QHSEChecklistInboxPage />} />
+//         <Route
+//           path="/checklists/fill/:id"
+//           element={<QHSEChecklistFormPage />}
+//         />
+//         <Route
+//           path="/safety/my-sessions/:id"
+//           element={<SafetyMySessionDetail />}
+//         />
+//         <Route
+//           path="/safety/sessions/:id"
+//           element={<SafetySessionManagerView />}
+//         />
+//         {/*  TRANSMITAL FORMS */}
+//         <Route path="/documents/*" element={<Documents />} />
+//         {/* Vendor */}
+//         <Route path="/Vendors" element={<Vendors />} />
+//         <Route path="/attendance/project" element={<AttendanceProjectPage />} />
+//         <Route path="/my-forms" element={<MyFormResponsesPage />} />
+//         <Route path="/my-forms/:id" element={<MyFormResponseDetailPage />} />
+//         <Route path="/UsersManagement" element={<UsersManagement />} />
+//         <Route path="/Initialize-Checklist" element={<InitializeChecklist />} />
+//         <Route
+//           path="/PendingInspector-Checklist"
+//           element={<PendingInspectorChecklists />}
+//         />
+//         <Route
+//           path="/Pending-For-MakerItems"
+//           element={<PendingForMakerItems />}
+//         />
+//         <Route path="/guard/onboarding" element={<GuardOnboarding />} />
+//         <Route path="/guard/attendance" element={<GuardAttendance />} />
+//         <Route path="/chif-setup" element={<ChifSetup />} />
+//         <Route path="/Chifstep1" element={<Chifstep1 />} />
+//         {/* <Route path="/Checklist" element={<Checklist />} /> */}
+//         <Route path="/Checklist" element={<ChecklistManager />} />
+//         <Route path="/setup" element={<Setup />} />
+//         <Route path="/user-setup" element={<UserSetup />} />
+//         <Route path="/user" element={<User />} />
+//         <Route path="/privacy" element={<PrivacyPage />} />
+//         <Route path="/scheduling" element={<Scheduling />} />
+//         <Route path="/category-sidebar" element={<CategoryChecklist />} />
+//         <Route path="/edit-checklist/:id" element={<EditCheckList />} />
+//         <Route
+//           path="/hierarchical-verifications"
+//           element={<HierarchicalVerifications />}
+//         />
+//         {/* <Route
+//           path="/inspection/flat/:flatId"
+//           element={<FlatInspectionPage />}
+//         /> */}
+//         {/* Add more as needed */}
+//         <Route path="*" element={<Navigate to="/login" replace />} />
+//       </Routes>
+//     </Layout1>
+//   );
+// }
+
+// Your main app routes
 function AppRoutes() {
   const location = useLocation();
 
-  if (location.pathname === "/login") {
+  const isVendorOnboardingRoute =
+    location.pathname.startsWith("/vendor/onboarding/");
+
+  const isMobileLoginRoute = location.pathname === "/mobile-login";
+  if (location.pathname === "/login" || isVendorOnboardingRoute || isMobileLoginRoute) {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
+
+        <Route path="/mobile-login" element={<MobileLogin />} />
+        <Route
+          path="/vendor/onboarding/:token"
+          element={<VendorOnboarding />}
+        />
       </Routes>
     );
   }
@@ -330,14 +542,25 @@ function AppRoutes() {
           path="/user-management-setup"
           element={<UserManagementSetup />}
         />
-        <Route path="/projects/:id/flat-report/:flatId" element={<FlatReport />} />
-        <Route path="/project-forms/setup" element={<ProjectFormsManagerSetupPage />} />
-
+        <Route
+          path="/projects/:id/flat-report/:flatId"
+          element={<FlatReport />}
+        />
+        <Route
+          path="/project-forms/setup"
+          element={<ProjectFormsManagerSetupPage />}
+        />
 
         <Route path="/project/:id" element={<ProjectDetails />} />
         <Route path="/snagging/:id" element={<Snagging />} />
-        {/* <Route path="/Level/:id" element={<FlatMatrixTable />} /> */}
-          <Route path="/project/:projectId/tower/:towerId" element={<FlatMatrixTable />} />
+        <Route
+          path="/project/:projectId/tower/:towerId"
+          element={<FlatMatrixTable />}
+        />
+        <Route
+          path="/project/:projectId/tower/:towerId/floor/:levelId/flat-inspection/:flatId"
+          element={<FlatInspectionPage />}
+        />
         <Route path="/checklistfloor/:id" element={<ChecklistFloor />} />
         <Route path="/checklistpage/:id" element={<ChecklistPage />} />
         <Route path="/casetup" element={<CASetup />} />
@@ -355,65 +578,111 @@ function AppRoutes() {
 
         <Route path="/safety" element={<Safety />} />
 
+        <Route
+          path="/safety/sessions"
+          element={<SafetySessionsManagerList />}
+        />
+        <Route
+          path="/safety/sessions/create"
+          element={<SafetySessionCreatePage />}
+        />
 
-        <Route path="/safety/sessions" element={<SafetySessionsManagerList />} />
-        <Route path="/safety/sessions/create" element={<SafetySessionCreatePage />} />
-
-        <Route path="/safety/permit-to-work" element={<PermitToWork />} />
-
+        <Route
+          path="/safety/permit-to-work"
+          element={<PermitToWorkDashboard />}
+        />
+        <Route
+          path="/safety/permit-to-work/create"
+          element={<PermitToWork />}
+        />
 
         <Route path="/safetyInspections" element={<SafetyInspectionList />} />
-        <Route path="/safetyInpection/create" element={<CreateSafetyInspection />} />
+        <Route
+          path="/safetyInpection/create"
+          element={<CreateSafetyInspection />}
+        />
+        <Route
+          path="/safety/observations/create"
+          element={<CreateSafetyInspection />}
+        />
 
         {/* <Route path="/safetySetup" element={<SafetySetup />} /> */}
 
         <Route path="/safetySetup" element={<SafetyFormats />} />
         <Route path="/safetySetup/create" element={<SafetyWizard />} />
 
-
-        {/* <Route path="/safety/inspection-checker" element={<CheckerView />} /> */}
-        <Route path="/safety/inspection-checker" element={<UserChecklistDashboard />} />
+        <Route path="/safety/permit" element={<UserPermitDashboard />} />
+        <Route
+          path="/safety/inspection-checker"
+          element={<UserChecklistDashboard />}
+        />
+        <Route
+          path="/safety/observations"
+          element={<ObservationsDashboard />}
+        />
         <Route path="/safety/inspection-report/:id" element={<ViewReport />} />
-
 
         <Route path="/safety/document-pro" element={<DocumentPro />} />
 
+        {/*  TRANSMITAL FORMS */}
+
+        <Route path="/documents/*" element={<Documents />} />
+
+        {/* Vendor */}
+        <Route path="/Vendors" element={<Vendors />} />
+
+        <Route path="/mir" element={<Index />} />
+
+        <Route path="/mir/checklist" element={<MIRChecklist />} />
 
         {/* <Route path="/overview/project/:projectId" element={<ProjectOverviewPage />} /> */}
 
         <Route path="/forms" element={<FormsEnginePage />} />
         <Route path="/form-packs" element={<FormPacksPage />} />
         {/* <Route path="/project-forms" element={<ProjectFormsAssignedPage />} /> */}
-        <Route path="/project-forms" element={<ManualLocationChecklistPanel />} />
         <Route path="/project-forms/fill" element={<ProjectFormFillPage />} />
 
+        <Route
+          path="/project-forms"
+          element={<ManualLocationChecklistPanel />}
+        />
+        <Route path="/project-forms/fill" element={<ProjectFormFillPage />} />
 
         <Route path="/mir/create" element={<MIRCreatePage />} />
         <Route path="/mir/:id" element={<MIRDetailPage />} />
         <Route path="/mir/inbox" element={<MIRInboxPage />} />
         <Route path="/wir/create" element={<WIRCreatePage />} />
-        <Route path="/wir/inbox" element={<Navigate to="/mir/inbox" replace />} />
+        <Route
+          path="/wir/inbox"
+          element={<Navigate to="/mir/inbox" replace />}
+        />
+
+        {/* Checklists New Standalone Dashboard */}
+        <Route path="/checklists" element={<QHSEChecklistDashboard />} />
+        <Route
+          path="/checklists/create"
+          element={<QHSEChecklistCreatePage />}
+        />
+        <Route path="/checklists/inbox" element={<QHSEChecklistInboxPage />} />
+        <Route
+          path="/checklists/fill/:id"
+          element={<QHSEChecklistFormPage />}
+        />
 
         <Route path="/wir/:id" element={<WIRDetailPage />} />
         <Route path="/safety/my-sessions" element={<SafetyMySessionsList />} />
-        <Route path="/safety/my-sessions/:id" element={<SafetyMySessionDetail />} />
-        <Route path="/safety/sessions/:id" element={<SafetySessionManagerView />} />
-
-
-
-
-
-
-
-
-
         <Route
-          path="/attendance/project"
-          element={<AttendanceProjectPage />}
+          path="/safety/my-sessions/:id"
+          element={<SafetyMySessionDetail />}
         />
+        <Route
+          path="/safety/sessions/:id"
+          element={<SafetySessionManagerView />}
+        />
+
+        <Route path="/attendance/project" element={<AttendanceProjectPage />} />
         <Route path="/my-forms" element={<MyFormResponsesPage />} />
         <Route path="/my-forms/:id" element={<MyFormResponseDetailPage />} />
-
 
         <Route path="/UsersManagement" element={<UsersManagement />} />
         <Route path="/Initialize-Checklist" element={<InitializeChecklist />} />
@@ -427,8 +696,6 @@ function AppRoutes() {
         />
         <Route path="/guard/onboarding" element={<GuardOnboarding />} />
         <Route path="/guard/attendance" element={<GuardAttendance />} />
-
-
 
         <Route path="/chif-setup" element={<ChifSetup />} />
         <Route path="/Chifstep1" element={<Chifstep1 />} />
@@ -445,14 +712,6 @@ function AppRoutes() {
         <Route
           path="/hierarchical-verifications"
           element={<HierarchicalVerifications />}
-        />
-        {/* <Route
-          path="/inspection/flat/:flatId"
-          element={<FlatInspectionPage />}
-        /> */}
-        <Route
-          path="/project/:projectId/tower/:towerId/floor/:levelId/flat-inspection/:flatId"
-          element={<FlatInspectionPage />}
         />
         {/* Add more as needed */}
         <Route path="*" element={<Navigate to="/login" replace />} />

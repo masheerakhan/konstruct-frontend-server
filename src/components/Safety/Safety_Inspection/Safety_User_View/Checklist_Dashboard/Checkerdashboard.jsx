@@ -13,23 +13,22 @@ import {
     Download,
     CircleAlert,
     ClipboardList,
+    UserRound,
+    ShieldCheck,
+    Signature,
 } from "lucide-react";
 
 import { getCurrentUserId } from "../../../../../utils/UserUtils";
-import {
-  approveSafetyChecklist,
-  getSafetyChecklist,
-  listSafetyChecklists,
-  rejectSafetyChecklist,
-  resolveActiveProjectId,
-  downloadSafetyReport,
-} from "../../../../../api";
+import { approveSafetyChecklist, getSafetyChecklist, listSafetyChecklists, rejectSafetyChecklist, resolveActiveProjectId, downloadSafetyReport } from "../../../../../api";
 import { showToast } from "../../../../../utils/toast";
 import SignatureCanvas from "react-signature-canvas";
 import SafetyChecklistHistoryModal from "../../SafetyChecklistHistoryModal";
 import { autoResizeTextarea } from "./Makerdashboard";
 
 import SafetyChecklistReadonlyModal from "../../SafetyChecklistReadonlyModal";
+
+import SafetyChecklistSignOffSection from "../../SafetyChecklistSignOffSection";
+import SafetyImageAnnotationModal from "../../SafetyImageAnnotationModal";
 
 
 // ─── Shared inline UI helpers ────────────────────────────────
@@ -92,6 +91,70 @@ const NoPhotoLabel = () => (
     </span>
 );
 
+// const PhotoUploadArea = ({
+//     id,
+//     previewBase64,
+//     onFileChange,
+//     onRemove,
+//     label = "Attach photo",
+// }) => {
+//     const inputRef = useRef(null);
+//     const previewUrl = previewBase64
+//         ? typeof previewBase64 === "string"
+//             ? resolveMediaUrl(previewBase64)
+//             : URL.createObjectURL(previewBase64)
+//         : null;
+
+//     const handleRemove = () => {
+//         if (inputRef.current) {
+//             inputRef.current.value = "";
+//         }
+//         onRemove?.();
+//     };
+
+//     return (
+//         <div className="mt-3">
+//             <p className="mb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
+//             {previewUrl ? (
+//                 <div className="relative inline-block">
+//                     <img
+//                         src={previewUrl}
+//                         alt="Preview"
+//                         className="h-20 w-20 rounded-lg border border-border object-cover shadow-sm"
+//                     />
+//                     <button
+//                         type="button"
+//                         onClick={handleRemove}
+//                         className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-white shadow transition-colors hover:bg-red-600"
+//                         aria-label="Remove uploaded photo"
+//                     >
+//                         <XIcon className="h-3 w-3" />
+//                     </button>
+//                 </div>
+//             ) : (
+//                 <label
+//                     htmlFor={`photo-upload-${id}`}
+//                     className="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-muted/60"
+//                 >
+//                     <Upload className="h-4 w-4" />
+//                     <span>Click to upload or take a photo</span>
+//                 </label>
+//             )}
+//             <input
+//                 ref={inputRef}
+//                 id={`photo-upload-${id}`}
+//                 type="file"
+//                 accept="image/*"
+//                 onChange={onFileChange}
+//                 className="hidden"
+//             />
+//         </div>
+//     );
+// };
+
+
+
+
 const PhotoUploadArea = ({
     id,
     previewBase64,
@@ -100,22 +163,79 @@ const PhotoUploadArea = ({
     label = "Attach photo",
 }) => {
     const inputRef = useRef(null);
+    const [annotationFile, setAnnotationFile] = useState(null);
+    const [annotationOpen, setAnnotationOpen] = useState(false);
+
     const previewUrl = previewBase64
         ? typeof previewBase64 === "string"
             ? resolveMediaUrl(previewBase64)
             : URL.createObjectURL(previewBase64)
         : null;
 
+    const handleInputChange = (event) => {
+        const file = event.target.files?.[0];
+
+        if (!file) return;
+
+        if (!String(file.type || "").startsWith("image/")) {
+            showToast("Please upload a valid image file.", "error");
+
+            if (inputRef.current) {
+                inputRef.current.value = "";
+            }
+
+            return;
+        }
+
+        setAnnotationFile(file);
+        setAnnotationOpen(true);
+    };
+
+    const handleAnnotatedSave = (annotatedFile) => {
+        setAnnotationOpen(false);
+        setAnnotationFile(null);
+
+        /*
+            Keep existing parent usage working.
+            Parent code already expects e.target.files[0].
+        */
+        onFileChange?.({
+            target: {
+                files: [annotatedFile],
+            },
+        });
+
+        if (inputRef.current) {
+            inputRef.current.value = "";
+        }
+    };
+
+    const handleAnnotationClose = () => {
+        setAnnotationOpen(false);
+        setAnnotationFile(null);
+
+        if (inputRef.current) {
+            inputRef.current.value = "";
+        }
+    };
+
     const handleRemove = () => {
         if (inputRef.current) {
             inputRef.current.value = "";
         }
+
+        setAnnotationOpen(false);
+        setAnnotationFile(null);
+
         onRemove?.();
     };
 
     return (
         <div className="mt-3">
-            <p className="mb-1.5 text-xs font-medium text-muted-foreground">{label}</p>
+            <p className="mb-1.5 text-xs font-medium text-muted-foreground">
+                {label}
+            </p>
+
             {previewUrl ? (
                 <div className="relative inline-block">
                     <img
@@ -123,6 +243,7 @@ const PhotoUploadArea = ({
                         alt="Preview"
                         className="h-20 w-20 rounded-lg border border-border object-cover shadow-sm"
                     />
+
                     <button
                         type="button"
                         onClick={handleRemove}
@@ -138,20 +259,29 @@ const PhotoUploadArea = ({
                     className="flex cursor-pointer items-center gap-2 rounded-lg border-2 border-dashed border-border bg-muted/30 px-4 py-3 text-xs text-muted-foreground transition-colors hover:border-primary/40 hover:bg-muted/60"
                 >
                     <Upload className="h-4 w-4" />
-                    <span>Click to upload or take a photo</span>
+                    <span>Click to upload, mark and attach photo</span>
                 </label>
             )}
+
             <input
                 ref={inputRef}
                 id={`photo-upload-${id}`}
                 type="file"
                 accept="image/*"
-                onChange={onFileChange}
+                onChange={handleInputChange}
                 className="hidden"
+            />
+
+            <SafetyImageAnnotationModal
+                open={annotationOpen}
+                file={annotationFile}
+                onClose={handleAnnotationClose}
+                onSave={handleAnnotatedSave}
             />
         </div>
     );
 };
+
 
 const YesNoButtons = ({ value, onChange }) => (
     <div className="flex gap-2">
@@ -196,9 +326,13 @@ const RemarksBubble = ({ label, text }) => (
     </div>
 );
 
-const ReadOnlyOptionButtons = ({ options = [], value }) => {
+const ReadOnlyOptionButtons = ({ options = [], value, isCheckbox = false }) => {
     const normalizedOptions =
         Array.isArray(options) && options.length ? options : ["Yes", "No", "N/A"];
+
+    const valueList = isCheckbox
+        ? String(value || "").toLowerCase().split(",").map(v => v.trim())
+        : [String(value || "").trim().toLowerCase()];
 
     return (
         <div className="flex flex-wrap gap-2">
@@ -210,10 +344,8 @@ const ReadOnlyOptionButtons = ({ options = [], value }) => {
 
                 if (!label) return null;
 
-                const active =
-                    String(value || "").trim().toLowerCase() ===
-                    String(label || "").trim().toLowerCase();
                 const normalizedLabel = String(label).trim().toLowerCase();
+                const active = valueList.includes(normalizedLabel);
                 const activeClasses =
                     normalizedLabel === "yes"
                         ? "border-green-500 bg-green-500 text-white shadow-sm"
@@ -235,6 +367,26 @@ const ReadOnlyOptionButtons = ({ options = [], value }) => {
                     </span>
                 );
             })}
+        </div>
+    );
+};
+
+const ReadOnlyMakerAnswer = ({ item, value }) => {
+    if (!value) return <span className="text-gray-400 italic text-sm">No answer provided</span>;
+
+    const inputType = item?.input_type || "multiple_choice";
+
+    if (inputType === "multiple_choice" || inputType === "dropdown") {
+        return <ReadOnlyOptionButtons options={item?.options} value={value} />;
+    }
+
+    if (inputType === "checkbox") {
+        return <ReadOnlyOptionButtons options={item?.options} value={value} isCheckbox={true} />;
+    }
+
+    return (
+        <div className="w-full rounded-lg border border-gray-200 bg-gray-50 px-4 py-2.5 text-sm text-gray-800 shadow-sm whitespace-pre-wrap">
+            {value}
         </div>
     );
 };
@@ -559,6 +711,9 @@ const ReportHeaderInfoCard = ({ detail }) => {
 };
 
 
+
+
+
 // ─────────────────────────────────────────────
 // CheckerDashboard
 // ─────────────────────────────────────────────
@@ -597,6 +752,8 @@ export default function CheckerDashboard() {
         type: "all",
     });
 
+    const [expandedRows, setExpandedRows] = useState({});
+
     const sigCanvasRef = useRef(null);
 
     // ── data fetching ───────────────────────────────────────────
@@ -605,11 +762,24 @@ export default function CheckerDashboard() {
         setLoading(true);
         setError(null);
         try {
-            const params = { assigned_to_me: true };
+            const params = { assigned_to_me: true, template_type: "SAFETY" };
             if (projectId) params.project_id = projectId;
             const res = await listSafetyChecklists(params);
             const data = res?.data;
             const list = Array.isArray(data) ? data : data?.results ?? [];
+            console.log("SAFETY CHECKER LIST RESPONSE", {
+                projectId,
+                count: list.length,
+                sample: list.slice(0, 5).map((c) => ({
+                    id: c.id,
+                    status: c.status,
+                    current_assignee_role: c.current_assignee_role,
+                    current_assignee_name: c.current_assignee_name,
+                    current_checker_scope: c.current_checker_scope,
+                    safety_flow_mode: c.safety_flow_mode,
+                    review_state: c.review_state,
+                })),
+            });
             setChecklists(list);
 
 
@@ -640,8 +810,35 @@ export default function CheckerDashboard() {
     // ── derived lists ───────────────────────────────────────────
     const statusOf = (c) => String(c.status || "").toLowerCase();
 
-    const currentRoleOf = (c) =>
-        String(c.current_assignee_role || "").toUpperCase();
+    const currentRoleOf = (c) => {
+        const direct = String(
+            c.current_assignee_role ||
+            c.safety_current_assignee?.role ||
+            c.current_assignee?.role ||
+            ""
+        ).trim().toUpperCase();
+    
+        if (direct) return direct;
+    
+        const scope = String(c.current_checker_scope || "").trim().toUpperCase();
+        const assigneeName = String(c.current_assignee_name || "").trim().toLowerCase();
+    
+        if (
+            scope === "INTERNAL" &&
+            assigneeName.includes("safety officer pool")
+        ) {
+            return "CHECKER";
+        }
+    
+        if (
+            scope === "CONTRACTOR" &&
+            assigneeName.includes("contractor safety officer pool")
+        ) {
+            return "CHECKER";
+        }
+    
+        return "";
+    };
 
     const rejectedPoints = (c) => Number(c.maker_rejected_points ?? 0);
 
@@ -707,17 +904,67 @@ export default function CheckerDashboard() {
 
     const checkerReviewItems =
         detail?.items
-            ?.map((item) => {
-                const sub = getPrimarySubmissionForCheckerView(item);
-
-                return sub ? { item, sub } : null;
-            })
-            .filter(Boolean) ?? [];
+            ?.flatMap((item) => 
+                (item.submissions || []).map((sub) => ({ item, sub }))
+            )
+            ?.filter(Boolean) ?? [];
 
 
     const pendingCheckerItems = checkerReviewItems;
 
-    // ── navigation ──────────────────────────────────────────────
+    const horizontalRows = Array.from(new Set(checkerReviewItems.map(x => Number(x.sub?.row_index || 1)))).sort((a,b) => a - b);
+    const isHorizontal = horizontalRows.length > 1 || checkerReviewItems.some(x => (x.item?.submissions || []).length > 1);
+
+    const toggleRow = (rowIdx) => setExpandedRows(prev => ({ ...prev, [rowIdx]: !prev[rowIdx] }));
+
+    const renderAccordionWrapper = (rowIdx, arrayIdx, itemsRenderer) => {
+        const isExpanded = expandedRows[rowIdx] !== false; // Default expanded
+        return (
+            <div key={rowIdx} className="rounded-xl border bg-card shadow-sm overflow-hidden mb-4">
+                <div 
+                    className="flex items-center justify-between bg-muted/30 px-5 py-4 cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => toggleRow(rowIdx)}
+                >
+                    <div className="flex items-center gap-3">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 font-bold">
+                            {arrayIdx + 1}
+                        </div>
+                        <h3 className="font-bold text-foreground">Item {arrayIdx + 1}</h3>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <div className="text-muted-foreground">
+                            {isExpanded ? (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>
+                            ) : (
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                            )}
+                        </div>
+                    </div>
+                </div>
+                {isExpanded && (
+                    <div className="p-5 border-t space-y-4 bg-gray-50/30">
+                        {itemsRenderer()}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
+    const renderItemList = (itemsList, renderer) => {
+        if (isHorizontal) {
+            return (
+                <div className="space-y-4">
+                    {horizontalRows.map((rowIdx, arrayIdx) => {
+                        const rowItems = itemsList.filter(x => Number(x.sub?.row_index || 1) === rowIdx);
+                        return renderAccordionWrapper(rowIdx, arrayIdx, () => rowItems.map(renderer));
+                    })}
+                </div>
+            );
+        }
+        return itemsList.map(renderer);
+    };
+
+    // ── handlers ────────────────────────────────────────────────
     const backToDashboard = () => {
         setView("dashboard");
         setDetail(null);
@@ -1059,39 +1306,51 @@ export default function CheckerDashboard() {
 
                                 <ReportHeaderInfoCard detail={detail} />
 
-                                <div className="space-y-4">
-                                    {checkerReviewItems.map(({ item, sub }, idx) => {
-                                        // const canAct = isCheckerActionableSubmission(sub);
-                                        const isResubmitted = isResubmittedForReview(sub);
+                        {detail.template_instruction_image && (
+                            <div className="mb-4 rounded-xl border bg-card p-5 shadow-sm flex flex-col items-center justify-center">
+                                <img 
+                                    src={resolveMediaUrl(detail.template_instruction_image)} 
+                                    alt="Instruction Image" 
+                                    className="max-h-[300px] w-full object-contain rounded-lg"
+                                />
+                            </div>
+                        )}
 
-                                        const makerComment =
-                                            sub.latest_maker_remarks ||
-                                            sub.maker_remarks ||
-                                            "";
+                        <div className="space-y-4">
+                            {renderItemList(checkerReviewItems, ({ item, sub }, idx) => {
+                                // const canAct = isCheckerActionableSubmission(sub);
+                                const isResubmitted = isResubmittedForReview(sub);
 
-                                        const makerPhoto =
-                                            sub.latest_maker_photo_url ||
-                                            sub.photo_url ||
-                                            "";
+                                const makerComment =
+                                    sub.latest_maker_remarks ||
+                                    sub.maker_remarks ||
+                                    "";
 
-                                        return (
-                                            <div
-                                                key={item.id}
-                                                className={`rounded-xl border p-5 shadow-sm transition-shadow hover:shadow-md ${isResubmitted
-                                                    ? "border-yellow-400 bg-yellow-50"
-                                                    : "border-border bg-card"
-                                                    }`}
-                                            >
-                                                {isResubmitted && (
-                                                    <span className="mb-3 inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800">
-                                                        Re-submitted by {getResubmittedMakerName(sub)}
-                                                    </span>
-                                                )}
+                                const makerPhoto =
+                                    sub.latest_maker_photo_url ||
+                                    sub.photo_url ||
+                                    "";
 
-                                                <div className="mb-4 flex items-start gap-3">
-                                                    <QuestionBadge number={idx + 1} />
-                                                    <p className="pt-1 text-sm font-semibold text-foreground sm:text-base">{item.title}</p>
-                                                </div>
+                                return (
+                                    <div
+                                        key={sub.id}
+                                        className={`rounded-xl border p-5 shadow-sm transition-shadow hover:shadow-md ${isResubmitted
+                                            ? "border-yellow-400 bg-yellow-50"
+                                            : "border-border bg-card"
+                                            }`}
+                                    >
+                                        {isResubmitted && (
+                                            <span className="mb-3 inline-flex rounded-full bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-800">
+                                                Re-submitted by {getResubmittedMakerName(sub)}
+                                            </span>
+                                        )}
+
+                                        <div className="mb-4 flex items-start gap-3">
+                                            <QuestionBadge number={idx + 1} />
+                                            <p className="pt-1 text-sm font-semibold text-foreground sm:text-base">
+                                                {item.title}
+                                            </p>
+                                        </div>
 
                                                 <div className="space-y-3">
                                                     <div>
@@ -1099,8 +1358,8 @@ export default function CheckerDashboard() {
                                                             Maker Answer
                                                         </p> */}
 
-                                                        <ReadOnlyOptionButtons
-                                                            options={item.options}
+                                                        <ReadOnlyMakerAnswer
+                                                            item={item}
                                                             value={sub.latest_maker_answer}
                                                         />
                                                     </div>
@@ -1171,6 +1430,12 @@ export default function CheckerDashboard() {
                                     })}
                                 </div>
 
+                                <SafetyChecklistSignOffSection
+                                    detail={detail}
+                                    className="mt-6"
+                                />
+
+
                                 <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
                                     <button
                                         type="button"
@@ -1213,13 +1478,23 @@ export default function CheckerDashboard() {
 
                                 <ReportHeaderInfoCard detail={detail} />
 
+                        {detail.template_instruction_image && (
+                            <div className="mb-4 rounded-xl border bg-card p-5 shadow-sm flex flex-col items-center justify-center">
+                                <img 
+                                    src={resolveMediaUrl(detail.template_instruction_image)} 
+                                    alt="Instruction Image" 
+                                    className="max-h-[300px] w-full object-contain rounded-lg"
+                                />
+                            </div>
+                        )}
+
                                 <div className="space-y-4">
                                     {checkerReviewItems.length === 0 ? (
                                         <p className="py-8 text-center text-sm text-muted-foreground">
                                             No items found for verification.
                                         </p>
                                     ) : (
-                                        checkerReviewItems.map(({ item, sub }, idx) => {
+                                        renderItemList(checkerReviewItems, ({ item, sub }, idx) => {
                                             const isResubmitted = isResubmittedForReview(sub);
 
                                             const makerComment =
@@ -1248,7 +1523,9 @@ export default function CheckerDashboard() {
 
                                                     <div className="mb-4 flex items-start gap-3">
                                                         <QuestionBadge number={idx + 1} />
-                                                        <p className="pt-1 text-sm font-semibold text-foreground sm:text-base">{item.title}</p>
+                                                        <p className="pt-1 text-sm font-semibold text-foreground sm:text-base">
+                                                            {item.title}
+                                                        </p>
                                                     </div>
 
                                                     <div className="space-y-3">
@@ -1257,11 +1534,18 @@ export default function CheckerDashboard() {
                                                                 Maker Answer
                                                             </p> */}
 
-                                                            <ReadOnlyOptionButtons
-                                                                options={item.options}
+                                                            <ReadOnlyMakerAnswer
+                                                                item={item}
                                                                 value={sub.latest_maker_answer}
                                                             />
                                                         </div>
+
+                                                        {sub.latest_checker_reject_remarks && (
+                                                            <RemarksBubble
+                                                                label="Previous Checker Objection"
+                                                                text={sub.latest_checker_reject_remarks}
+                                                            />
+                                                        )}
 
                                                         {makerComment && (
                                                             <RemarksBubble
@@ -1277,10 +1561,10 @@ export default function CheckerDashboard() {
                                                             />
                                                         )}
 
-                                                        {sub.latest_checker_reject_remarks && (
-                                                            <RemarksBubble
-                                                                label="Previous Checker Objection"
-                                                                text={sub.latest_checker_reject_remarks}
+                                                        {sub.latest_checker_reject_photo_url && (
+                                                            <PhotoViewButton
+                                                                url={sub.latest_checker_reject_photo_url}
+                                                                label="View Previous Checker Photo"
                                                             />
                                                         )}
 
@@ -1294,13 +1578,6 @@ export default function CheckerDashboard() {
                                                                 <NoPhotoLabel />
                                                             )}
                                                         </div>
-
-                                                        {sub.latest_checker_reject_photo_url && (
-                                                            <PhotoViewButton
-                                                                url={sub.latest_checker_reject_photo_url}
-                                                                label="View Previous Checker Photo"
-                                                            />
-                                                        )}
 
                                                         <div>
                                                             <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
@@ -1350,6 +1627,11 @@ export default function CheckerDashboard() {
                                         })
                                     )}
                                 </div>
+
+                                <SafetyChecklistSignOffSection
+                                    detail={detail}
+                                    className="mt-6"
+                                />
 
                                 {pendingCheckerItems.length > 0 && (
                                     <div className="mt-6">
@@ -1482,7 +1764,7 @@ export default function CheckerDashboard() {
                                 <div className="mb-6">
                                     <div className="mb-2 flex items-center gap-2">
                                         <Eye className="h-4 w-4 text-orange-500" />
-                                        <h2 className="text-sm font-semibold text-foreground sm:text-base" style={{ color: "hsl(24.6, 95%, 53.1%)" }} >Pending for Rectification</h2>
+                                        <h2 className="text-sm font-semibold text-foreground sm:text-base text-orange-500"  >Pending for Rectification</h2>
                                         <span className="rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">{checkerPending.length}</span>
                                     </div>
                                     <div className="rounded-xl border bg-card shadow-sm">

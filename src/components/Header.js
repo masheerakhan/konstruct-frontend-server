@@ -1,4 +1,3 @@
-
 // import React, { useState } from "react";
 // import { NavLink, useNavigate } from "react-router-dom";
 // import { IoSettingsOutline } from "react-icons/io5";
@@ -191,13 +190,11 @@
 //           </span>
 //         </div>
 
-
 //         {/* Right actions */}
 //         <ul
 //           className="hidden md:flex justify-end items-center gap-5 py-2 uppercase text-sm"
 //           style={{ marginLeft: "auto" }}
 //         >
-
 
 //           {/* 🔹 NEW: MIR create link (sab roles ke liye) */}
 //           <NavLink
@@ -312,7 +309,6 @@
 
 // export default Header;
 
-
 import React, { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { IoSettingsOutline } from "react-icons/io5";
@@ -342,7 +338,7 @@ function Header() {
     userRoles = JSON.parse(localStorage.getItem("ACCESSES") || "[]")
       .flatMap((acc) => (Array.isArray(acc.roles) ? acc.roles : []))
       .map((r) => (typeof r === "string" ? r : r?.role));
-  } catch { }
+  } catch {}
   const allRoles = [
     ...(rolee ? [rolee] : []),
     ...(userRoles.length ? userRoles : []),
@@ -355,7 +351,9 @@ function Header() {
 
   const hasAnyOrgAdminRole = () => {
     const normRoles = allRoles.map(normalize);
-    return ALLOWED_ROLES.some((allowed) => normRoles.includes(normalize(allowed)));
+    return ALLOWED_ROLES.some((allowed) =>
+      normRoles.includes(normalize(allowed)),
+    );
   };
   // const showHamburger = allRoles.some((r) =>
   //   ALLOWED_ROLES.some((a) => norm(r) === norm(a))
@@ -369,9 +367,7 @@ function Header() {
   /** DMS/Documents: show in header when sidebar is hidden (e.g. Maker) so users can open DMS without sidebar. */
   const showDmsInHeader = !showHamburger && !isSecurityGuard;
   const isProjectManagerOrHead =
-    hasRole("Project Manager") ||
-    hasRole("Project Head") ||
-    hasRole("Head");
+    hasRole("Project Manager") || hasRole("Project Head") || hasRole("Head");
   const isSuperAdmin = hasRole("super admin");
   const isManager = hasRole("manager");
   const isAdmin = hasRole("admin");
@@ -379,7 +375,6 @@ function Header() {
 
   // ✅ Only Users (not admin/manager/superadmin)
   const showSafetyForUserOnly = !isManager && !isAdmin && !isSuperAdmin;
-
 
   // ---- theme colors
   const bgColor = theme === "dark" ? "#191922" : BG_OFFWHITE;
@@ -511,7 +506,25 @@ function Header() {
             MIR Inbox
           </NavLink>
 
-          {/* {showDmsInHeader && (
+          {/* 🔹 Checklist & Inbox */}
+          {/* <NavLink
+            to="/checklists"
+            className="font-medium flex items-center gap-1"
+            style={{ color: textColor, textDecoration: "none" }}
+            title="QHSE Checklists"
+          >
+            Checklists
+          </NavLink>
+          <NavLink
+            to="/checklists/inbox"
+            className="font-medium flex items-center gap-1"
+            style={{ color: textColor, textDecoration: "none" }}
+            title="QHSE Checklist Inbox"
+          >
+            Checklist Inbox
+          </NavLink> */}
+
+          {showDmsInHeader && (
             <NavLink
               to="/documents"
               className="font-medium flex items-center gap-1"
@@ -520,15 +533,15 @@ function Header() {
             >
               DMS
             </NavLink>
-          )} */}
+          )}
 
           {/* 🔹 Analytics (hidden for security guard + PM/Head) */}
-          {!isSecurityGuard && !isProjectManagerOrHead && (
+          {/* {!isSecurityGuard && !isProjectManagerOrHead && (
             <NavLink
               to="/analytics"
               onClick={() => {
                 const pid = resolveActiveProjectId();
-                if (pid) getSnagStats(pid).catch(() => { });
+                if (pid) getSnagStats(pid).catch(() => {});
               }}
               className="font-medium flex items-center gap-1"
               style={{ color: textColor, textDecoration: "none" }}
@@ -536,7 +549,7 @@ function Header() {
             >
               Analytics
             </NavLink>
-          )}
+          )} */}
 
           {/* 🔹 Forms (templates / project forms) */}
           {!isSecurityGuard && (
@@ -555,7 +568,7 @@ function Header() {
           )}
 
           {/* 🔹 NEW: Forms Inbox (forwarded / assigned forms) */}
-          {!isSecurityGuard && (
+          {/* {!isSecurityGuard && (
             <NavLink
               to="/my-forms"
               className="font-medium flex items-center gap-1"
@@ -564,14 +577,14 @@ function Header() {
             >
               Forms Inbox
             </NavLink>
-          )}
+          )} */}
           {/* 🔹 Safety (ONLY USERS) */}
           {showSafetyForUserOnly && (
             <NavLink
               to="/safety/my-sessions"
               className="font-medium flex items-center gap-1"
               style={{ color: textColor, textDecoration: "none" }}
-              title="Safety"
+              title="Safety Session"
             >
               Safety
             </NavLink>
@@ -588,6 +601,41 @@ function Header() {
               Safety Inspection
             </NavLink>
           )}
+
+          {/* 🔹 Permit (ONLY USERS) */}
+          {showSafetyForUserOnly && (
+            <NavLink
+              to="/safety/permit"
+              className="font-medium flex items-center gap-1"
+              style={{ color: textColor, textDecoration: "none" }}
+              title="Permit To Work"
+            >
+              Permit
+            </NavLink>
+          )}
+
+          {/* 🔹 Safety Observations (ONLY USERS) */}
+          {showSafetyForUserOnly && (
+            <NavLink
+              to="/safety/observations"
+              className="font-medium flex items-center gap-1"
+              style={{ color: textColor, textDecoration: "none" }}
+              title="Safety Observations"
+            >
+              Safety Observations
+            </NavLink>
+          )}
+
+          {/* {showSafetyForUserOnly && (
+            <NavLink
+              to="/safety"
+              className="font-medium flex items-center gap-1"
+              style={{ color: textColor, textDecoration: "none" }}
+              title="Safety"
+            >
+              Safety
+            </NavLink>
+          )} */}
 
           <NavLink
             to="/privacy"
