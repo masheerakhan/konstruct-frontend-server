@@ -8,6 +8,7 @@ import { showToast } from "../../../../../utils/toast";
 import SafetyImageAnnotationModal from "../../SafetyImageAnnotationModal";
 import SignatureCanvas from "react-signature-canvas";
 import RiskMatrixModal from "./RiskMatrixModal";
+import { resolveMediaUrl } from "../../../../../lib/utils";
 
 export default function RectifySafetyObservation({
   detail,
@@ -264,7 +265,7 @@ export default function RectifySafetyObservation({
             {detail.photograph_of_unsafe_act ? (
               <div>
                 <img
-                  src={detail.photograph_of_unsafe_act}
+                  src={resolveMediaUrl(detail.photograph_of_unsafe_act)}
                   alt="Unsafe Act"
                   className="max-w-full h-auto rounded-lg max-h-64 object-cover border border-slate-300"
                 />
@@ -613,7 +614,7 @@ export default function RectifySafetyObservation({
                         className="rounded-lg border border-red-200 bg-white p-2"
                       >
                         <img
-                          src={photo.image}
+                          src={resolveMediaUrl(photo.image)}
                           alt="Rejection reason attachment"
                           className="w-full h-auto max-h-48 object-cover rounded shadow-sm"
                         />
@@ -632,7 +633,7 @@ export default function RectifySafetyObservation({
                     Attached Photo:
                   </p>
                   <img
-                    src={detail.checker_reject_photo}
+                    src={resolveMediaUrl(detail.checker_reject_photo)}
                     alt="Rejection reason attachment"
                     className="max-w-xs h-auto rounded-lg border border-red-200 shadow-sm"
                   />

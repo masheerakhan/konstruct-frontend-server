@@ -1772,10 +1772,55 @@ export default function MakerDashboard() {
         const initialAnswers = {};
         const initialRemarks = {};
 
-        (data?.questions || []).forEach((q) => {
-          initialAnswers[q.id] = "";
-          initialRemarks[q.id] = "";
-        });
+        const tableStyle = getTableStyle(data);
+        if (tableStyle === "matrix") {
+          let layoutObj = data.report_layout;
+          if (typeof layoutObj === "string") layoutObj = JSON.parse(layoutObj);
+          const colsCount = Number(layoutObj.matrix_columns) || 31;
+
+          const matrixCols = [];
+          for (let i = 1; i <= colsCount; i++) matrixCols.push(i);
+          setHorizontalRows(matrixCols);
+
+          (data?.questions || []).forEach((q) => {
+            matrixCols.forEach((cIdx) => {
+              const keyId = `${q.id}_${cIdx}`;
+              initialAnswers[keyId] = "";
+              initialRemarks[keyId] = "";
+            });
+          });
+        } else if (tableStyle === "horizontal") {
+          (data?.questions || []).forEach((q) => {
+            const keyId = `${q.id}_1`;
+            if (
+              q.type === "date" &&
+              Array.isArray(q.options) &&
+              q.options.includes("autoFetchOneMonth")
+            ) {
+              const d = new Date();
+              d.setMonth(d.getMonth() + 1);
+              initialAnswers[keyId] = d.toISOString().split("T")[0];
+            } else {
+              initialAnswers[keyId] = "";
+            }
+            initialRemarks[keyId] = "";
+          });
+        } else {
+          (data?.questions || []).forEach((q) => {
+            if (
+              q.type === "date" &&
+              Array.isArray(q.options) &&
+              q.options.includes("autoFetchOneMonth")
+            ) {
+              const d = new Date();
+              d.setMonth(d.getMonth() + 1);
+              initialAnswers[q.id] = d.toISOString().split("T")[0];
+            } else {
+              initialAnswers[q.id] = "";
+            }
+            initialRemarks[q.id] = "";
+          });
+        }
 
         setCreateAnswers(initialAnswers);
         setCreateRemarks(initialRemarks);
@@ -2055,7 +2100,14 @@ export default function MakerDashboard() {
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-orange-100 text-orange-600 font-bold">
               {arrayIdx + 1}
             </div>
-            <h3 className="font-bold text-foreground">Item {arrayIdx + 1}</h3>
+            <h3 className="font-bold text-foreground">
+              {getTableStyle(selectedTemplate) === "matrix"
+                ? selectedTemplate?.report_layout?.matrix_type ===
+                  "MATRIX_WEEKLY"
+                  ? `Week ${arrayIdx + 1}`
+                  : `Day ${arrayIdx + 1}`
+                : `Item ${arrayIdx + 1}`}
+            </h3>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-muted-foreground">
@@ -2432,7 +2484,10 @@ export default function MakerDashboard() {
     let unansweredIndex = -1;
     let unansweredRowIdx = -1;
 
-    if (getTableStyle(selectedTemplate) === "horizontal") {
+    if (
+      getTableStyle(selectedTemplate) === "horizontal" ||
+      getTableStyle(selectedTemplate) === "matrix"
+    ) {
       for (let rIdx of horizontalRows) {
         unansweredIndex = questions.findIndex(
           (q) => !String(createAnswers[`${q.id}_${rIdx}`] || "").trim(),
@@ -2685,6 +2740,17 @@ export default function MakerDashboard() {
 
                 {!templateLoading && selectedTemplate && (
                   <>
+                    <ReportHeaderCreateCard
+                      selectedTemplate={selectedTemplate}
+                      reportMeta={reportMeta}
+                      setReportMeta={setReportMeta}
+                      projectId={projectId}
+                      currentUserProfile={currentUserProfile}
+                      isInternalMaker={isInternalMaker}
+                      contractors={contractors}
+                      contractorsLoading={contractorsLoading}
+                    />
+
                     <div className="mb-4 rounded-xl border bg-card p-5 shadow-sm">
                       <h2 className="text-base font-bold text-foreground">
                         {selectedTemplate.title}
@@ -2705,17 +2771,6 @@ export default function MakerDashboard() {
                         />
                       </div>
                     )}
-
-                    <ReportHeaderCreateCard
-                      selectedTemplate={selectedTemplate}
-                      reportMeta={reportMeta}
-                      setReportMeta={setReportMeta}
-                      projectId={projectId}
-                      currentUserProfile={currentUserProfile}
-                      isInternalMaker={isInternalMaker}
-                      contractors={contractors}
-                      contractorsLoading={contractorsLoading}
-                    />
 
                     {/* <div className="mb-4 rounded-xl border bg-card p-5 shadow-sm">
                                             <h3 className="mb-4 text-sm font-semibold text-foreground">
@@ -2848,7 +2903,8 @@ export default function MakerDashboard() {
                                         </div> */}
 
                     <div className="space-y-4">
-                      {getTableStyle(selectedTemplate) === "horizontal" ? (
+                      {getTableStyle(selectedTemplate) === "horizontal" ||
+                      getTableStyle(selectedTemplate) === "matrix" ? (
                         <div className="space-y-4">
                           {horizontalRows.map((rowIdx, arrayIdx) => {
                             const isExpanded = expandedRows[rowIdx];
@@ -2871,7 +2927,13 @@ export default function MakerDashboard() {
                                       {arrayIdx + 1}
                                     </div>
                                     <h3 className="font-bold text-foreground">
-                                      Item {arrayIdx + 1}
+                                      {getTableStyle(selectedTemplate) ===
+                                      "matrix"
+                                        ? selectedTemplate?.report_layout
+                                            ?.matrix_type === "MATRIX_WEEKLY"
+                                          ? `Week ${arrayIdx + 1}`
+                                          : `Day ${arrayIdx + 1}`
+                                        : `Item ${arrayIdx + 1}`}
                                     </h3>
                                   </div>
                                   <div className="flex items-center gap-4">
@@ -2952,7 +3014,8 @@ export default function MakerDashboard() {
                                               {!q.type ||
                                               q.type === "multiple_choice" ||
                                               (q.type !== "short_answer" &&
-                                                q.type !== "paragraph") ? (
+                                                q.type !== "paragraph" &&
+                                                q.type !== "date") ? (
                                                 <TemplateOptionButtons
                                                   options={q.options}
                                                   value={createAnswers[keyId]}
@@ -2981,6 +3044,28 @@ export default function MakerDashboard() {
                                                   }
                                                   className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
                                                   placeholder="Enter your answer..."
+                                                />
+                                              ) : q.type === "date" ? (
+                                                <input
+                                                  type="date"
+                                                  disabled={
+                                                    Array.isArray(q.options) &&
+                                                    q.options.includes(
+                                                      "autoFetchOneMonth",
+                                                    )
+                                                  }
+                                                  value={
+                                                    createAnswers[keyId] || ""
+                                                  }
+                                                  onChange={(e) =>
+                                                    setCreateAnswers(
+                                                      (prev) => ({
+                                                        ...prev,
+                                                        [keyId]: e.target.value,
+                                                      }),
+                                                    )
+                                                  }
+                                                  className="w-full max-w-sm rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100 disabled:opacity-70 disabled:bg-gray-100"
                                                 />
                                               ) : (
                                                 <textarea
@@ -3079,6 +3164,39 @@ export default function MakerDashboard() {
                                   ...prev,
                                   [newRowIdx]: true,
                                 }));
+
+                                setCreateAnswers((prev) => {
+                                  const next = { ...prev };
+                                  (selectedTemplate?.questions || []).forEach(
+                                    (q) => {
+                                      const keyId = `${q.id}_${newRowIdx}`;
+                                      if (
+                                        q.type === "date" &&
+                                        Array.isArray(q.options) &&
+                                        q.options.includes("autoFetchOneMonth")
+                                      ) {
+                                        const d = new Date();
+                                        d.setMonth(d.getMonth() + 1);
+                                        next[keyId] = d
+                                          .toISOString()
+                                          .split("T")[0];
+                                      } else {
+                                        next[keyId] = "";
+                                      }
+                                    },
+                                  );
+                                  return next;
+                                });
+                                setCreateRemarks((prev) => {
+                                  const next = { ...prev };
+                                  (selectedTemplate?.questions || []).forEach(
+                                    (q) => {
+                                      const keyId = `${q.id}_${newRowIdx}`;
+                                      next[keyId] = "";
+                                    },
+                                  );
+                                  return next;
+                                });
                               }}
                               className="flex items-center gap-2 rounded-xl bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-2.5 text-sm font-bold text-white shadow-md hover:shadow-lg transition-all"
                             >
@@ -3111,7 +3229,8 @@ export default function MakerDashboard() {
                               {!q.type ||
                               q.type === "multiple_choice" ||
                               (q.type !== "short_answer" &&
-                                q.type !== "paragraph") ? (
+                                q.type !== "paragraph" &&
+                                q.type !== "date") ? (
                                 <TemplateOptionButtons
                                   options={q.options}
                                   value={createAnswers[q.id]}
@@ -3134,6 +3253,22 @@ export default function MakerDashboard() {
                                   }
                                   className="w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100"
                                   placeholder="Enter your answer..."
+                                />
+                              ) : q.type === "date" ? (
+                                <input
+                                  type="date"
+                                  disabled={
+                                    Array.isArray(q.options) &&
+                                    q.options.includes("autoFetchOneMonth")
+                                  }
+                                  value={createAnswers[q.id] || ""}
+                                  onChange={(e) =>
+                                    setCreateAnswers((prev) => ({
+                                      ...prev,
+                                      [q.id]: e.target.value,
+                                    }))
+                                  }
+                                  className="w-full max-w-sm rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100 disabled:opacity-70 disabled:bg-gray-100"
                                 />
                               ) : (
                                 <textarea
@@ -3314,7 +3449,8 @@ export default function MakerDashboard() {
 
                               {inputType === "multiple_choice" ||
                               (inputType !== "short_answer" &&
-                                inputType !== "paragraph") ? (
+                                inputType !== "paragraph" &&
+                                inputType !== "date") ? (
                                 <TemplateOptionButtons
                                   options={item.options}
                                   value={makerAnswers[sub.id]}
@@ -3340,6 +3476,20 @@ export default function MakerDashboard() {
                                   }}
                                   className={`w-full rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100 ${!editable ? "cursor-not-allowed opacity-60 bg-muted/30" : ""}`}
                                   placeholder="Enter your answer..."
+                                />
+                              ) : inputType === "date" ? (
+                                <input
+                                  type="date"
+                                  disabled={!editable}
+                                  value={makerAnswers[sub.id] || ""}
+                                  onChange={(e) => {
+                                    if (!editable) return;
+                                    setMakerAnswers((prev) => ({
+                                      ...prev,
+                                      [sub.id]: e.target.value,
+                                    }));
+                                  }}
+                                  className={`w-full max-w-sm rounded-lg border border-border bg-white px-3 py-2 text-sm text-foreground focus:border-orange-400 focus:outline-none focus:ring-2 focus:ring-orange-100 ${!editable ? "cursor-not-allowed opacity-60 bg-muted/30" : ""}`}
                                 />
                               ) : (
                                 <textarea

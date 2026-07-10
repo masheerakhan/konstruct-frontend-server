@@ -505,6 +505,14 @@ function Header() {
           >
             MIR Inbox
           </NavLink>
+          <NavLink
+            to="/NCR"
+            className="font-medium flex items-center gap-1"
+            style={{ color: textColor, textDecoration: "none" }}
+            title="My MIR Inbox"
+          >
+            NCR
+          </NavLink>
 
           {/* 🔹 Checklist & Inbox */}
           {/* <NavLink

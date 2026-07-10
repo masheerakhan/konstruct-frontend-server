@@ -228,7 +228,9 @@ import MobileLogin from "./components/pages/MobileLogin";
 import MIRChecklist from "./components/QHSE/MIR/MaterialInspectionRequest/MIRChecklist";
 import PermitToWorkDashboard from "./components/Safety/Permit_to_work/PermitToWorkDashboard";
 import UserPermitDashboard from "./components/Safety/Permit_to_work/PermitDashboard/UserPermitDashboard";
-
+import PermitTemplateBuilderDashboard from "./components/Safety/Permit_to_work/PermitDashboard/PermitTemplateBuilderDashboard";
+import NCRCreatePage from "./components/NCR/CreateNCR";
+import NCRListPage from "./components/NCR/NCRListPage";
 // For body background
 function BodyBgController() {
   const { theme } = useTheme();
@@ -612,6 +614,11 @@ function AppRoutes() {
         <Route path="/safetySetup/create" element={<SafetyWizard />} />
 
         <Route path="/safety/permit" element={<UserPermitDashboard />} />
+
+        <Route
+          path="/permit/setup"
+          element={<PermitTemplateBuilderDashboard />}
+        />
         <Route
           path="/safety/inspection-checker"
           element={<UserChecklistDashboard />}
@@ -627,7 +634,9 @@ function AppRoutes() {
         {/*  TRANSMITAL FORMS */}
 
         <Route path="/documents/*" element={<Documents />} />
-
+        {/* NCR */}
+        <Route path="/NCR" element={<NCRListPage />} />
+        <Route path="/ncr/create" element={<NCRCreatePage />} />
         {/* Vendor */}
         <Route path="/Vendors" element={<Vendors />} />
 
@@ -635,7 +644,7 @@ function AppRoutes() {
 
         <Route path="/mir/checklist" element={<MIRChecklist />} />
 
-        {/* <Route path="/overview/project/:projectId" element={<ProjectOverviewPage />} /> */}
+        {/* <Route path="/overview/project/:projectId" element={<ProjectOverviewPage />} /> */}v
 
         <Route path="/forms" element={<FormsEnginePage />} />
         <Route path="/form-packs" element={<FormPacksPage />} />

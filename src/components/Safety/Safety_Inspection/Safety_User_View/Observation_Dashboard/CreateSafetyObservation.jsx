@@ -162,17 +162,17 @@ const FLOOR_OPTIONS = [
   "9th Floor",
   "10th Floor",
   "11th Floor",
-    "12th Floor",
-    "13th Floor",
-    "14th Floor",
-    "15th Floor",
-"16th Floor",
-"17th Floor",
-"18th Floor",
-"19th Floor",
-"20th Floor",
-"21st Floor",
-"22nd Floor",
+  "12th Floor",
+  "13th Floor",
+  "14th Floor",
+  "15th Floor",
+  "16th Floor",
+  "17th Floor",
+  "18th Floor",
+  "19th Floor",
+  "20th Floor",
+  "21st Floor",
+  "22nd Floor",
   "Terrace",
 ];
 
@@ -230,6 +230,7 @@ export default function CreateSafetyObservation({ onBack }) {
 
   const [isSignatureModalOpen, setIsSignatureModalOpen] = useState(false);
   const [showRiskMatrix, setShowRiskMatrix] = useState(false);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState("");
   const sigPadRef = useRef(null);
 
   useEffect(() => {
@@ -261,6 +262,20 @@ export default function CreateSafetyObservation({ onBack }) {
       }
     }
   }, [loadingMakers, makers, currentUserProfile, isCurrentUserInternal]);
+
+  useEffect(() => {
+    if (!photographOfUnsafeAct) {
+      setPhotoPreviewUrl("");
+      return;
+    }
+
+    const url = URL.createObjectURL(photographOfUnsafeAct);
+    setPhotoPreviewUrl(url);
+
+    return () => {
+      URL.revokeObjectURL(url);
+    };
+  }, [photographOfUnsafeAct]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -723,48 +738,92 @@ export default function CreateSafetyObservation({ onBack }) {
               </div>
             </div>
             {!photographOfUnsafeAct ? (
-              <label className="flex flex-col items-center justify-center w-full rounded-xl border-2 border-dashed border-orange-200 bg-white py-12 transition-colors hover:bg-orange-50/50 cursor-pointer">
-                <UploadCloud className="mb-4 h-10 w-10 text-orange-400" />
-                <p className="mb-2 text-sm text-slate-600">
-                  <span className="font-semibold text-orange-600 hover:text-orange-700">
-                    Click to upload
-                  </span>{" "}
-                  photo
+              <div className="w-full rounded-xl border-2 border-dashed border-orange-200 bg-white px-4 py-10 transition-colors hover:bg-orange-50/50">
+                <div className="flex flex-col items-center justify-center text-center">
+                  <UploadCloud className="mb-4 h-10 w-10 text-orange-400" />
+
+                  <p className="mb-2 text-sm font-semibold text-slate-700">
+                    Attach observation photo
+                  </p>
+
+                  <p className="mb-5 text-xs text-slate-400">PNG, JPG, JPEG</p>
+
+                  <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+                    {/* Gallery / File Upload */}
+                    <label
+                      htmlFor="unsafe-act-gallery-upload"
+                      className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg border border-orange-200 bg-orange-50 px-4 py-2.5 text-sm font-semibold text-orange-700 hover:bg-orange-100"
+                    >
+                      <UploadCloud className="h-4 w-4" />
+                      Select from Gallery
+                    </label>
+
+                    {/* Camera Capture - mobile only */}
+                    <label
+                      htmlFor="unsafe-act-camera-upload"
+                      className="inline-flex cursor-pointer items-center justify-center gap-2 rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-700"
+                    >
+                      <Camera className="h-4 w-4" />
+                      Take Photo
+                    </label>
+                  </div>
+
+                  {/* Gallery input */}
                   <input
+                    id="unsafe-act-gallery-upload"
                     type="file"
                     className="hidden"
                     accept="image/*"
                     onChange={(e) => {
-                      if (e.target.files?.length > 0) {
-                        setPhotographOfUnsafeAct(e.target.files[0]);
+                      const selectedFile = e.target.files?.[0];
+                      if (selectedFile) {
+                        setPhotographOfUnsafeAct(selectedFile);
                       }
-                      e.target.value = null;
+                      e.target.value = "";
                     }}
                   />
-                </p>
-                <p className="text-xs text-slate-400">PNG, JPG, JPEG</p>
-              </label>
+
+                  {/* Camera input */}
+                  <input
+                    id="unsafe-act-camera-upload"
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    capture="environment"
+                    onChange={(e) => {
+                      const selectedFile = e.target.files?.[0];
+                      if (selectedFile) {
+                        setPhotographOfUnsafeAct(selectedFile);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+              </div>
             ) : (
               <div className="mt-4 rounded-lg border border-orange-200 bg-white p-3 shadow-sm">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-slate-100">
                       <img
-                        src={URL.createObjectURL(photographOfUnsafeAct)}
+                        src={photoPreviewUrl}
                         alt="Observation"
                         className="h-full w-full object-cover"
                       />
                     </div>
+
                     <div className="min-w-0 max-w-[200px] sm:max-w-xs">
                       <p className="truncate text-sm font-medium text-slate-700">
                         {photographOfUnsafeAct.name}
                       </p>
+
                       <p className="text-xs text-slate-500">
                         {(photographOfUnsafeAct.size / 1024 / 1024).toFixed(2)}{" "}
                         MB
                       </p>
                     </div>
                   </div>
+
                   <div className="flex items-center gap-2">
                     <button
                       type="button"
@@ -773,6 +832,7 @@ export default function CreateSafetyObservation({ onBack }) {
                     >
                       Annotate
                     </button>
+
                     <button
                       type="button"
                       onClick={() => setPhotographOfUnsafeAct(null)}
@@ -782,6 +842,7 @@ export default function CreateSafetyObservation({ onBack }) {
                     </button>
                   </div>
                 </div>
+
                 <div className="mt-2">
                   <input
                     type="text"

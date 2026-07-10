@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 import { toast } from "react-hot-toast";
 
@@ -7,6 +7,8 @@ import {
   getProjectsForCurrentUser,
   createSafetyTemplate,
   createHousekeepingTemplate,
+  getSafetyTemplate,
+  updateSafetyTemplateVersion,
 } from "../../../api";
 import SafetyCategory from "./SafetyCategory";
 import UploadAndMapping from "./UploadAndMapping";
@@ -24,6 +26,7 @@ import HousekeepingHeaderFieldsConfig from "../Housekeeping_setup/HousekeepingHe
 import HousekeepingFlowConfig from "../Housekeeping_setup/HousekeepingFlowConfig";
 import FinalPreviewHorizontal from "./FinalPreviewHorizontal";
 import SafetyReportTemplateHorizontal from "./SafetyReportTemplateHorizontal";
+import SafetyReportTemplateMatrix from "./SafetyReportTemplateMatrix";
 
 import {
   createDefaultHeaderFields,
@@ -58,8 +61,90 @@ function buildTemplateCode(title) {
   );
 }
 
+const toDDMMYYYY = (value) => {
+  const raw = String(value || "").trim();
+
+  if (!raw) return "";
+
+  // yyyy-mm-dd or yyyy/mm/dd -> dd-mm-yyyy
+  const isoMatch = raw.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
+  if (isoMatch) {
+    const [, yyyy, mm, dd] = isoMatch;
+    return `${dd}-${mm}-${yyyy}`;
+  }
+
+  // dd-mm-yyyy or dd/mm/yyyy -> dd-mm-yyyy
+  const ddmmyyyyMatch = raw.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+  if (ddmmyyyyMatch) {
+    const [, dd, mm, yyyy] = ddmmyyyyMatch;
+    return `${dd}-${mm}-${yyyy}`;
+  }
+
+  return raw;
+};
+
+const toDateInputValue = (value) => {
+  const raw = String(value || "").trim();
+
+  if (!raw) return "";
+
+  // already yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    return raw;
+  }
+
+  // yyyy/mm/dd -> yyyy-mm-dd
+  const ymdSlashMatch = raw.match(/^(\d{4})\/(\d{2})\/(\d{2})$/);
+  if (ymdSlashMatch) {
+    const [, yyyy, mm, dd] = ymdSlashMatch;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  // dd/mm/yyyy or dd-mm-yyyy -> yyyy-mm-dd
+  const ddmmyyyyMatch = raw.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+  if (ddmmyyyyMatch) {
+    const [, dd, mm, yyyy] = ddmmyyyyMatch;
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  return raw;
+};
+
+const isTemplateDateField = (field = {}) => {
+  const key = String(field.key || "").trim();
+
+  return (
+    field.input_type === "date" ||
+    ["issued_date", "revision_date", "date_of_inspection"].includes(key)
+  );
+};
+
+const normalizeHeaderFieldsForPayload = (fields = []) => {
+  return (fields || []).map((field) => {
+    if (!isTemplateDateField(field)) return field;
+
+    return {
+      ...field,
+      default_value: toDDMMYYYY(field.default_value),
+    };
+  });
+};
+
+const normalizeHeaderFieldsForEditor = (fields = []) => {
+  return (fields || []).map((field) => {
+    if (!isTemplateDateField(field)) return field;
+
+    return {
+      ...field,
+      default_value: toDateInputValue(field.default_value),
+    };
+  });
+};
+
 function SafetyWizard() {
   const navigate = useNavigate();
+  const location = useLocation();
+
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
 
   const [categories, setCategories] = useState([]);
@@ -87,6 +172,10 @@ function SafetyWizard() {
   const [horizontalSchema, setHorizontalSchema] = useState(null);
   const [parserError, setParserError] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
+
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState(null);
+  const [editLoading, setEditLoading] = useState(false);
 
   const [headerFields, setHeaderFields] = useState(() =>
     createDefaultHeaderFields(),
@@ -131,6 +220,7 @@ function SafetyWizard() {
     }
   }, [isObservationFlow]);
 
+  // Project Loading
   useEffect(() => {
     const load = async () => {
       setProjectsLoading(true);
@@ -173,6 +263,144 @@ function SafetyWizard() {
     load();
   }, []);
 
+  // Template Edit
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const templateId = params.get("editTemplateId");
+
+    if (!templateId) return;
+
+    const loadTemplateForEdit = async () => {
+      setEditLoading(true);
+
+      try {
+        const res = await getSafetyTemplate(templateId);
+        const template = res?.data ?? res;
+
+        setIsEditMode(true);
+        setEditingTemplateId(template.id);
+
+        setSelectedCategoryId(
+          String(template.category || template.category_id || ""),
+        );
+        setSelectedProjectId(String(template.project_id || ""));
+        setReportTitle(template.title || template.name || "");
+
+        const cleanQuestions = buildQuestionsFromTemplate(template);
+        const layout = template.report_layout || {};
+        const isHorizontal =
+          layout.is_horizontal === true ||
+          String(layout.table_style || "").toLowerCase() === "horizontal";
+
+        const isMatrix =
+          layout.is_matrix === true ||
+          String(layout.matrix_type || "").startsWith("MATRIX");
+
+        if (isHorizontal || isMatrix) {
+          const mode =
+            layout.horizontal_format ||
+            layout.matrix_type ||
+            "HORIZONTAL_TYPE_A";
+
+          setFormatMode(mode);
+
+          setHorizontalSchema({
+            success: true,
+            type: mode,
+            headers: cleanQuestions.map((q) => ({
+              text: q.text,
+              type: q.type,
+              options: q.options || [],
+              required: q.required || false,
+              photo_required: q.photo_required || false,
+              reference_image_url: q.reference_image_url || null,
+            })),
+            matrixColumns: layout.matrix_columns || 0,
+          });
+
+          setExcelQuestions([]);
+          setManualQuestions([]);
+          setFinalQuestions([]);
+        } else {
+          setFormatMode(null);
+          setHorizontalSchema(null);
+          setExcelQuestions([]);
+          setManualQuestions(cleanQuestions);
+          setFinalQuestions(cleanQuestions);
+        }
+
+        setHeaderFields(
+          Array.isArray(template.header_fields) && template.header_fields.length
+            ? normalizeHeaderFieldsForEditor(template.header_fields)
+            : createDefaultHeaderFields(),
+        );
+
+        setReportNumberConfig({
+          prefix:
+            template.report_number_config?.prefix ||
+            template.report_header_meta?.inspection_report_prefix ||
+            "",
+          padding: Number(template.report_number_config?.padding || 2),
+        });
+
+        const { tillApproveValue, roundCountValue } =
+          getRepeatConfigFromTemplate(template);
+
+        setTillApprove(tillApproveValue);
+        setRoundCount(roundCountValue);
+
+        const workflow =
+          template.flow_config ||
+          template.workflow_assignments ||
+          template.movement_steps ||
+          [];
+
+        if (Array.isArray(workflow) && workflow.length) {
+          setMovementSteps(
+            workflow.map((step, index) => ({
+              order_index: step.order_index || index + 1,
+              role: step.role || "MAKER",
+              assigned_questions: step.assigned_questions || [],
+            })),
+          );
+        } else {
+          setMovementSteps(DEFAULT_MOVEMENT_STEPS);
+        }
+
+        setReportDraft({
+          title: template.title || template.name || "",
+          meta: template.report_header_meta || {},
+          leftLogoFile: null,
+          rightLogoFile: null,
+          instructionImageFile: null,
+          leftLogoUrl: template.report_logo || template.report_logo_url || null,
+          rightLogoUrl:
+            template.report_logo_right ||
+            template.report_logo_right_url ||
+            null,
+          instructionImageUrl:
+            template.instruction_image ||
+            template.instruction_image_url ||
+            null,
+          instructionText: template.instruction_text || "",
+        });
+
+        setCurrentStepIndex(0);
+      } catch (err) {
+        console.error(err);
+        toast.error(
+          err?.response?.data?.detail ||
+            err?.message ||
+            "Failed to load template for edit.",
+        );
+      } finally {
+        setEditLoading(false);
+      }
+    };
+
+    loadTemplateForEdit();
+  }, [location.search]);
+
   const currentStep = activeSteps[currentStepIndex];
 
   const handleSheetChange = (sheetName) => {
@@ -184,6 +412,63 @@ function SafetyWizard() {
     setCurrentStepIndex((i) => i - 1);
   };
 
+  const normalizeTemplateOptions = (options) => {
+    if (Array.isArray(options)) {
+      return options
+        .map((opt) => {
+          if (opt == null) return "";
+          if (typeof opt === "object") {
+            return opt.label || opt.name || opt.value || "";
+          }
+          return String(opt);
+        })
+        .filter(Boolean);
+    }
+
+    if (typeof options === "string" && options.trim()) {
+      try {
+        const parsed = JSON.parse(options);
+        if (Array.isArray(parsed)) {
+          return parsed.map(String).filter(Boolean);
+        }
+      } catch {
+        return [options];
+      }
+    }
+
+    return [];
+  };
+
+  const buildQuestionsFromTemplate = (template) => {
+    return (template?.questions || []).map((q, index) => ({
+      id: q.id || `edit-q-${index + 1}`,
+      text: q.text || q.title || "",
+      description: q.description || "",
+      type: q.type || q.input_type || "multiple_choice",
+      options: normalizeTemplateOptions(q.options),
+      required: Boolean(q.required),
+      photo_required: Boolean(q.photo_required),
+      has_secondary: Boolean(q.has_secondary),
+      secondary_type: q.secondary_type || "short_answer",
+      secondary_options: normalizeTemplateOptions(q.secondary_options),
+      order_index: q.order_index || index + 1,
+      reference_image_url: q.reference_image_url || q.reference_image || null,
+    }));
+  };
+
+  const getRepeatConfigFromTemplate = (template) => {
+    const layout = template?.report_layout || {};
+    const repeatConfig = layout.repeat_config || {};
+
+    const mode = repeatConfig.mode || "TILL_APPROVED";
+    const count = repeatConfig.count || 1;
+
+    return {
+      tillApproveValue: mode === "TILL_APPROVED",
+      roundCountValue: Number(count || 1),
+    };
+  };
+
   const handleCreateTemplate = async () => {
     if (!selectedOrgId || !selectedProjectId || !selectedCategoryId) {
       toast.error("Please complete Category step and select project/category.");
@@ -192,14 +477,17 @@ function SafetyWizard() {
 
     const isHorizontal =
       formatMode === "HORIZONTAL_TYPE_A" || formatMode === "HORIZONTAL_TYPE_B";
+    const isMatrix =
+      formatMode === "MATRIX_DAILY" || formatMode === "MATRIX_WEEKLY";
+    const useExtractedSchema = isHorizontal || isMatrix;
 
-    if (!isHorizontal && !finalQuestions.length) {
+    if (!useExtractedSchema && !finalQuestions.length) {
       toast.error("Please add at least one question.");
       return;
     }
 
-    if (isHorizontal && !(horizontalSchema?.headers || []).length) {
-      toast.error("Please add at least one column header.");
+    if (useExtractedSchema && !(horizontalSchema?.headers || []).length) {
+      toast.error("Please add at least one column/question.");
       return;
     }
 
@@ -223,13 +511,15 @@ function SafetyWizard() {
       return;
     }
 
-    const cleanHeaderFields = normaliseHeaderFields(headerFields);
+    const cleanHeaderFields = normalizeHeaderFieldsForPayload(
+      normaliseHeaderFields(headerFields),
+    );
 
     const titleVal = reportDraft?.title || reportTitle || "Untitled Template";
 
     let questions = [];
 
-    if (isHorizontal) {
+    if (useExtractedSchema) {
       questions = (horizontalSchema?.headers || []).map((h, idx) => {
         const type = h.type || "short_answer";
         const opts =
@@ -248,6 +538,7 @@ function SafetyWizard() {
           options: opts,
           required: false,
           photo_required: false,
+          referenceImageFile: h.referenceImageFile,
         };
       });
     } else {
@@ -329,10 +620,10 @@ function SafetyWizard() {
       );
 
       /*
-            Keep report_header_meta temporarily for backward compatibility
-            with old backend/list screens while frontend migration is ongoing.
-            New dynamic rendering should use header_fields.
-        */
+                Keep report_header_meta temporarily for backward compatibility
+                with old backend/list screens while frontend migration is ongoing.
+                New dynamic rendering should use header_fields.
+            */
       const legacyMeta = buildLegacyReportHeaderMeta(
         cleanHeaderFields,
         reportNumberConfig,
@@ -356,13 +647,25 @@ function SafetyWizard() {
       if (isHorizontal) {
         reportLayoutObj.is_horizontal = true;
         reportLayoutObj.horizontal_format = formatMode;
+      } else if (isMatrix) {
+        reportLayoutObj.is_matrix = true;
+        reportLayoutObj.matrix_type = formatMode;
+        reportLayoutObj.matrix_columns = horizontalSchema?.matrixColumns || 0;
       }
 
       formData.append("report_layout", JSON.stringify(reportLayoutObj));
 
       formData.append("flow_config", JSON.stringify(workflowConfig));
 
-      formData.append("questions", JSON.stringify(questions));
+      const cleanQuestions = questions.map((q, index) => {
+        const { referenceImageFile, ...rest } = q;
+        if (referenceImageFile) {
+          formData.append(`question_image_${index}`, referenceImageFile);
+        }
+        return rest;
+      });
+
+      formData.append("questions", JSON.stringify(cleanQuestions));
 
       if (reportDraft?.leftLogoFile) {
         formData.append("report_logo", reportDraft.leftLogoFile);
@@ -376,20 +679,36 @@ function SafetyWizard() {
         formData.append("instruction_image", reportDraft.instructionImageFile);
       }
 
-      if (isObservationFlow) {
+      formData.append("instruction_text", reportDraft?.instructionText || "");
+
+      if (isEditMode && editingTemplateId) {
+        formData.append(
+          "template_type",
+          isObservationFlow ? "OBSERVATION" : "SAFETY",
+        );
+
+        await updateSafetyTemplateVersion(editingTemplateId, formData);
+
+        toast.success("Template updated successfully. New version created.");
+      } else if (isObservationFlow) {
         formData.append("template_type", "OBSERVATION");
         await createHousekeepingTemplate(formData);
+
+        toast.success("Template created successfully.");
       } else {
         formData.append("template_type", "SAFETY");
         await createSafetyTemplate(formData);
+
+        toast.success("Template created successfully.");
       }
 
-      toast.success("Template created successfully.");
       navigate("/safetySetup");
     } catch (e) {
       console.error(e);
 
-      let msg = "Failed to create template";
+      let msg = isEditMode
+        ? "Failed to update template"
+        : "Failed to create template";
       if (e?.response?.data) {
         if (typeof e.response.data === "string") {
           msg = e.response.data;
@@ -448,7 +767,9 @@ function SafetyWizard() {
       case "upload":
         const isHoriz =
           formatMode === "HORIZONTAL_TYPE_A" ||
-          formatMode === "HORIZONTAL_TYPE_B";
+          formatMode === "HORIZONTAL_TYPE_B" ||
+          formatMode === "MATRIX_DAILY" ||
+          formatMode === "MATRIX_WEEKLY";
         if (isHoriz && !(horizontalSchema?.headers || []).length)
           return (
             !silent && toast.error("Please upload a valid template."),
@@ -473,7 +794,9 @@ function SafetyWizard() {
       case "preview":
         const isH =
           formatMode === "HORIZONTAL_TYPE_A" ||
-          formatMode === "HORIZONTAL_TYPE_B";
+          formatMode === "HORIZONTAL_TYPE_B" ||
+          formatMode === "MATRIX_DAILY" ||
+          formatMode === "MATRIX_WEEKLY";
         if (isH) {
           const headers = horizontalSchema?.headers || [];
           for (let i = 0; i < headers.length; i++) {
@@ -635,6 +958,7 @@ function SafetyWizard() {
             setHorizontalSchema={setHorizontalSchema}
             parserError={parserError}
             setParserError={setParserError}
+            isEditMode={isEditMode}
           />
         );
 
@@ -655,7 +979,9 @@ function SafetyWizard() {
 
         if (
           formatMode === "HORIZONTAL_TYPE_A" ||
-          formatMode === "HORIZONTAL_TYPE_B"
+          formatMode === "HORIZONTAL_TYPE_B" ||
+          formatMode === "MATRIX_DAILY" ||
+          formatMode === "MATRIX_WEEKLY"
         ) {
           return (
             <FinalPreviewHorizontal
@@ -728,11 +1054,35 @@ function SafetyWizard() {
               leftLogoFile={reportDraft?.leftLogoFile}
               rightLogoFile={reportDraft?.rightLogoFile}
               instructionImageFile={reportDraft?.instructionImageFile}
+              instructionText={reportDraft?.instructionText || ""}
               previewOnly={false}
               onReportDraftChange={setReportDraft}
             />
           );
         }
+
+        if (formatMode === "MATRIX_DAILY" || formatMode === "MATRIX_WEEKLY") {
+          return (
+            <SafetyReportTemplateMatrix
+              schema={horizontalSchema}
+              onSchemaChange={setHorizontalSchema}
+              reportTitle={
+                reportDraft?.title || reportTitle || "Untitled Template"
+              }
+              projectName={selectedProject?.name || ""}
+              headerFields={headerFields}
+              reportNumberConfig={reportNumberConfig}
+              meta={reportDraft?.meta || {}}
+              leftLogoFile={reportDraft?.leftLogoFile}
+              rightLogoFile={reportDraft?.rightLogoFile}
+              instructionImageFile={reportDraft?.instructionImageFile}
+              instructionText={reportDraft?.instructionText || ""}
+              previewOnly={false}
+              onReportDraftChange={setReportDraft}
+            />
+          );
+        }
+
         return (
           <SafetyReportTemplate
             excelData={excelData}
@@ -747,6 +1097,7 @@ function SafetyWizard() {
             reportNumberConfig={reportNumberConfig}
             deferCreate
             onReportDraftChange={setReportDraft}
+            instructionText={reportDraft?.instructionText || ""}
           />
         );
 
@@ -842,6 +1193,13 @@ function SafetyWizard() {
 
       <main className="flex-1 px-4 py-6 flex justify-center">
         <div className="w-full max-w-6xl space-y-6">
+          {isEditMode && (
+            <div className="rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-orange-800">
+              <b>Edit Mode:</b> Updating this template will create a new
+              version. Existing submitted checklists will remain linked to the
+              old version.
+            </div>
+          )}
           {renderStepContent()}
 
           <div className="mt-6 flex justify-between items-center">
@@ -893,10 +1251,13 @@ function SafetyWizard() {
             >
               {isLastStep
                 ? creatingTemplate
-                  ? "Creating..."
-                  : "Create Template"
+                  ? isEditMode
+                    ? "Updating..."
+                    : "Creating..."
+                  : isEditMode
+                    ? "Update Template"
+                    : "Create Template"
                 : "Next"}
-
               <ArrowRight className="ml-1 h-4 w-4" />
             </button>
           </div>

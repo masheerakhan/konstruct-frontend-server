@@ -5,6 +5,7 @@ import ExcelPreview from "./ExcelPreview";
 import QuestionCard, { DEFAULT_MC_OPTIONS } from "./QuestionCard";
 import { detectChecklistFormat } from "./formatDetector";
 import { parseHorizontalExcel } from "./parseHorizontalExcel";
+import { parseMatrixExcel } from "./parseMatrixExcel";
 import HorizontalExcelPreview from "./HorizontalExcelPreview";
 
 /**
@@ -36,6 +37,7 @@ function UploadAndMapping({
   onUnconvertedRowsChange,
   validationErrors,
   onClearError,
+  isEditMode = false,
 }) {
   const hasChosenExcel = !!excelData;
   const hasChosenManual = manualQuestions.length > 0;
@@ -45,6 +47,7 @@ function UploadAndMapping({
     rows,
     sheetNamesFromUpload,
     activeSheetName,
+    fileName,
   ) => {
     // M3B: Run format detector and parser
     try {
@@ -63,9 +66,21 @@ function UploadAndMapping({
           setHorizontalSchema(null);
           setParserError(parsed.reason);
         }
+      } else if (
+        format.type === "MATRIX_DAILY" ||
+        format.type === "MATRIX_WEEKLY"
+      ) {
+        const parsed = parseMatrixExcel(rows, format.type);
+        if (parsed.success) {
+          setHorizontalSchema(parsed);
+          setParserError(null);
+        } else {
+          setHorizontalSchema(null);
+          setParserError(parsed.reason);
+        }
       } else {
         setHorizontalSchema(null);
-        setParserError("Not a supported horizontal format");
+        setParserError("Not a supported format");
       }
     } catch (err) {
       console.error("Detector/Parser Error:", err);
@@ -74,11 +89,12 @@ function UploadAndMapping({
     }
 
     // Existing execution must continue uninterrupted per M3B rules
+
     setExcelData(rows);
     setSheetNames(sheetNamesFromUpload);
     setActiveSheet(activeSheetName || sheetNamesFromUpload[0] || "");
     if (onUploadComplete)
-      onUploadComplete(rows, sheetNamesFromUpload, activeSheetName);
+      onUploadComplete(rows, sheetNamesFromUpload, activeSheetName, fileName);
   };
 
   const handleConvert = (selectedRows, questionCol) => {
@@ -195,10 +211,26 @@ function UploadAndMapping({
         {/* Upload box: only when user hasn't started manual creation */}
         {!hasChosenManual && !hasConvertedFromExcel && (
           <>
-            {!excelData ? (
+            {isEditMode &&
+            (formatMode === "HORIZONTAL_TYPE_A" ||
+              formatMode === "HORIZONTAL_TYPE_B" ||
+              formatMode === "MATRIX_DAILY" ||
+              formatMode === "MATRIX_WEEKLY") &&
+            horizontalSchema?.headers?.length ? (
+              <HorizontalExcelPreview
+                formatMode={formatMode}
+                schema={horizontalSchema}
+                onBack={() => {
+                  setFormatMode("UNSUPPORTED");
+                  setHorizontalSchema(null);
+                }}
+              />
+            ) : !excelData ? (
               <SafetySetup onUploadComplete={handleUploadComplete} />
             ) : formatMode === "HORIZONTAL_TYPE_A" ||
-              formatMode === "HORIZONTAL_TYPE_B" ? (
+              formatMode === "HORIZONTAL_TYPE_B" ||
+              formatMode === "MATRIX_DAILY" ||
+              formatMode === "MATRIX_WEEKLY" ? (
               <HorizontalExcelPreview
                 formatMode={formatMode}
                 schema={horizontalSchema}

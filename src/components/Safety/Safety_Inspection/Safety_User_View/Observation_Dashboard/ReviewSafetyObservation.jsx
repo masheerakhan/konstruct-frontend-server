@@ -10,6 +10,7 @@ import SignatureCanvas from "react-signature-canvas";
 
 import { Check, X as XIcon } from "lucide-react";
 import RiskMatrixModal from "./RiskMatrixModal";
+import { resolveMediaUrl } from "../../../../../lib/utils";
 
 const PhotoUploadArea = ({
   id,
@@ -381,7 +382,7 @@ export default function ReviewSafetyObservation({ detail, onBack, onSuccess }) {
             {detail.photograph_of_unsafe_act ? (
               <div>
                 <img
-                  src={detail.photograph_of_unsafe_act}
+                  src={resolveMediaUrl(detail.photograph_of_unsafe_act)}
                   alt="Unsafe Act"
                   className="max-w-full h-auto rounded-lg max-h-64 object-cover border border-slate-300"
                 />
@@ -570,7 +571,7 @@ export default function ReviewSafetyObservation({ detail, onBack, onSuccess }) {
                       <div className="flex items-center gap-3">
                         <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-slate-100">
                           <img
-                            src={photo.image}
+                            src={resolveMediaUrl(photo.image)}
                             alt="Closer"
                             className="h-full w-full object-cover"
                           />
@@ -793,15 +794,15 @@ export default function ReviewSafetyObservation({ detail, onBack, onSuccess }) {
                       </>
                     ) : (
                       <>
-                        <h3 className="font-bold text-green-700 mb-2">
-                          Final Approval Stage
-                        </h3>
-                        <p className="text-xs text-green-600 mb-1">
-                          You are the Final Checker for this observation.
-                        </p>
-                        <p className="text-xs text-green-600">
-                          Approving this will complete the observation workflow.
-                        </p>
+                        {/* <h3 className="font-bold text-green-700 mb-2">
+                                                    Final Approval Stage
+                                                </h3>
+                                                <p className="text-xs text-green-600 mb-1">
+                                                    You are the Final Checker for this observation.
+                                                </p>
+                                                <p className="text-xs text-green-600">
+                                                    Approving this will complete the observation workflow.
+                                                </p> */}
                       </>
                     )}
                   </div>
@@ -941,7 +942,7 @@ export default function ReviewSafetyObservation({ detail, onBack, onSuccess }) {
                             typeof img.image === "string" &&
                             img.image.startsWith("http")
                               ? img.image
-                              : `/users-api${img.image}`
+                              : resolveMediaUrl(img.image)
                           }
                           alt="Observation Photo"
                           className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105"

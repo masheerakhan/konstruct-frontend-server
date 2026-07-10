@@ -61,27 +61,16 @@ const QuestionBadge = ({ number }) => (
 
 const resolveMediaUrl = (path) => {
   if (!path) return null;
-
-  let cleanPath = path;
-  if (cleanPath.startsWith("http://127.0.0.1:8001")) {
-    cleanPath = cleanPath.replace("http://127.0.0.1:8001", "");
-  } else if (cleanPath.startsWith("http://localhost:8001")) {
-    cleanPath = cleanPath.replace("http://localhost:8001", "");
-  } else if (
-    cleanPath.startsWith("http://") ||
-    cleanPath.startsWith("https://")
-  ) {
-    return cleanPath;
-  }
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
 
   const base =
     window.location.hostname === "127.0.0.1" ||
     window.location.hostname === "localhost"
       ? "http://127.0.0.1:8001"
-      : "https://konstruct.world";
+      : "https://konstruct.world/checklists";
 
-  if (!cleanPath.startsWith("/")) cleanPath = "/" + cleanPath;
-  return `${base}${cleanPath}`;
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${clean}`;
 };
 
 const resolveProjectIdFromUserAccess = () => {
@@ -1544,36 +1533,308 @@ export default function CheckerDashboard() {
     }
   };
 
+  // For Mobile Responsive
+  const isMobileDevice = () => {
+    if (typeof navigator === "undefined") return false;
+
+    return /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  };
+
+  const getAccessTokenForMobileDownload = () =>
+    localStorage.getItem("ACCESS_TOKEN") ||
+    localStorage.getItem("access") ||
+    localStorage.getItem("accessToken") ||
+    "";
+
+  const getChecklistServiceBaseUrl = () => {
+    const isLocal =
+      window.location.hostname === "127.0.0.1" ||
+      window.location.hostname === "localhost";
+
+    return isLocal
+      ? "http://127.0.0.1:8001"
+      : "https://konstruct.world/checklists";
+  };
+
+  const safePdfFileName = (name = "report") => {
+    return (
+      String(name || "report")
+        .trim()
+        .replace(/[^\w.-]+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "") || "report"
+    );
+  };
+
+  const sendDownloadToFlutter = ({ url, fileName, token }) => {
+    const payload = JSON.stringify({
+      url,
+      fileName,
+      token,
+      mimeType: "application/pdf",
+    });
+
+    // flutter_inappwebview handler
+    if (window.flutter_inappwebview?.callHandler) {
+      window.flutter_inappwebview.callHandler("downloadFile", payload);
+      return true;
+    }
+
+    // webview_flutter JavaScriptChannel
+    if (window.DownloadChannel?.postMessage) {
+      window.DownloadChannel.postMessage(payload);
+      return true;
+    }
+
+    return false;
+  };
+
+  // Old handleDownloadReport
+  // const handleDownloadReport = async (item) => {
+  //     if (!item?.id) return;
+
+  //     if (isObservations && !item.skipGroupCheck) {
+  //         const reportGroup = groupedReports.find(r => r.firstItemId === item.id);
+  //         if (reportGroup) {
+  //             showToast("Generating Observation Report PDF...", "success");
+  //             try {
+  //                 let orgId = null;
+  //                 const userDataStr = localStorage.getItem("USER_DATA");
+  //                 if (userDataStr) {
+  //                     try {
+  //                         orgId = JSON.parse(userDataStr).orgId;
+  //                     } catch (e) { }
+  //                 }
+  //                 const projectId = resolveActiveProjectId?.() || resolveProjectIdFromUserAccess();
+  //                 const res = await downloadSafetyObservationReport({
+  //                     date: reportGroup.date,
+  //                     org_id: orgId,
+  //                     project_id: projectId,
+  //                     t: new Date().getTime()
+  //                 });
+
+  //                 const blob = res?.data;
+  //                 if (!blob) {
+  //                     showToast("Report data is empty", "error");
+  //                     return;
+  //                 }
+  //                 const url = window.URL.createObjectURL(new Blob([blob]));
+  //                 const link = document.createElement("a");
+  //                 link.href = url;
+
+  //                 const safeName = reportGroup.reportName
+  //                     ? reportGroup.reportName.replace(/[^a-zA-Z0-9_.-]/g, '_')
+  //                     : `Observation-Report-${reportGroup.date}.pdf`;
+
+  //                 link.setAttribute("download", `${safeName}.pdf`);
+  //                 document.body.appendChild(link);
+  //                 link.click();
+  //                 link.parentNode.removeChild(link);
+  //                 window.URL.revokeObjectURL(url);
+  //                 return;
+  //             } catch (err) {
+  //                 console.error("PDF Gen Error:", err);
+  //                 showToast("Failed to generate PDF", "error");
+  //                 return;
+  //             }
+  //         }
+  //     }
+
+  //     try {
+  //         const res = await downloadSafetyReport(item.id, {
+  //             mode: "download",
+  //         });
+
+  //         const blob = res?.data;
+  //         if (!blob) {
+  //             showToast("Report file not found.", "error");
+  //             return;
+  //         }
+
+  //         const url = window.URL.createObjectURL(new Blob([blob], { type: "application/pdf" }));
+  //         const link = document.createElement("a");
+
+  //         const safeName = String(item.name || "safety-report")
+  //             .trim()
+  //             .replace(/[^\w.-]+/g, "-");
+
+  //         link.href = url;
+  //         link.download = `${safeName}-${item.id}.pdf`;
+  //         document.body.appendChild(link);
+  //         link.click();
+  //         link.remove();
+
+  //         window.URL.revokeObjectURL(url);
+  //         showToast("Report downloaded", "success");
+  //     } catch (err) {
+  //         showToast(
+  //             err?.response?.data?.detail || err?.message || "Download failed",
+  //             "error"
+  //         );
+  //     }
+  // };
+
   const handleDownloadReport = async (item) => {
     if (!item?.id) return;
 
+    const mobile = isMobileDevice();
+    const token = getAccessTokenForMobileDownload();
+    const checklistBaseUrl = getChecklistServiceBaseUrl();
+
+    /*
+            MOBILE WEBVIEW FLOW:
+            Do not use blob + a.download.
+            Send real API URL to Flutter and let Flutter download using native code.
+        */
+    if (mobile) {
+      try {
+        if (isObservations && !item.skipGroupCheck) {
+          const reportGroup = groupedReports.find(
+            (r) => r.firstItemId === item.id,
+          );
+
+          if (reportGroup) {
+            let orgId = null;
+
+            const userDataStr = localStorage.getItem("USER_DATA");
+            if (userDataStr) {
+              try {
+                const userData = JSON.parse(userDataStr);
+                orgId =
+                  userData?.org ||
+                  userData?.org_id ||
+                  userData?.organization_id ||
+                  userData?.orgId ||
+                  null;
+              } catch (e) {
+                orgId = null;
+              }
+            }
+
+            const activeProjectId =
+              resolveActiveProjectId?.() || resolveProjectIdFromUserAccess();
+
+            const query = new URLSearchParams({
+              date: reportGroup.date,
+              t: String(new Date().getTime()),
+            });
+
+            if (orgId) query.set("org_id", orgId);
+            if (activeProjectId) query.set("project_id", activeProjectId);
+
+            /*
+                            This URL must match your backend endpoint used by
+                            downloadSafetyObservationReport().
+                            If your actual endpoint is different, change only this path.
+                        */
+            const reportUrl = `${checklistBaseUrl}/safety/observations/report/?${query.toString()}`;
+
+            const fileName = `${safePdfFileName(
+              reportGroup.reportName ||
+                `Observation-Report-${reportGroup.date}`,
+            )}.pdf`;
+
+            const sentToFlutter = sendDownloadToFlutter({
+              url: reportUrl,
+              fileName,
+              token,
+            });
+
+            if (sentToFlutter) {
+              showToast("Downloading report...", "success");
+              return;
+            }
+
+            /*
+                            Fallback if opened in mobile browser, not Flutter WebView.
+                            This may work only if backend allows auth by cookie/session.
+                        */
+            window.open(reportUrl, "_blank");
+            return;
+          }
+        }
+
+        /*
+                    Normal safety checklist report mobile URL.
+                    This URL should match downloadSafetyReport(item.id, { mode: "download" }).
+                */
+        const query = new URLSearchParams({
+          mode: "download",
+        });
+
+        const reportUrl = `${checklistBaseUrl}/safety/checklists/${item.id}/report/?${query.toString()}`;
+
+        const fileName = `${safePdfFileName(item.name || "safety-report")}-${item.id}.pdf`;
+
+        const sentToFlutter = sendDownloadToFlutter({
+          url: reportUrl,
+          fileName,
+          token,
+        });
+
+        if (sentToFlutter) {
+          showToast("Downloading report...", "success");
+          return;
+        }
+
+        window.open(reportUrl, "_blank");
+        return;
+      } catch (err) {
+        console.error("Mobile download error:", err);
+        showToast("Mobile download failed", "error");
+        return;
+      }
+    }
+
+    /*
+            DESKTOP / NORMAL WEB FLOW:
+            Keep your existing blob download structure.
+        */
     if (isObservations && !item.skipGroupCheck) {
       const reportGroup = groupedReports.find((r) => r.firstItemId === item.id);
+
       if (reportGroup) {
         showToast("Generating Observation Report PDF...", "success");
+
         try {
           let orgId = null;
+
           const userDataStr = localStorage.getItem("USER_DATA");
           if (userDataStr) {
             try {
-              orgId = JSON.parse(userDataStr).orgId;
-            } catch (e) {}
+              const userData = JSON.parse(userDataStr);
+              orgId =
+                userData?.org ||
+                userData?.org_id ||
+                userData?.organization_id ||
+                userData?.orgId ||
+                null;
+            } catch (e) {
+              orgId = null;
+            }
           }
-          const projectId =
+
+          const activeProjectId =
             resolveActiveProjectId?.() || resolveProjectIdFromUserAccess();
+
           const res = await downloadSafetyObservationReport({
             date: reportGroup.date,
             org_id: orgId,
-            project_id: projectId,
+            project_id: activeProjectId,
             t: new Date().getTime(),
           });
 
           const blob = res?.data;
+
           if (!blob) {
             showToast("Report data is empty", "error");
             return;
           }
-          const url = window.URL.createObjectURL(new Blob([blob]));
+
+          const url = window.URL.createObjectURL(
+            new Blob([blob], { type: "application/pdf" }),
+          );
+
           const link = document.createElement("a");
           link.href = url;
 
@@ -1584,7 +1845,8 @@ export default function CheckerDashboard() {
           link.setAttribute("download", `${safeName}.pdf`);
           document.body.appendChild(link);
           link.click();
-          link.parentNode.removeChild(link);
+          link.remove();
+
           window.URL.revokeObjectURL(url);
           return;
         } catch (err) {
@@ -1601,6 +1863,7 @@ export default function CheckerDashboard() {
       });
 
       const blob = res?.data;
+
       if (!blob) {
         showToast("Report file not found.", "error");
         return;
@@ -1609,19 +1872,20 @@ export default function CheckerDashboard() {
       const url = window.URL.createObjectURL(
         new Blob([blob], { type: "application/pdf" }),
       );
+
       const link = document.createElement("a");
 
-      const safeName = String(item.name || "safety-report")
-        .trim()
-        .replace(/[^\w.-]+/g, "-");
+      const safeName = safePdfFileName(item.name || "safety-report");
 
       link.href = url;
       link.download = `${safeName}-${item.id}.pdf`;
+
       document.body.appendChild(link);
       link.click();
       link.remove();
 
       window.URL.revokeObjectURL(url);
+
       showToast("Report downloaded", "success");
     } catch (err) {
       showToast(

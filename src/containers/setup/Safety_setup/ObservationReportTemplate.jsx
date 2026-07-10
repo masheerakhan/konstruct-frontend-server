@@ -8,82 +8,143 @@ import {
   buildHeaderFieldsFromLegacyMeta,
 } from "./safetyHeaderFields";
 const INITIAL_OBSERVATION_QUESTIONS = [
-    { id: "obs-1", title: "1. WHAT UNSAFE ACT / CONDITION OBSERVED-", type: "dropdown_with_secondary", options: ["UNSAFE ACT & CONDITION OBSERVED"] },
-    { id: "obs-2", title: "2. LOCATION-", type: "location_combined" },
-    { id: "obs-3", title: "3. PHOTOGRAPH OF UNSAFE ACT / CONDITION-", type: "file_upload" },
-    { id: "obs-4", title: "4. HAZARD/RISK-", type: "hazard_risk_combined", options: ["1. Physical Hazard", "2. Biological Hazard", "3. Chemical Hazard", "4. Mechanical Hazard", "5. Ergonomical Hazard", "6. Environmental Hazard", "7. Psychological Hazard", "8. Electrical Hazard", "9. Fire/Explosion Hazard"] },
-    { id: "obs-5", title: "5. RECOMMENDATIONS-", type: "paragraph" },
-    { id: "obs-6", title: "6. NAME OF CONTRACTOR-", type: "contractor_dropdown" },
-    { id: "obs-7", title: "7. TARGET DATE-", type: "date" },
-    { id: "obs-8", title: "8. CA/PA TO BE TAKEN-", type: "ca_pa_combined" },
-    { id: "obs-9", title: "9. CLOSER PHOTOGRAPH-", type: "file_upload" }
+  {
+    id: "obs-1",
+    title: "1. WHAT UNSAFE ACT / CONDITION OBSERVED-",
+    type: "dropdown_with_secondary",
+    options: ["UNSAFE ACT & CONDITION OBSERVED"],
+  },
+  { id: "obs-2", title: "2. LOCATION-", type: "location_combined" },
+  {
+    id: "obs-3",
+    title: "3. PHOTOGRAPH OF UNSAFE ACT / CONDITION-",
+    type: "file_upload",
+  },
+  {
+    id: "obs-4",
+    title: "4. HAZARD/RISK-",
+    type: "hazard_risk_combined",
+    options: [
+      "1. Physical Hazard",
+      "2. Biological Hazard",
+      "3. Chemical Hazard",
+      "4. Mechanical Hazard",
+      "5. Ergonomical Hazard",
+      "6. Environmental Hazard",
+      "7. Psychological Hazard",
+      "8. Electrical Hazard",
+      "9. Fire/Explosion Hazard",
+    ],
+  },
+  { id: "obs-5", title: "5. NAME OF CONTRACTOR-", type: "contractor_dropdown" },
+  { id: "obs-6", title: "6. TARGET DATE-", type: "date" },
+  { id: "obs-7", title: "7. CA/PA TO BE TAKEN-", type: "ca_pa_combined" },
+  { id: "obs-8", title: "8. CLOSER PHOTOGRAPH-", type: "file_upload" },
 ];
 
 const renderCardUI = (q) => {
-    switch (q.id) {
-        case "obs-1":
-            return (
-                <div className="flex flex-col gap-2 w-full min-w-[130px]">
-                    <select disabled className="w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500">
-                        <option>UNSAFE ACT & CONDITION OBSERVED</option>
-                    </select>
-                    <input disabled placeholder="Short answer" className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500" />
-                </div>
-            );
-        case "obs-2":
-            return (
-                <div className="flex flex-col gap-2 w-full min-w-[120px]">
-                    <select disabled className="w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500">
-                        <option>Wing: A - G</option>
-                    </select>
-                    <select disabled className="w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500">
-                        <option>Floor: BASEMENT - TERRACE</option>
-                    </select>
-                    <input disabled placeholder="Flat/Area" className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500" />
-                </div>
-            );
-        case "obs-3":
-        case "obs-9":
-            return (
-                <div className="flex w-full min-w-[100px] items-center justify-center rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-4 text-[10px] text-center text-gray-500">
-                    Upload image
-                </div>
-            );
-        case "obs-4":
-            return (
-                <div className="flex flex-col gap-2 w-full min-w-[130px]">
-                    <select disabled className="w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500">
-                        <option>Select Hazard...</option>
-                    </select>
-                    <input disabled placeholder="Risk details" className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500" />
-                </div>
-            );
-        case "obs-5":
-            return (
-                <textarea disabled placeholder="Recommendations" className="w-full min-w-[140px] rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500" rows={3} />
-            );
-        case "obs-6":
-            return (
-                <select disabled className="w-full min-w-[120px] rounded border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500">
-                    <option>Select Contractor...</option>
-                </select>
-            );
-        case "obs-7":
-            return (
-                <input disabled type="date" className="w-full min-w-[100px] rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-[10px] text-gray-500" />
-            );
-        case "obs-8":
-            return (
-                <div className="flex flex-col gap-2 w-full min-w-[130px]">
-                    <input disabled placeholder="Corrective Action" className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500" />
-                    <input disabled placeholder="Preventive Action" className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500" />
-                </div>
-            );
-        default:
-            return null;
-    }
+  switch (q.id) {
+    case "obs-1":
+      return (
+        <div className="flex flex-col gap-2 w-full min-w-[130px]">
+          <select
+            disabled
+            className="w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500"
+          >
+            <option>UNSAFE ACT & CONDITION OBSERVED</option>
+          </select>
+          <input
+            disabled
+            placeholder="Short answer"
+            className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500"
+          />
+        </div>
+      );
+    case "obs-2":
+      return (
+        <div className="flex flex-col gap-2 w-full min-w-[120px]">
+          <select
+            disabled
+            className="w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500"
+          >
+            <option>Wing: A - G</option>
+          </select>
+          <select
+            disabled
+            className="w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500"
+          >
+            <option>Floor: BASEMENT - TERRACE</option>
+          </select>
+          <input
+            disabled
+            placeholder="Flat/Area"
+            className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500"
+          />
+        </div>
+      );
+    case "obs-3":
+    case "obs-8":
+      return (
+        <div className="flex w-full min-w-[100px] items-center justify-center rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-4 text-[10px] text-center text-gray-500">
+          Upload image
+        </div>
+      );
+    case "obs-4":
+      return (
+        <div className="flex flex-col gap-2 w-full min-w-[130px]">
+          <select
+            disabled
+            className="w-full rounded border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500"
+          >
+            <option>Select Hazard...</option>
+          </select>
+          <select
+            disabled
+            className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500"
+          >
+            <option value="">Risk details</option>
+            <option value="Low Risk">Low Risk</option>
+            <option value="Medium Risk">Medium Risk</option>
+            <option value="High Risk">High Risk</option>
+          </select>
+        </div>
+      );
+    case "obs-5":
+      return (
+        <select
+          disabled
+          className="w-full min-w-[120px] rounded border border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500"
+        >
+          <option>Select Contractor...</option>
+        </select>
+      );
+    case "obs-6":
+      return (
+        <input
+          disabled
+          type="date"
+          className="w-full min-w-[100px] rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-[10px] text-gray-500"
+        />
+      );
+    case "obs-7":
+      return (
+        <div className="flex flex-col gap-2 w-full min-w-[130px]">
+          <input
+            disabled
+            placeholder="Corrective Action"
+            className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500"
+          />
+          <input
+            disabled
+            placeholder="Preventive Action"
+            className="w-full rounded border border-dashed border-gray-300 bg-gray-50 px-2 py-1 text-xs text-gray-500"
+          />
+        </div>
+      );
+    default:
+      return null;
+  }
 };
-
 
 const META_ROWS = [
   [
@@ -126,29 +187,52 @@ function getChecklistRowsFromExcel(excelData) {
   let questionCol = 0;
   for (let c = 0; c < headers.length; c++) {
     const h = String(headers[c] || "").toLowerCase();
-    if (h.includes("inspection") || h.includes("point") || h.includes("checklist") || h.includes("particular")) {
+    if (
+      h.includes("inspection") ||
+      h.includes("point") ||
+      h.includes("checklist") ||
+      h.includes("particular")
+    ) {
       questionCol = c;
       break;
     }
   }
-  return bodyRows.map((row) => {
-    const point = (Array.isArray(row) ? row[questionCol] : null) != null ? String(row[questionCol]).trim() : "";
-    return { point: point || "", yes: "", no: "", na: "", image: "", remark: "" };
-  }).filter((r) => r.point.length > 0);
+  return bodyRows
+    .map((row) => {
+      const point =
+        (Array.isArray(row) ? row[questionCol] : null) != null
+          ? String(row[questionCol]).trim()
+          : "";
+      return {
+        point: point || "",
+        yes: "",
+        no: "",
+        na: "",
+        image: "",
+        remark: "",
+      };
+    })
+    .filter((r) => r.point.length > 0);
 }
 
 function getChecklistRowsFromQuestions(selectedQuestions) {
-  if (!selectedQuestions || !Array.isArray(selectedQuestions) || selectedQuestions.length === 0) {
+  if (
+    !selectedQuestions ||
+    !Array.isArray(selectedQuestions) ||
+    selectedQuestions.length === 0
+  ) {
     return [];
   }
-  return selectedQuestions.map((q) => ({
-    point: typeof q.text === "string" ? q.text.trim() : "",
-    yes: "",
-    no: "",
-    na: "",
-    image: "",
-    remark: "",
-  })).filter((r) => r.point.length > 0);
+  return selectedQuestions
+    .map((q) => ({
+      point: typeof q.text === "string" ? q.text.trim() : "",
+      yes: "",
+      no: "",
+      na: "",
+      image: "",
+      remark: "",
+    }))
+    .filter((r) => r.point.length > 0);
 }
 
 // Auto generate Format No.
@@ -179,21 +263,21 @@ function ObservationReportTemplate({
   initialTemplateData = null,
   previewOnly = false,
   deferCreate = false,
-  onReportDraftChange
+  onReportDraftChange,
 }) {
   const [createLoading, setCreateLoading] = useState(false);
 
   const rowsFromQuestions = useMemo(
     () => getChecklistRowsFromQuestions(selectedQuestions),
-    [selectedQuestions]
+    [selectedQuestions],
   );
   const rowsFromExcel = useMemo(
     () => getChecklistRowsFromExcel(excelData),
-    [excelData]
+    [excelData],
   );
   const initialChecklistRows = useMemo(
     () => (rowsFromQuestions.length > 0 ? rowsFromQuestions : rowsFromExcel),
-    [rowsFromQuestions, rowsFromExcel]
+    [rowsFromQuestions, rowsFromExcel],
   );
 
   const [isEditMode, setIsEditMode] = useState(false);
@@ -221,7 +305,6 @@ function ObservationReportTemplate({
     nameOfOperator: "",
   });
 
-
   const effectiveHeaderFields = useMemo(() => {
     if (Array.isArray(headerFields) && headerFields.length > 0) {
       return headerFields;
@@ -235,7 +318,7 @@ function ObservationReportTemplate({
     }
 
     return buildHeaderFieldsFromLegacyMeta(
-      initialTemplateData?.report_header_meta || meta || {}
+      initialTemplateData?.report_header_meta || meta || {},
     );
   }, [headerFields, initialTemplateData, meta]);
 
@@ -248,9 +331,8 @@ function ObservationReportTemplate({
         projectName,
         reportNumberConfig: effectiveReportNumberConfig,
       }),
-    [effectiveHeaderFields, projectName, effectiveReportNumberConfig]
+    [effectiveHeaderFields, projectName, effectiveReportNumberConfig],
   );
-
 
   const [title, setTitle] = useState("");
   const [approvedBy, setApprovedBy] = useState("");
@@ -260,7 +342,6 @@ function ObservationReportTemplate({
   const [description, setDescription] = useState("");
   const [checkedBy, setCheckedBy] = useState("");
   const [verifiedBy, setVerifiedBy] = useState("");
-
 
   // useEffect(() => {
   //   if (!onReportDraftChange) return;
@@ -280,7 +361,6 @@ function ObservationReportTemplate({
   //   onReportDraftChange,
   // ]);
 
-
   useEffect(() => {
     if (!onReportDraftChange) return;
 
@@ -296,7 +376,6 @@ function ObservationReportTemplate({
     rightLogoFile,
     onReportDraftChange,
   ]);
-
 
   useEffect(() => {
     if (reportTitleProp != null && reportTitleProp !== "") {
@@ -316,9 +395,7 @@ function ObservationReportTemplate({
       revisionDate: hdr.revision_date || "",
       inspectionReportNo: hdr.inspection_report_no || "",
       inspectionReportPrefix:
-        hdr.inspection_report_prefix ||
-        hdr.inspection_report_no ||
-        "",
+        hdr.inspection_report_prefix || hdr.inspection_report_no || "",
       dateOfInspection: hdr.date_of_inspection || "",
       nameOfContractor: hdr.name_of_contractor || "",
       makeModel: hdr.make_model || "",
@@ -328,7 +405,10 @@ function ObservationReportTemplate({
     }));
     setTitle(initialTemplateData.title || initialTemplateData.name || "");
 
-    const BASE_URL = checklistInstance.defaults.baseURL.replace(/\/api\/?$/, "");
+    const BASE_URL = checklistInstance.defaults.baseURL.replace(
+      /\/api\/?$/,
+      "",
+    );
 
     const buildMediaUrl = (path) => {
       if (!path) return null;
@@ -347,19 +427,21 @@ function ObservationReportTemplate({
     setLeftLogoPreview(
       buildMediaUrl(
         initialTemplateData.report_logo_url ||
-        initialTemplateData.report_logo ||
-        initialTemplateData.logo_url,
+          initialTemplateData.report_logo ||
+          initialTemplateData.logo_url,
       ),
     );
 
     setRightLogoPreview(
       buildMediaUrl(
         initialTemplateData.report_logo_right_url ||
-        initialTemplateData.report_logo_right,
+          initialTemplateData.report_logo_right,
       ),
     );
 
-    const qs = Array.isArray(initialTemplateData.questions) ? initialTemplateData.questions : [];
+    const qs = Array.isArray(initialTemplateData.questions)
+      ? initialTemplateData.questions
+      : [];
     setChecklistRows(
       qs.map((q) => ({
         point: (q.text || "").trim(),
@@ -368,19 +450,19 @@ function ObservationReportTemplate({
         na: "",
         image: "",
         remark: "",
-      }))
+      })),
     );
   }, [initialTemplateData, previewOnly]);
 
   useEffect(() => {
     setChecklistRows((prev) => {
-      if (prev.length === 0 && initialChecklistRows.length > 0) return initialChecklistRows;
+      if (prev.length === 0 && initialChecklistRows.length > 0)
+        return initialChecklistRows;
       return prev;
     });
   }, [initialChecklistRows]);
 
-
-  // USEFFECT TO AUTO GENERATE FORMAT NO. AND REBISION NO. 
+  // USEFFECT TO AUTO GENERATE FORMAT NO. AND REBISION NO.
   useEffect(() => {
     setMeta((prev) => ({
       ...prev,
@@ -389,7 +471,6 @@ function ObservationReportTemplate({
     }));
   }, []);
 
-
   const setMetaField = (key, value) => {
     setMeta((prev) => ({ ...prev, [key]: value }));
   };
@@ -397,14 +478,25 @@ function ObservationReportTemplate({
   const setChecklistRow = (index, field, value) => {
     setChecklistRows((prev) => {
       const next = [...prev];
-      if (!next[index]) next[index] = { point: "", yes: "", no: "", na: "", image: "", remark: "" };
+      if (!next[index])
+        next[index] = {
+          point: "",
+          yes: "",
+          no: "",
+          na: "",
+          image: "",
+          remark: "",
+        };
       next[index][field] = value;
       return next;
     });
   };
 
   const addChecklistRow = () => {
-    setChecklistRows((prev) => [...prev, { point: "", yes: "", no: "", na: "", image: "", remark: "" }]);
+    setChecklistRows((prev) => [
+      ...prev,
+      { point: "", yes: "", no: "", na: "", image: "", remark: "" },
+    ]);
   };
 
   // const handleCreateTemplate = async () => {
@@ -475,17 +567,20 @@ function ObservationReportTemplate({
   //   }
   // };
 
-
-
   const handleCreateTemplate = async () => {
     if (!orgId || !projectId || !selectedCategoryId) {
-      toast.error("Please complete Category step and select a project and category.");
+      toast.error(
+        "Please complete Category step and select a project and category.",
+      );
       return;
     }
 
     const titleVal = title || reportTitleProp || "Untitled Template";
     const templateCode =
-      titleVal.toUpperCase().replace(/\s+/g, "_").replace(/[^A-Z0-9_]/g, "") || "TEMPLATE";
+      titleVal
+        .toUpperCase()
+        .replace(/\s+/g, "_")
+        .replace(/[^A-Z0-9_]/g, "") || "TEMPLATE";
 
     const questions = (selectedQuestions || []).map((q, idx) => {
       const photoRequired = !!(q.photo_required ?? q.required);
@@ -520,7 +615,7 @@ function ObservationReportTemplate({
           revision_date: meta.revisionDate || "",
           project: meta.project || "",
           inspection_report_prefix: String(
-            meta.inspectionReportPrefix || meta.inspectionReportNo || ""
+            meta.inspectionReportPrefix || meta.inspectionReportNo || "",
           )
             .trim()
             .replace(/-$/, ""),
@@ -532,15 +627,19 @@ function ObservationReportTemplate({
           location: meta.location || "",
           identification_no: meta.identificationNo || "",
           name_of_operator: meta.nameOfOperator || "",
-        })
+        }),
       );
 
-      formData.append(
-        "report_layout",
-        JSON.stringify({ show_remark: true })
-      );
+      formData.append("report_layout", JSON.stringify({ show_remark: true }));
 
-      formData.append("questions", JSON.stringify(questions));
+      const cleanQuestions = questions.map((q, index) => {
+        const { referenceImageFile, ...rest } = q;
+        if (referenceImageFile) {
+          formData.append(`question_image_${index}`, referenceImageFile);
+        }
+        return rest;
+      });
+      formData.append("questions", JSON.stringify(cleanQuestions));
 
       if (leftLogoFile) {
         formData.append("report_logo", leftLogoFile);
@@ -594,12 +693,14 @@ function ObservationReportTemplate({
   const emptyChar = "—";
 
   return (
-    <div className={`${previewOnly ? "bg-transparent p-0" : "min-h-screen bg-[#f5f5f7] flex items-center justify-center p-4"}`}>
+    <div
+      className={`${previewOnly ? "bg-transparent p-0" : "min-h-screen bg-[#f5f5f7] flex items-center justify-center p-4"}`}
+    >
       <div className="w-full max-w-[1100px] bg-white rounded-lg shadow-lg border border-gray-200 p-8">
         {/* Edit button - top right */}
         <div className="flex justify-end -mt-2 -mr-2 mb-2">
-          {!previewOnly && (
-            !isEditMode ? (
+          {!previewOnly &&
+            (!isEditMode ? (
               <button
                 type="button"
                 onClick={() => setIsEditMode(true)}
@@ -617,21 +718,20 @@ function ObservationReportTemplate({
                 <X className="h-4 w-4" />
                 Done
               </button>
-            )
-          )}
+            ))}
           {!previewOnly && !deferCreate && (
             <button
               type="button"
               onClick={handleCreateTemplate}
-              disabled={createLoading || !orgId || !projectId || !selectedCategoryId}
+              disabled={
+                createLoading || !orgId || !projectId || !selectedCategoryId
+              }
               className="ml-3 inline-flex items-center gap-2 rounded-lg border border-orange-500 bg-orange-500 px-3 py-1.5 text-sm font-medium text-white shadow-sm hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {createLoading ? "Creating..." : "Create template"}
             </button>
           )}
         </div>
-
-
 
         {/* Header: table with 3 cells - Logo area | Meta table | Safety icon */}
         <table className="w-full text-sm border-collapse mb-1 table-fixed">
@@ -659,14 +759,18 @@ function ObservationReportTemplate({
                           alt="Logo"
                           className="max-h-[185px] w-full object-contain"
                         />
-                        <span className="text-xs text-orange-600 mt-2">Click to change logo (PNG/JPG)</span>
+                        <span className="text-xs text-orange-600 mt-2">
+                          Click to change logo (PNG/JPG)
+                        </span>
                       </>
                     ) : (
                       <>
                         <div className="flex h-24 w-24 items-center justify-center rounded-full border-2 border-dashed border-orange-300 bg-white text-orange-500">
                           <Shield className="h-14 w-14" />
                         </div>
-                        <span className="text-xs text-orange-600 mt-2">Click to upload logo (PNG/JPG)</span>
+                        <span className="text-xs text-orange-600 mt-2">
+                          Click to upload logo (PNG/JPG)
+                        </span>
                       </>
                     )}
                   </label>
@@ -677,7 +781,8 @@ function ObservationReportTemplate({
                         src={leftLogoPreview}
                         alt="Logo"
                         className="max-h-[185px] w-full object-contain"
-                      />) : (
+                      />
+                    ) : (
                       <div className="flex h-24 w-24 items-center justify-center rounded-full border border-orange-200 bg-orange-50/80">
                         <Shield className="h-14 w-14 text-orange-500" />
                       </div>
@@ -714,7 +819,9 @@ function ObservationReportTemplate({
                           className="border border-gray-300 px-2 py-1.5 font-semibold text-gray-500"
                         >
                           Report Information:{" "}
-                          <span className="font-normal text-gray-900">{emptyChar}</span>
+                          <span className="font-normal text-gray-900">
+                            {emptyChar}
+                          </span>
                         </td>
                       </tr>
                     )}
@@ -790,7 +897,9 @@ function ObservationReportTemplate({
               placeholder="Report title"
             />
           ) : (
-            <h1 className="text-lg font-bold tracking-widest uppercase text-gray-900">{displayTitle}</h1>
+            <h1 className="text-lg font-bold tracking-widest uppercase text-gray-900">
+              {displayTitle}
+            </h1>
           )}
         </div>
 
@@ -839,30 +948,40 @@ function ObservationReportTemplate({
 
         {/* Observation Horizontal Table */}
         <div className="w-full overflow-x-auto mb-6">
-            <table className="w-full text-[10px] border-collapse border border-gray-400 min-w-[1200px]">
-                <thead>
-                    <tr className="bg-[#bce6d0] text-center font-bold text-[#0b5134]">
-                        <th className="border border-gray-400 p-2 align-middle w-8">SN</th>
-                        {INITIAL_OBSERVATION_QUESTIONS.map(q => (
-                            <th key={q.id} className="border border-gray-400 p-2 align-middle uppercase">
-                            {q.title.replace(/^\d+\.\s*/, "").replace(/-$/, "")}
-                            </th>
-                        ))}
-                    </tr>
-                </thead>
-                <tbody>
-                    {[1, 2, 3].map(rowIdx => (
-                        <tr key={rowIdx}>
-                            <td className="border border-gray-400 p-2 text-center align-top font-semibold text-gray-700">{rowIdx}</td>
-                            {INITIAL_OBSERVATION_QUESTIONS.map(q => (
-                                <td key={q.id} className="border border-gray-400 p-2 align-top bg-white">
-                                    {renderCardUI(q)}
-                                </td>
-                            ))}
-                        </tr>
-                    ))}
-                </tbody>
-            </table>
+          <table className="w-full text-[10px] border-collapse border border-gray-400 min-w-[1200px]">
+            <thead>
+              <tr className="bg-[#bce6d0] text-center font-bold text-[#0b5134]">
+                <th className="border border-gray-400 p-2 align-middle w-8">
+                  SN
+                </th>
+                {INITIAL_OBSERVATION_QUESTIONS.map((q) => (
+                  <th
+                    key={q.id}
+                    className="border border-gray-400 p-2 align-middle uppercase"
+                  >
+                    {q.title.replace(/^\d+\.\s*/, "").replace(/-$/, "")}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {[1, 2, 3].map((rowIdx) => (
+                <tr key={rowIdx}>
+                  <td className="border border-gray-400 p-2 text-center align-top font-semibold text-gray-700">
+                    {rowIdx}
+                  </td>
+                  {INITIAL_OBSERVATION_QUESTIONS.map((q) => (
+                    <td
+                      key={q.id}
+                      className="border border-gray-400 p-2 align-top bg-white"
+                    >
+                      {renderCardUI(q)}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {/* Description - bold label + underline like reference */}
@@ -879,7 +998,9 @@ function ObservationReportTemplate({
           ) : (
             <>
               <div className="border-b border-gray-200 w-12 mt-1" />
-              <p className="min-h-[24px] mt-2 whitespace-pre-wrap text-sm text-gray-700">{description || emptyChar}</p>
+              <p className="min-h-[24px] mt-2 whitespace-pre-wrap text-sm text-gray-700">
+                {description || emptyChar}
+              </p>
             </>
           )}
         </div>
@@ -903,7 +1024,10 @@ function ObservationReportTemplate({
             </p>
           </div>
           <div className="flex flex-col min-w-[200px] items-end text-right">
-            <div className="border-b-2 border-gray-800 h-10 mb-2 w-full max-w-[200px]" aria-hidden />
+            <div
+              className="border-b-2 border-gray-800 h-10 mb-2 w-full max-w-[200px]"
+              aria-hidden
+            />
             <p className="font-bold text-sm text-gray-900">
               Verified By:{" "}
               {isEditMode ? (

@@ -166,6 +166,21 @@ export const login = async (data) =>
     },
   });
 
+  export const mobileTokenLogin = async (token) =>
+    axiosInstance.post(
+      "/auth/mobile-token-login/",
+      {
+        token,
+      },
+      {
+        headers: {
+          "Content-Type": "application/json",
+        },
+      },
+    );
+
+
+
 export const deleteChecklistById = async (checklistId) =>
   NEWchecklistInstance.delete(`/checklists/${checklistId}/`, {
     headers: {
@@ -239,7 +254,7 @@ export const GEtbyProjectID = async (id) =>
   });
 
 export const allorgantioninfototalbyUser_id = async (id) =>
-  organnizationInstance.get(`/user-orgnizationn-info/${id}`, {
+  organnizationInstance.get(`user-orgnizationn-info/${id}/`, {
     headers: {
       "Content-Type": "application/json",
     },
@@ -290,14 +305,22 @@ export const getCompanyDetailsById = async (id) =>
     },
   );
 
-export const getProjectDetailsById = async (id) => {
-  console.log(id, "id project");
-  return projectInstance.get(`/project/get-project-details-by-company-id/`, {
+  //NOT IN USE
+// export const getProjectDetailsById = async (id) => {
+//   console.log(id, "id project");
+//   return projectInstance.get(`/project/get-project-details-by-company-id/`, {
+//     headers: {
+//       "Content-Type": "application/json",
+//     },
+//   });
+// };
+
+export const getProjectDetailsById = async (id) =>
+  projectInstance.get(`/projects/${id}/`, {
     headers: {
       "Content-Type": "application/json",
     },
   });
-};
 
 export const getPRojectbyYourPErmission = async () =>
   projectInstance.get("projects/by_user_scope/", {
@@ -1316,15 +1339,29 @@ export const resolveActiveProjectId = () => {
   return Number(ls) || null;
 };
 
-export const resolveOrgId = () => {
+// export const resolveOrgId = () => {
+//   try {
+//     const raw = localStorage.getItem("USER_DATA");
+//     if (!raw || raw === "undefined") return null;
+//     const data = JSON.parse(raw);
+//     return data?.org ?? data?.organization_id ?? data?.org_id ?? null;
+//   } catch {
+//     return null;
+//   }
+// };
+const __getUserDataFromStorage = () => {
   try {
     const raw = localStorage.getItem("USER_DATA");
     if (!raw || raw === "undefined") return null;
-    const data = JSON.parse(raw);
-    return data?.org ?? data?.organization_id ?? data?.org_id ?? null;
+    return JSON.parse(raw);
   } catch {
     return null;
   }
+};
+
+export const resolveOrgId = () => {
+  const data = __getUserDataFromStorage();
+  return data?.org ?? data?.organization_id ?? data?.org_id ?? null;
 };
 
 // ==== FACE TEMPLATE (image enroll) ====
@@ -2637,6 +2674,7 @@ export const listSafetyCategories = (params = {}) =>
       org_id: params.org_id,
       project_id: params.project_id,
       active: params.active,
+      template_type: params.template_type,
     },
     headers: { "Content-Type": "application/json" },
   });
@@ -2694,6 +2732,7 @@ export const listSafetyChecklists = (params = {}) =>
       org_id: params.org_id ?? resolveOrgId(),
       assigned_to_me: params.assigned_to_me,
       status: params.status,
+      template_type: params.template_type,
     },
     headers: { "Content-Type": "application/json" },
   });
@@ -2804,6 +2843,36 @@ export const listContractorNamesByOrg = (orgId, projectId) =>
     },
     headers: { "Content-Type": "application/json" },
   });
+
+
+
+export const updateSafetyTemplateVersion = (templateId, payload) => {
+  return NEWchecklistInstance.patch(
+    `/safety/templates/${templateId}/edit-version/`,
+    payload,
+    {
+      headers:
+        payload instanceof FormData
+          ? { "Content-Type": "multipart/form-data" }
+          : {},
+    },
+  );
+};
+
+//###################################################################################################
+
+const resolveMediaUrl = (path) => {
+    if (!path) return null;
+    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+
+    const base =
+        window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
+            ? "http://127.0.0.1:8001"
+            : "https://konstruct.world/checklists";
+
+    const clean = path.startsWith("/") ? path : `/${path}`;
+    return `${base}${clean}`;
+};;
 
 /* ===================== SAFETY OBSERVATION  ===================== */
 
@@ -3154,6 +3223,11 @@ export const createDmsDocument = async (data) =>
     headers: { "Content-Type": "application/json" },
   });
 
+export const deleteDmsDocument = async (docId) =>
+  axiosInstance.delete(`/dms/documents/${docId}/`, {
+    headers: { "Content-Type": "application/json" },
+  });
+
 // Documents (transmittals)
 export const listDmsDocuments = async (params = {}) =>
   axiosInstance.get("/dms/documents/", {
@@ -3388,31 +3462,57 @@ export const listPermits = (params = {}) =>
     headers: { "Content-Type": "application/json" },
   });
 
+const unwrapPermit = (res) => {
+  if (res.data && res.data.permit) {
+    res.data = res.data.permit;
+  }
+  return res;
+};
+
 export const getPermit = (id, params = {}) =>
   NEWchecklistInstance.get(`/permits/${id}/`, {
     headers: { "Content-Type": "application/json" },
     params,
-  });
+  }).then(unwrapPermit);
 
 export const createPermit = (payload) =>
   NEWchecklistInstance.post("/permits/", payload, {
-    headers: { "Content-Type": "application/json" },
-  });
+    headers: { "Content-Type": "multipart/form-data" },
+  }).then(unwrapPermit);
 
 export const updatePermit = (id, payload) =>
   NEWchecklistInstance.patch(`/permits/${id}/`, payload, {
     headers: { "Content-Type": "application/json" },
-  });
+  }).then(unwrapPermit);
 
+//permit TBT Attendance 
+export const getPermitTbtAttendance = (permitId) =>
+  NEWchecklistInstance.get(`/permits/${permitId}/tbt-attendance/`);
+
+export const savePermitTbtAttendance = (permitId, formData) =>
+  NEWchecklistInstance.post(
+    `/permits/${permitId}/tbt-attendance/`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  
 export const submitPermit = (id) =>
-  NEWchecklistInstance.post(`/permits/${id}/submit/`, {}, {
-    headers: { "Content-Type": "application/json" },
-  });
+  NEWchecklistInstance.post(
+    `/permits/${id}/submit/`,
+    {},
+    {
+      headers: { "Content-Type": "application/json" },
+    },
+  ).then(unwrapPermit);
 
 export const permitWorkflowAction = (id, payload) =>
   NEWchecklistInstance.post(`/permits/${id}/action/`, payload, {
     headers: { "Content-Type": "application/json" },
-  });
+  }).then(unwrapPermit);
 
 export const getPermitWorkflowLogs = (id) =>
   NEWchecklistInstance.get(`/permits/${id}/workflow-logs/`, {
@@ -3455,5 +3555,131 @@ export const listPermitLogs = async (params = {}) => {
   };
 };
 
+export const reservePermitNumber = (payload) =>
+  NEWchecklistInstance.post("/permits/reserve-number/", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
 
 export const getUserGroups = () => axiosInstance.get("/user-groups/");
+
+export const listPermitTemplateBuilderTemplates = (params = {}) =>
+  NEWchecklistInstance.get("/template-builder/", { params });
+
+export const getPermitTemplateBuilderTemplate = (id) =>
+  NEWchecklistInstance.get(`/template-builder/${id}/`);
+
+export const createPermitTemplateBuilderTemplate = (payload) =>
+  NEWchecklistInstance.post("/template-builder/", payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+export const updatePermitTemplateBuilderTemplate = (id, payload) =>
+  NEWchecklistInstance.patch(`/template-builder/${id}/`, payload, {
+    headers: { "Content-Type": "application/json" },
+  });
+
+  
+export const deletePermitTemplateBuilderTemplate = (id) =>
+  NEWchecklistInstance.delete(`/template-builder/${id}/`);
+
+
+export const clonePermitTemplateBuilderTemplate = (id) =>
+  NEWchecklistInstance.post(`/template-builder/${id}/clone/`);
+
+export const publishPermitTemplateBuilderTemplate = (id) =>
+  NEWchecklistInstance.post(`/template-builder/${id}/publish/`);
+
+
+
+// =======================================
+// Permit to Work 
+// =======================================
+export const resolveCurrentUserDisplayName = () => {
+  const data = __getUserDataFromStorage();
+  if (!data) return "";
+
+  const fullName = [data?.first_name, data?.last_name]
+    .filter((part) => String(part || "").trim())
+    .join(" ")
+    .trim();
+
+  return (
+    fullName ||
+    String(
+      data?.full_name ||
+      data?.name ||
+      data?.username ||
+      data?.email ||
+      ""
+    ).trim()
+  );
+};
+
+
+export const resolveCurrentUserId = () => {
+  const data = __getUserDataFromStorage();
+  return Number(
+    data?.id ||
+    data?.user_id ||
+    data?.pk ||
+    localStorage.getItem("USER_ID") ||
+    localStorage.getItem("user_id")
+  ) || null;
+};
+
+// Permit download api
+export const downloadPermitReport = async (permitId) => {
+  const res = await NEWchecklistInstance.get(`/permits/${permitId}/report/`, {
+    responseType: "blob",
+  });
+
+  const contentType = res.headers?.["content-type"] || "";
+
+  if (contentType.includes("application/json")) {
+    const text = await res.data.text();
+    let msg = "Permit report download failed";
+
+    try {
+      const json = JSON.parse(text);
+      msg = json?.detail || json?.message || msg;
+    } catch { }
+
+    throw new Error(msg);
+  }
+
+  const disposition = res.headers?.["content-disposition"];
+  const filename =
+    filenameFromDisposition(disposition) || `permit_${permitId}_report.pdf`;
+
+  downloadBlob(res.data, filename);
+  return true;
+};
+
+// Permit register download api
+export const downloadPermitRegister = async (projectId) => {
+  const res = await NEWchecklistInstance.get(`/permits/download-register/`, {
+    params: { project_id: projectId },
+    responseType: "blob",
+  });
+
+  const contentType = res.headers?.["content-type"] || "";
+
+  if (contentType.includes("application/json")) {
+    const text = await res.data.text();
+    let msg = "Permit register download failed";
+
+    try {
+      const json = JSON.parse(text);
+      msg = json?.detail || json?.message || msg;
+    } catch { }
+
+    throw new Error(msg);
+  }
+
+  const disposition = res.headers?.["content-disposition"];
+  const filename =
+    filenameFromDisposition(disposition) || `permit_register_project_${projectId}.pdf`;
+
+  downloadBlob(res.data, filename);
+  return true;
+};

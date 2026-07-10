@@ -6,7 +6,7 @@ import {
 } from "./safetyHeaderFields";
 import { NEWchecklistInstance as checklistInstance } from "../../../api/axiosInstance";
 
-export default function SafetyReportTemplateHorizontal({
+export default function SafetyReportTemplateMatrix({
   schema,
   reportTitle: reportTitleProp,
   projectName = "",
@@ -18,6 +18,7 @@ export default function SafetyReportTemplateHorizontal({
   initialTemplateData = null,
   previewOnly = false,
   onReportDraftChange,
+  onSchemaChange,
   instructionImageFile: initialInstructionImageFile = null,
   instructionText: initialInstructionText = "",
 }) {
@@ -73,20 +74,16 @@ export default function SafetyReportTemplateHorizontal({
     if (!initialTemplateData || !previewOnly) return;
     setTitle(initialTemplateData.title || initialTemplateData.name || "");
 
+    const BASE_URL = checklistInstance.defaults.baseURL.replace(
+      /\/api\/?$/,
+      "",
+    );
+
     const buildMediaUrl = (path) => {
       if (!path) return null;
-      if (path.startsWith("http://") || path.startsWith("https://"))
-        return path;
-
-      const BASE_URL =
-        window.location.hostname === "127.0.0.1" ||
-        window.location.hostname === "localhost"
-          ? "http://127.0.0.1:8001"
-          : "https://konstruct.world/checklists";
-
-      const clean = path.startsWith("/") ? path : `/${path}`;
-
-      return `${BASE_URL}${clean}`;
+      if (path.startsWith("http")) return path;
+      if (path.startsWith("/")) return `${BASE_URL}${path}`;
+      return `${BASE_URL}/${path}`;
     };
 
     setLeftLogoPreview(
@@ -198,6 +195,15 @@ export default function SafetyReportTemplateHorizontal({
       initialTemplateData?.instruction_image
     );
   }, [instructionImagePreview, instructionImageFile, initialTemplateData]);
+
+  const instructionLines = useMemo(
+    () =>
+      String(instructionText || "")
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean),
+    [instructionText],
+  );
 
   const emptyChar = "—";
   const description = initialTemplateData?.description || "";
@@ -441,18 +447,18 @@ export default function SafetyReportTemplateHorizontal({
         <div className="mb-6">
           <input
             ref={instructionImageInputRef}
-            id="instruction-image-upload-horizontal"
+            id="matrix-instruction-image-upload"
             type="file"
             accept="image/png,image/jpeg,image/jpg"
             onChange={handleInstructionImageChange}
             className="hidden"
           />
 
-          {isEditMode ? (
-            <div className="space-y-4 rounded-xl border border-gray-200 bg-gray-50 p-4">
+          {isEditMode && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
               <label
-                htmlFor="instruction-image-upload-horizontal"
-                className="flex min-h-[120px] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-4 transition hover:bg-orange-50"
+                htmlFor="matrix-instruction-image-upload"
+                className="flex min-h-[120px] w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 p-4 transition hover:bg-gray-100"
               >
                 {instructionImageUrl ? (
                   <>
@@ -471,30 +477,29 @@ export default function SafetyReportTemplateHorizontal({
                       Upload Instruction Image Optional
                     </span>
                     <span className="mt-1 text-xs text-gray-400">
-                      Or add instruction text below
+                      Use image OR instruction text below
                     </span>
                   </>
                 )}
               </label>
 
-              <div>
+              <div className="mt-4">
                 <label className="mb-2 block text-sm font-semibold text-gray-800">
                   Instruction Text
                 </label>
+
                 <textarea
                   value={instructionText}
                   onChange={(e) => setInstructionText(e.target.value)}
                   rows={4}
                   placeholder={`Illumination Level in Lux.\nMin Lux requirement must be referred to IS standards\nActions : Required or not required.`}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-orange-500"
+                  className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm outline-none focus:border-orange-500"
                 />
-                <p className="mt-1 text-xs text-gray-500">
-                  If instruction image exists, PDF shows image first. Otherwise
-                  PDF shows this text.
-                </p>
               </div>
             </div>
-          ) : instructionImageUrl ? (
+          )}
+
+          {!isEditMode && instructionImageUrl ? (
             <div className="mb-6 flex flex-col items-center justify-center rounded-lg border border-gray-200 bg-gray-50 p-4">
               <img
                 src={instructionImageUrl}
@@ -502,27 +507,24 @@ export default function SafetyReportTemplateHorizontal({
                 className="max-h-[300px] w-full object-contain"
               />
             </div>
-          ) : instructionText?.trim() ? (
-            <table className="mb-6 w-full border-collapse bg-white text-sm">
+          ) : !isEditMode && instructionLines.length > 0 ? (
+            <table className="mb-6 w-full border-collapse text-sm">
               <tbody>
-                {instructionText
-                  .split("\n")
-                  .filter((line) => line.trim())
-                  .map((line, index, arr) => (
-                    <tr key={index}>
-                      {index === 0 && (
-                        <td
-                          rowSpan={arr.length}
-                          className="w-32 border border-gray-300 px-3 py-2 text-center font-semibold"
-                        >
-                          Instructions
-                        </td>
-                      )}
-                      <td className="border border-gray-300 px-3 py-2 font-semibold">
-                        {line}
+                {instructionLines.map((line, index) => (
+                  <tr key={index}>
+                    {index === 0 && (
+                      <td
+                        rowSpan={instructionLines.length}
+                        className="w-28 border border-gray-300 px-3 py-2 text-center font-semibold"
+                      >
+                        Instructions
                       </td>
-                    </tr>
-                  ))}
+                    )}
+                    <td className="border border-gray-300 px-3 py-2 font-semibold">
+                      {line}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           ) : null}
@@ -534,37 +536,130 @@ export default function SafetyReportTemplateHorizontal({
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-r border-gray-200 w-14 text-center bg-gray-100">
-                  Row
+                  SN
                 </th>
-                {headers.map((h, i) => (
-                  <th
-                    key={i}
-                    className="p-4 text-[13px] font-semibold text-gray-700 border-r border-gray-200 last:border-r-0 max-w-[250px] align-bottom"
-                  >
-                    <div className="line-clamp-2" title={h.text}>
-                      {h.text}
-                    </div>
-                  </th>
-                ))}
+                <th className="p-4 text-xs font-bold text-gray-500 uppercase tracking-wider border-r border-gray-200 min-w-[200px] bg-gray-100">
+                  Points to be Checked
+                </th>
+                {Array.from({ length: schema?.matrixColumns || 5 }).map(
+                  (_, i) => (
+                    <th
+                      key={i}
+                      className="p-4 text-[13px] font-semibold text-gray-700 border-r border-gray-200 last:border-r-0 align-bottom text-center"
+                    >
+                      W{i + 1}
+                    </th>
+                  ),
+                )}
               </tr>
             </thead>
             <tbody>
-              {[1, 2, 3].map((rowNum) => (
+              {headers.map((h, i) => (
                 <tr
-                  key={rowNum}
+                  key={i}
                   className="border-b border-gray-100 last:border-b-0 hover:bg-gray-50/50 transition-colors"
                 >
                   <td className="p-4 text-sm text-gray-400 border-r border-gray-200 text-center font-bold bg-gray-50/30">
-                    {rowNum}
+                    {i + 1}
                   </td>
-                  {headers.map((h, i) => (
-                    <td
-                      key={i}
-                      className="p-4 border-r border-gray-100 last:border-r-0 align-top min-w-[150px]"
-                    >
-                      {renderCellPreview(h)}
-                    </td>
-                  ))}
+                  <td className="p-4 text-sm text-gray-700 border-r border-gray-200 font-medium">
+                    <div className="flex justify-between items-start gap-2">
+                      <div>
+                        {h.text}
+                        {h.description && (
+                          <div className="text-xs text-gray-500 mt-1 font-normal">
+                            {h.description}
+                          </div>
+                        )}
+                      </div>
+                      {!previewOnly && onSchemaChange && (
+                        <div className="flex items-center flex-col gap-1">
+                          {h.referenceImageFile && (
+                            <div className="relative">
+                              <img
+                                src={URL.createObjectURL(h.referenceImageFile)}
+                                alt="Reference"
+                                className="h-10 w-10 object-cover rounded shadow-sm border border-gray-200"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const newHeaders = [...schema.headers];
+                                  newHeaders[i] = {
+                                    ...newHeaders[i],
+                                    referenceImageFile: null,
+                                  };
+                                  onSchemaChange({
+                                    ...schema,
+                                    headers: newHeaders,
+                                  });
+                                }}
+                                className="absolute -top-2 -right-2 bg-white rounded-full text-red-500 shadow-sm border border-gray-100 p-0.5 hover:bg-red-50"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </div>
+                          )}
+                          <label
+                            className="cursor-pointer text-gray-400 hover:text-orange-600 transition-colors p-1"
+                            title="Upload Reference Image"
+                          >
+                            <input
+                              type="file"
+                              className="hidden"
+                              accept="image/png,image/jpeg,image/jpg"
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  const newHeaders = [...schema.headers];
+                                  newHeaders[i] = {
+                                    ...newHeaders[i],
+                                    referenceImageFile: e.target.files[0],
+                                  };
+                                  onSchemaChange({
+                                    ...schema,
+                                    headers: newHeaders,
+                                  });
+                                }
+                                e.target.value = "";
+                              }}
+                            />
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              width="16"
+                              height="16"
+                              viewBox="0 0 24 24"
+                              fill="none"
+                              stroke="currentColor"
+                              strokeWidth="2"
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                            >
+                              <rect
+                                width="18"
+                                height="18"
+                                x="3"
+                                y="3"
+                                rx="2"
+                                ry="2"
+                              />
+                              <circle cx="9" cy="9" r="2" />
+                              <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21" />
+                            </svg>
+                          </label>
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                  {Array.from({ length: schema?.matrixColumns || 5 }).map(
+                    (_, colIdx) => (
+                      <td
+                        key={colIdx}
+                        className="p-4 border-r border-gray-100 last:border-r-0 align-middle text-center min-w-[60px]"
+                      >
+                        <div className="w-5 h-5 rounded border border-gray-300 mx-auto bg-gray-50"></div>
+                      </td>
+                    ),
+                  )}
                 </tr>
               ))}
             </tbody>

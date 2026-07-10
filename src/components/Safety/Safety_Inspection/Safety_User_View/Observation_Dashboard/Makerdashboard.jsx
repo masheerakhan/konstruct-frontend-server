@@ -252,27 +252,16 @@ const resolveMakerContext = () => {
 
 export const resolveMediaUrl = (path) => {
   if (!path) return null;
-
-  let cleanPath = path;
-  if (cleanPath.startsWith("http://127.0.0.1:8001")) {
-    cleanPath = cleanPath.replace("http://127.0.0.1:8001", "");
-  } else if (cleanPath.startsWith("http://localhost:8001")) {
-    cleanPath = cleanPath.replace("http://localhost:8001", "");
-  } else if (
-    cleanPath.startsWith("http://") ||
-    cleanPath.startsWith("https://")
-  ) {
-    return cleanPath;
-  }
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
 
   const base =
     window.location.hostname === "127.0.0.1" ||
     window.location.hostname === "localhost"
       ? "http://127.0.0.1:8001"
-      : "https://konstruct.world";
+      : "https://konstruct.world/checklists";
 
-  if (!cleanPath.startsWith("/")) cleanPath = "/" + cleanPath;
-  return `${base}${cleanPath}`;
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${clean}`;
 };
 
 const PhotoViewButton = ({ url, label = "View Photo" }) => {
