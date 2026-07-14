@@ -231,6 +231,13 @@ import UserPermitDashboard from "./components/Safety/Permit_to_work/PermitDashbo
 import PermitTemplateBuilderDashboard from "./components/Safety/Permit_to_work/PermitDashboard/PermitTemplateBuilderDashboard";
 import NCRCreatePage from "./components/NCR/CreateNCR";
 import NCRListPage from "./components/NCR/NCRListPage";
+import NCRDetailPage from "./components/NCR/NCRDetailPage";
+import NCRCheckerVerificationPage from "./components/NCR/NCRCheckerVerificationPage";
+import NCRMakerResponsePage from "./components/NCR/NCRMakerResponsePage";
+import ObservationDashboard from "./components/Qc-Observation/ObservationDashboard";
+import CreateObservation from "./components/Qc-Observation/CreateObservation";
+
+
 // For body background
 function BodyBgController() {
   const { theme } = useTheme();
@@ -526,7 +533,6 @@ function AppRoutes() {
     <Layout1>
       <Routes>
         <Route path="/" element={<Navigate to="/login" replace />} />
-
         <Route
           path="/overview/project/:id"
           element={
@@ -552,7 +558,6 @@ function AppRoutes() {
           path="/project-forms/setup"
           element={<ProjectFormsManagerSetupPage />}
         />
-
         <Route path="/project/:id" element={<ProjectDetails />} />
         <Route path="/snagging/:id" element={<Snagging />} />
         <Route
@@ -577,9 +582,7 @@ function AppRoutes() {
           path="/PendingSupervisorItems"
           element={<PendingSupervisorItems />}
         />
-
         <Route path="/safety" element={<Safety />} />
-
         <Route
           path="/safety/sessions"
           element={<SafetySessionsManagerList />}
@@ -588,7 +591,6 @@ function AppRoutes() {
           path="/safety/sessions/create"
           element={<SafetySessionCreatePage />}
         />
-
         <Route
           path="/safety/permit-to-work"
           element={<PermitToWorkDashboard />}
@@ -597,7 +599,6 @@ function AppRoutes() {
           path="/safety/permit-to-work/create"
           element={<PermitToWork />}
         />
-
         <Route path="/safetyInspections" element={<SafetyInspectionList />} />
         <Route
           path="/safetyInpection/create"
@@ -607,14 +608,10 @@ function AppRoutes() {
           path="/safety/observations/create"
           element={<CreateSafetyInspection />}
         />
-
         {/* <Route path="/safetySetup" element={<SafetySetup />} /> */}
-
         <Route path="/safetySetup" element={<SafetyFormats />} />
         <Route path="/safetySetup/create" element={<SafetyWizard />} />
-
         <Route path="/safety/permit" element={<UserPermitDashboard />} />
-
         <Route
           path="/permit/setup"
           element={<PermitTemplateBuilderDashboard />}
@@ -628,35 +625,37 @@ function AppRoutes() {
           element={<ObservationsDashboard />}
         />
         <Route path="/safety/inspection-report/:id" element={<ViewReport />} />
-
         <Route path="/safety/document-pro" element={<DocumentPro />} />
-
         {/*  TRANSMITAL FORMS */}
-
         <Route path="/documents/*" element={<Documents />} />
         {/* NCR */}
         <Route path="/NCR" element={<NCRListPage />} />
         <Route path="/ncr/create" element={<NCRCreatePage />} />
+        <Route
+          path="/ncr/:id/verify"
+          element={<NCRCheckerVerificationPage />}
+        />
+        <Route path="/ncr/:id/respond" element={<NCRMakerResponsePage />} />
+        <Route path="/ncr/:id" element={<NCRDetailPage />} />
+        <Route
+          path="/ncr/my-pending"
+          element={<NCRListPage mode="my-pending" role="maker" />}
+        />
         {/* Vendor */}
         <Route path="/Vendors" element={<Vendors />} />
-
         <Route path="/mir" element={<Index />} />
-
         <Route path="/mir/checklist" element={<MIRChecklist />} />
-
-        {/* <Route path="/overview/project/:projectId" element={<ProjectOverviewPage />} /> */}v
-
+        {/* <Route path="/overview/project/:projectId" element={<ProjectOverviewPage />} /> */}
+        v
         <Route path="/forms" element={<FormsEnginePage />} />
         <Route path="/form-packs" element={<FormPacksPage />} />
         {/* <Route path="/project-forms" element={<ProjectFormsAssignedPage />} /> */}
         <Route path="/project-forms/fill" element={<ProjectFormFillPage />} />
-
         <Route
           path="/project-forms"
           element={<ManualLocationChecklistPanel />}
         />
         <Route path="/project-forms/fill" element={<ProjectFormFillPage />} />
-
         <Route path="/mir/create" element={<MIRCreatePage />} />
         <Route path="/mir/:id" element={<MIRDetailPage />} />
         <Route path="/mir/inbox" element={<MIRInboxPage />} />
@@ -665,7 +664,6 @@ function AppRoutes() {
           path="/wir/inbox"
           element={<Navigate to="/mir/inbox" replace />}
         />
-
         {/* Checklists New Standalone Dashboard */}
         <Route path="/checklists" element={<QHSEChecklistDashboard />} />
         <Route
@@ -677,7 +675,6 @@ function AppRoutes() {
           path="/checklists/fill/:id"
           element={<QHSEChecklistFormPage />}
         />
-
         <Route path="/wir/:id" element={<WIRDetailPage />} />
         <Route path="/safety/my-sessions" element={<SafetyMySessionsList />} />
         <Route
@@ -688,11 +685,9 @@ function AppRoutes() {
           path="/safety/sessions/:id"
           element={<SafetySessionManagerView />}
         />
-
         <Route path="/attendance/project" element={<AttendanceProjectPage />} />
         <Route path="/my-forms" element={<MyFormResponsesPage />} />
         <Route path="/my-forms/:id" element={<MyFormResponseDetailPage />} />
-
         <Route path="/UsersManagement" element={<UsersManagement />} />
         <Route path="/Initialize-Checklist" element={<InitializeChecklist />} />
         <Route
@@ -705,7 +700,6 @@ function AppRoutes() {
         />
         <Route path="/guard/onboarding" element={<GuardOnboarding />} />
         <Route path="/guard/attendance" element={<GuardAttendance />} />
-
         <Route path="/chif-setup" element={<ChifSetup />} />
         <Route path="/Chifstep1" element={<Chifstep1 />} />
         {/* <Route path="/Checklist" element={<Checklist />} /> */}
@@ -715,7 +709,6 @@ function AppRoutes() {
         <Route path="/user" element={<User />} />
         <Route path="/privacy" element={<PrivacyPage />} />
         <Route path="/scheduling" element={<Scheduling />} />
-
         <Route path="/category-sidebar" element={<CategoryChecklist />} />
         <Route path="/edit-checklist/:id" element={<EditCheckList />} />
         <Route

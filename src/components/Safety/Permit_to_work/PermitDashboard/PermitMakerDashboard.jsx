@@ -203,6 +203,9 @@ export default function PermitMakerDashboard() {
 
   const [reservedPtwNo, setReservedPtwNo] = useState("");
   const [ptwReservationId, setPtwReservationId] = useState(null);
+  const [specialSignatureModalOpen, setSpecialSignatureModalOpen] =
+    useState(false);
+  const [activeSpecialSignature, setActiveSpecialSignature] = useState(null);
 
   // Custom field states
   const getUserData = () => {
@@ -475,6 +478,31 @@ export default function PermitMakerDashboard() {
           row.designation ||
           row.signature,
       );
+  };
+
+  const openSpecialSignatureModal = ({ sectionKey, signatureKey }) => {
+    setActiveSpecialSignature({
+      sectionKey,
+      signatureKey,
+    });
+    setSpecialSignatureModalOpen(true);
+  };
+
+  const handleSpecialSignatureSuccess = (signatureDataUrl) => {
+    if (!activeSpecialSignature) return;
+
+    const { sectionKey, signatureKey } = activeSpecialSignature;
+
+    setFormData((prev) => ({
+      ...prev,
+      [sectionKey]: {
+        ...(prev[sectionKey] || {}),
+        [signatureKey]: signatureDataUrl,
+      },
+    }));
+
+    setSpecialSignatureModalOpen(false);
+    setActiveSpecialSignature(null);
   };
 
   // Sync location
@@ -773,14 +801,15 @@ export default function PermitMakerDashboard() {
       if (ptwReservationId) {
         fd.append("ptw_number_reservation_id", String(ptwReservationId));
       }
-// console.log("Found signature data:", signatureData);
+
       if (signatureData) {
-        // console.log("Appending signature data to form data");
-        // console.log(dataUrlToFile(signatureData, `maker_signature_${Date.now()}.png`));
-        fd.append(
-          "maker_signature",
-          dataUrlToFile(signatureData, `maker_signature_${Date.now()}.png`),
+        const testImage = dataUrlToFile(
+          signatureData,
+          `maker_signature_${Date.now()}.png`,
         );
+        console.log("found signature data:", signatureData);
+        console.log(testImage);
+        fd.append("maker_signature", testImage);
       }
 
       Object.entries(checklistImages || {}).forEach(([questionId, files]) => {

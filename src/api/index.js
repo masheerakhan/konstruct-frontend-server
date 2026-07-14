@@ -3505,7 +3505,7 @@ export const submitPermit = (id) =>
     `/permits/${id}/submit/`,
     {},
     {
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "multipart/form-data" },
     },
   ).then(unwrapPermit);
 
@@ -3682,4 +3682,34 @@ export const downloadPermitRegister = async (projectId) => {
 
   downloadBlob(res.data, filename);
   return true;
+};
+
+export const getProjectMakersForNCR = async (projectId) =>
+  axiosInstance.get("/by-project/", {
+    params: {
+      project_id: projectId,
+    },
+    headers: {
+      "Content-Type": "application/json",
+    },
+  });
+
+
+// --- NCR API Calls ---
+export const getNCRSummary = (params) => NEWchecklistInstance.get('/ncr/dashboard-summary/', { params });
+export const getNCRList = (params) => NEWchecklistInstance.get('/ncr/', { params });
+export const getNCRDetail = (id) => NEWchecklistInstance.get(`/ncr/${id}/`);
+export const submitMakerResponse = (id, formData) => NEWchecklistInstance.post(`/ncr/${id}/maker-submit/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const getMyPending = (params) => NEWchecklistInstance.get('/ncr/my-pending/', { params });
+export const createNCR = (formData) => NEWchecklistInstance.post('/ncr/', formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const checkerVerifyNCR = (id, formData) => NEWchecklistInstance.post(`/ncr/${id}/checker-verify/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const getNCRLogs = (id) => NEWchecklistInstance.get(`/ncr/${id}/logs/`);
+export const getNCRReportData = (id) => NEWchecklistInstance.get(`/ncr/${id}/report-data/`);
+export const getProjectHeadPendingNCRs = (params) => NEWchecklistInstance.get('/ncr/project-head-pending/', { params });
+export const projectHeadSignNCR = (id, formData) => NEWchecklistInstance.post(`/ncr/${id}/project-head-sign/`, formData, { headers: { 'Content-Type': 'multipart/form-data' } });
+export const downloadNCRClosedReport = async (id) => {
+  const res = await NEWchecklistInstance.get(`/ncr/${id}/download-report/`, {
+    responseType: "blob",
+  });
+  return res;
 };

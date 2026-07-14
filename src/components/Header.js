@@ -326,6 +326,7 @@ const SIDEBAR_WIDTH = 240;
 function Header() {
   const [isNotification, setIsNotification] = useState(false);
   const [isProfile, setIsProfile] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { theme, toggleTheme } = useTheme();
   const { sidebarOpen, setSidebarOpen } = useSidebar();
@@ -382,6 +383,7 @@ function Header() {
   const borderColor = ORANGE;
   const textColor = theme === "dark" ? "#fff" : "#222";
   const iconColor = ORANGE;
+  const navLinkStyle = { color: textColor, textDecoration: "none" };
 
   const handleSettingsClick = () => {
     if (rolee && rolee.toLowerCase() === "super admin") {
@@ -470,231 +472,349 @@ function Header() {
             display: "flex",
             alignItems: "center",
             pointerEvents: "none",
-            width: 220,
+            width: "min(140px, calc(100% - 320px))",
+            maxWidth: "100%",
             justifyContent: "center",
+            padding: "0 10px",
           }}
         >
-          <span className="text-lg font-bold truncate pointer-events-none select-none">
-            <h2 style={{ color: iconColor, margin: 0, userSelect: "none" }}>
+          <span
+            className="text-lg font-bold truncate pointer-events-none select-none"
+            style={{ width: "100%" }}
+          >
+            <h2
+              style={{
+                color: iconColor,
+                margin: 0,
+                userSelect: "none",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              }}
+            >
               Konstruct
             </h2>
           </span>
         </div>
 
         {/* Right actions */}
-        <ul
-          className="hidden md:flex justify-end items-center gap-5 py-2 uppercase text-sm"
-          style={{ marginLeft: "auto" }}
-        >
-          {/* 🔹 MIR create link */}
-          <NavLink
-            to="/mir/create"
-            className="font-medium flex items-center gap-1"
-            style={{ color: textColor, textDecoration: "none" }}
-            title="Material Inspection Request"
+        <div className="ml-auto flex items-center gap-2">
+          <ul
+            className="hidden md:flex justify-end items-center gap-5 py-2 uppercase text-sm"
+            style={{ marginLeft: "auto" }}
           >
-            MIR
-          </NavLink>
-
-          {/* 🔹 MIR Inbox */}
-          <NavLink
-            to="/mir/inbox"
-            className="font-medium flex items-center gap-1"
-            style={{ color: textColor, textDecoration: "none" }}
-            title="My MIR Inbox"
-          >
-            MIR Inbox
-          </NavLink>
-          <NavLink
-            to="/NCR"
-            className="font-medium flex items-center gap-1"
-            style={{ color: textColor, textDecoration: "none" }}
-            title="My MIR Inbox"
-          >
-            NCR
-          </NavLink>
-
-          {/* 🔹 Checklist & Inbox */}
-          {/* <NavLink
-            to="/checklists"
-            className="font-medium flex items-center gap-1"
-            style={{ color: textColor, textDecoration: "none" }}
-            title="QHSE Checklists"
-          >
-            Checklists
-          </NavLink>
-          <NavLink
-            to="/checklists/inbox"
-            className="font-medium flex items-center gap-1"
-            style={{ color: textColor, textDecoration: "none" }}
-            title="QHSE Checklist Inbox"
-          >
-            Checklist Inbox
-          </NavLink> */}
-
-          {showDmsInHeader && (
+            {/* 🔹 MIR create link */}
             <NavLink
-              to="/documents"
+              to="/mir/create"
               className="font-medium flex items-center gap-1"
-              style={{ color: textColor, textDecoration: "none" }}
-              title="Document management (folders, transmittals, resources)"
+              style={navLinkStyle}
+              title="Material Inspection Request"
             >
-              DMS
+              MIR
             </NavLink>
-          )}
 
-          {/* 🔹 Analytics (hidden for security guard + PM/Head) */}
-          {/* {!isSecurityGuard && !isProjectManagerOrHead && (
+            {/* 🔹 MIR Inbox */}
             <NavLink
-              to="/analytics"
-              onClick={() => {
-                const pid = resolveActiveProjectId();
-                if (pid) getSnagStats(pid).catch(() => {});
-              }}
+              to="/mir/inbox"
               className="font-medium flex items-center gap-1"
-              style={{ color: textColor, textDecoration: "none" }}
-              title="Analytics Dashboard"
+              style={navLinkStyle}
+              title="My MIR Inbox"
             >
-              Analytics
+              MIR Inbox
             </NavLink>
-          )} */}
-
-          {/* 🔹 Forms (templates / project forms) */}
-          {!isSecurityGuard && (
             <NavLink
-              to={isSuperAdmin ? "/forms" : "/project-forms"}
+              to="/NCR"
               className="font-medium flex items-center gap-1"
-              style={{ color: textColor, textDecoration: "none" }}
-              title={
-                isSuperAdmin
-                  ? "Forms Engine (Templates & Packs)"
-                  : "Project Forms"
-              }
+              style={navLinkStyle}
+              title="My MIR Inbox"
             >
-              Forms
+              NCR
             </NavLink>
-          )}
 
-          {/* 🔹 NEW: Forms Inbox (forwarded / assigned forms) */}
-          {/* {!isSecurityGuard && (
+            {showDmsInHeader && (
+              <NavLink
+                to="/documents"
+                className="font-medium flex items-center gap-1"
+                style={navLinkStyle}
+                title="Document management (folders, transmittals, resources)"
+              >
+                DMS
+              </NavLink>
+            )}
+
+            {!isSecurityGuard && (
+              <NavLink
+                to={isSuperAdmin ? "/forms" : "/project-forms"}
+                className="font-medium flex items-center gap-1"
+                style={navLinkStyle}
+                title={
+                  isSuperAdmin
+                    ? "Forms Engine (Templates & Packs)"
+                    : "Project Forms"
+                }
+              >
+                Forms
+              </NavLink>
+            )}
+
+            {showSafetyForUserOnly && (
+              <NavLink
+                to="/safety/my-sessions"
+                className="font-medium flex items-center gap-1"
+                style={navLinkStyle}
+                title="Safety Session"
+              >
+                Safety
+              </NavLink>
+            )}
+
+            {showSafetyForUserOnly && (
+              <NavLink
+                to="/safety/inspection-checker"
+                className="font-medium flex items-center gap-1"
+                style={navLinkStyle}
+                title="Safety Inspection"
+              >
+                Safety Inspection
+              </NavLink>
+            )}
+
+            {showSafetyForUserOnly && (
+              <NavLink
+                to="/safety/permit"
+                className="font-medium flex items-center gap-1"
+                style={navLinkStyle}
+                title="Permit To Work"
+              >
+                Permit
+              </NavLink>
+            )}
+
+            {showSafetyForUserOnly && (
+              <NavLink
+                to="/safety/observations"
+                className="font-medium flex items-center gap-1"
+                style={navLinkStyle}
+                title="Safety Observations"
+              >
+                Safety Observations
+              </NavLink>
+            )}
+
             <NavLink
-              to="/my-forms"
+              to="/privacy"
               className="font-medium flex items-center gap-1"
-              style={{ color: textColor, textDecoration: "none" }}
-              title="My Forms Inbox"
+              style={navLinkStyle}
+              title="Privacy Policy"
             >
-              Forms Inbox
+              🔒
             </NavLink>
-          )} */}
-          {/* 🔹 Safety (ONLY USERS) */}
-          {showSafetyForUserOnly && (
-            <NavLink
-              to="/safety/my-sessions"
-              className="font-medium flex items-center gap-1"
-              style={{ color: textColor, textDecoration: "none" }}
-              title="Safety Session"
-            >
-              Safety
-            </NavLink>
-          )}
 
-          {/* 🔹 Safety inspection (ONLY USERS) */}
-          {showSafetyForUserOnly && (
-            <NavLink
-              to="/safety/inspection-checker"
-              className="font-medium flex items-center gap-1"
-              style={{ color: textColor, textDecoration: "none" }}
-              title="Safety Inspection"
-            >
-              Safety Inspection
-            </NavLink>
-          )}
+            {allowuser && (
+              <button
+                onClick={handleSettingsClick}
+                style={{
+                  color: iconColor,
+                  background: "transparent",
+                  border: "none",
+                  fontSize: 20,
+                }}
+                title="Settings"
+              >
+                <IoSettingsOutline />
+              </button>
+            )}
 
-          {/* 🔹 Permit (ONLY USERS) */}
-          {showSafetyForUserOnly && (
-            <NavLink
-              to="/safety/permit"
-              className="font-medium flex items-center gap-1"
-              style={{ color: textColor, textDecoration: "none" }}
-              title="Permit To Work"
-            >
-              Permit
-            </NavLink>
-          )}
-
-          {/* 🔹 Safety Observations (ONLY USERS) */}
-          {showSafetyForUserOnly && (
-            <NavLink
-              to="/safety/observations"
-              className="font-medium flex items-center gap-1"
-              style={{ color: textColor, textDecoration: "none" }}
-              title="Safety Observations"
-            >
-              Safety Observations
-            </NavLink>
-          )}
-
-          {/* {showSafetyForUserOnly && (
-            <NavLink
-              to="/safety"
-              className="font-medium flex items-center gap-1"
-              style={{ color: textColor, textDecoration: "none" }}
-              title="Safety"
-            >
-              Safety
-            </NavLink>
-          )} */}
-
-          <NavLink
-            to="/privacy"
-            className="font-medium flex items-center gap-1"
-            style={{ color: textColor, textDecoration: "none" }}
-            title="Privacy Policy"
-          >
-            🔒
-          </NavLink>
-
-          {allowuser && (
             <button
-              onClick={handleSettingsClick}
+              onClick={toggleTheme}
+              className="p-2 transition-colors"
+              title="Toggle Theme"
+            >
+              {theme === "dark" ? (
+                <FaSun style={{ color: ORANGE }} />
+              ) : (
+                <FaMoon style={{ color: iconColor }} />
+              )}
+            </button>
+
+            <button
+              onClick={() => setIsProfile(true)}
               style={{
                 color: iconColor,
                 background: "transparent",
                 border: "none",
                 fontSize: 20,
               }}
-              title="Settings"
+              title="Profile"
             >
-              <IoSettingsOutline />
+              <FaRegCircleUser />
             </button>
-          )}
+          </ul>
 
-          <button
-            onClick={toggleTheme}
-            className="p-2 transition-colors"
-            title="Toggle Theme"
-          >
-            {theme === "dark" ? (
-              <FaSun style={{ color: ORANGE }} />
-            ) : (
-              <FaMoon style={{ color: iconColor }} />
-            )}
-          </button>
-
-          <button
-            onClick={() => setIsProfile(true)}
-            style={{
-              color: iconColor,
-              background: "transparent",
-              border: "none",
-              fontSize: 20,
-            }}
-            title="Profile"
-          >
-            <FaRegCircleUser />
-          </button>
-        </ul>
+          <div className="flex items-center gap-2 md:hidden">
+            <button
+              onClick={toggleTheme}
+              className="p-2 rounded-lg transition-colors"
+              title="Toggle Theme"
+              style={{ color: iconColor }}
+            >
+              {theme === "dark" ? <FaSun /> : <FaMoon />}
+            </button>
+            <button
+              onClick={() => setIsProfile(true)}
+              className="p-2 rounded-lg transition-colors"
+              title="Profile"
+              style={{ color: iconColor }}
+            >
+              <FaRegCircleUser />
+            </button>
+            <button
+              onClick={() => setIsMobileMenuOpen((open) => !open)}
+              className="rounded-lg flex items-center justify-center"
+              style={{
+                background: "transparent",
+                border: `2px solid ${borderColor}`,
+                width: 40,
+                height: 40,
+                color: iconColor,
+              }}
+              aria-label="Toggle navigation menu"
+            >
+              <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+                <rect y="3" width="22" height="3" rx="1.5" fill={iconColor} />
+                <rect y="9" width="22" height="3" rx="1.5" fill={iconColor} />
+                <rect y="15" width="22" height="3" rx="1.5" fill={iconColor} />
+              </svg>
+            </button>
+          </div>
+        </div>
       </nav>
+
+      {isMobileMenuOpen && (
+        <div
+          className="fixed left-0 right-0 z-[199] shadow-lg border-b md:hidden"
+          style={{
+            top: 64,
+            background: cardColor,
+            borderBottom: `2px solid ${borderColor}`,
+          }}
+        >
+          <div className="flex flex-col px-4 py-3 gap-2 max-h-[70vh] overflow-y-auto">
+            <NavLink
+              to="/config"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="font-medium py-2"
+              style={navLinkStyle}
+            >
+              Home
+            </NavLink>
+            <NavLink
+              to="/mir/create"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="font-medium py-2"
+              style={navLinkStyle}
+            >
+              MIR
+            </NavLink>
+            <NavLink
+              to="/mir/inbox"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="font-medium py-2"
+              style={navLinkStyle}
+            >
+              MIR Inbox
+            </NavLink>
+            <NavLink
+              to="/NCR"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="font-medium py-2"
+              style={navLinkStyle}
+            >
+              NCR
+            </NavLink>
+            {showDmsInHeader && (
+              <NavLink
+                to="/documents"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="font-medium py-2"
+                style={navLinkStyle}
+              >
+                DMS
+              </NavLink>
+            )}
+            {!isSecurityGuard && (
+              <NavLink
+                to={isSuperAdmin ? "/forms" : "/project-forms"}
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="font-medium py-2"
+                style={navLinkStyle}
+              >
+                Forms
+              </NavLink>
+            )}
+            {showSafetyForUserOnly && (
+              <NavLink
+                to="/safety/my-sessions"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="font-medium py-2"
+                style={navLinkStyle}
+              >
+                Safety
+              </NavLink>
+            )}
+            {showSafetyForUserOnly && (
+              <NavLink
+                to="/safety/inspection-checker"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="font-medium py-2"
+                style={navLinkStyle}
+              >
+                Safety Inspection
+              </NavLink>
+            )}
+            {showSafetyForUserOnly && (
+              <NavLink
+                to="/safety/permit"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="font-medium py-2"
+                style={navLinkStyle}
+              >
+                Permit
+              </NavLink>
+            )}
+            {showSafetyForUserOnly && (
+              <NavLink
+                to="/safety/observations"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="font-medium py-2"
+                style={navLinkStyle}
+              >
+                Safety Observations
+              </NavLink>
+            )}
+            <NavLink
+              to="/privacy"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className="font-medium py-2"
+              style={navLinkStyle}
+            >
+              Privacy Policy
+            </NavLink>
+            {allowuser && (
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  handleSettingsClick();
+                }}
+                className="font-medium py-2 text-left"
+                style={{ color: iconColor }}
+              >
+                Settings
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Mobile spacer */}
       <div className="block md:hidden" style={{ height: 64 }} />

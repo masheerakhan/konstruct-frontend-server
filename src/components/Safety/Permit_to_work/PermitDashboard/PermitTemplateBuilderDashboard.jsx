@@ -21,6 +21,7 @@ import {
   deletePermitTemplateBuilderTemplate,
   getUserGroups,
 } from "../../../../api";
+import {  resolveMediaUrl } from "../../../../lib/utils"
 
 import { showToast } from "../../../../utils/toast";
 
@@ -157,6 +158,14 @@ const EMPTY_TEMPLATE = {
   ref_no: "",
   issued_date_text: "",
   revision_no: "",
+
+  left_logo: null,
+  right_logo: null,
+  left_logo_url: "",
+  right_logo_url: "",
+  remove_left_logo: false,
+  remove_right_logo: false,
+
   header_config: {
     show_project: true,
     show_ptw_no: true,
@@ -203,6 +212,14 @@ const normalizeTemplateForEdit = (template) => ({
   ref_no: template.ref_no || "",
   issued_date_text: template.issued_date_text || "",
   revision_no: template.revision_no || "",
+
+  left_logo: null,
+  right_logo: null,
+  left_logo_url: template.left_logo_url || template.left_logo || "",
+  right_logo_url: template.right_logo_url || template.right_logo || "",
+  remove_left_logo: false,
+  remove_right_logo: false,
+
   header_config: template.header_config || EMPTY_TEMPLATE.header_config,
   layout_config: template.layout_config || {},
   ppe_config: template.ppe_config || {},
@@ -272,6 +289,61 @@ const normalizeTemplateForEdit = (template) => ({
   }),
 });
 
+const TemplateLogoUploadBox = ({
+  title,
+  logoKey,
+  file,
+  url,
+  onUpload,
+  onRemove,
+  getPreviewUrl,
+}) => {
+  const previewSource = file || url;
+  const previewUrl = previewSource ? getPreviewUrl(previewSource) : "";
+
+  return (
+    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <h4 className="text-sm font-semibold text-slate-800">{title}</h4>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Upload image used in permit PDF report header.
+          </p>
+        </div>
+
+        {previewSource && (
+          <button
+            type="button"
+            onClick={() => onRemove(logoKey)}
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-600 hover:bg-red-100"
+          >
+            Remove
+          </button>
+        )}
+      </div>
+
+      <div className="mb-3 flex h-24 items-center justify-center overflow-hidden rounded-lg border border-dashed border-slate-300 bg-white">
+        {previewUrl ? (
+          <img
+            src={previewUrl}
+            alt={title}
+            className="max-h-full max-w-full object-contain"
+          />
+        ) : (
+          <span className="text-xs text-slate-400">No logo selected</span>
+        )}
+      </div>
+
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => onUpload(logoKey, e.target.files?.[0])}
+        className="block w-full text-sm text-slate-600 file:mr-3 file:rounded-lg file:border-0 file:bg-orange-50 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-orange-700 hover:file:bg-orange-100"
+      />
+    </div>
+  );
+};
+
 export default function PermitTemplateBuilderDashboard() {
   const [view, setView] = useState("list");
   const [templates, setTemplates] = useState([]);
@@ -282,6 +354,45 @@ export default function PermitTemplateBuilderDashboard() {
   const fileInputRef = useRef(null);
 
   const isEditing = Boolean(editingId);
+
+  const isFile = (value) => {
+    return typeof File !== "undefined" && value instanceof File;
+  };
+
+  const getLogoPreviewUrl = (fileOrUrl) => {
+    if (!fileOrUrl) return "";
+
+    if (isFile(fileOrUrl)) {
+      return URL.createObjectURL(fileOrUrl);
+    }
+
+    return resolveMediaUrl(fileOrUrl);
+  };
+
+  const updateLogo = (key, file) => {
+    if (!file) return;
+
+    if (!String(file.type || "").startsWith("image/")) {
+      showToast("Please upload a valid image file", "error");
+      return;
+    }
+
+    setForm((prev) => ({
+      ...prev,
+      [key]: file,
+      [`${key}_url`]: "",
+      [`remove_${key}`]: false,
+    }));
+  };
+
+  const removeLogo = (key) => {
+    setForm((prev) => ({
+      ...prev,
+      [key]: null,
+      [`${key}_url`]: "",
+      [`remove_${key}`]: true,
+    }));
+  };
 
   const handleBulkUpload = (e) => {
     const file = e.target.files[0];
@@ -580,7 +691,11 @@ export default function PermitTemplateBuilderDashboard() {
     }
   };
 
-  const buildPayload = () => ({
+  const appendJson = (fd, key, value) => {
+    fd.append(key, JSON.stringify(value ?? null));
+  };
+
+  const buildPayloadObject = () => ({
     ...form,
 
     checklist_sections: (form.checklist_sections || []).map((section) => {
@@ -642,6 +757,51 @@ export default function PermitTemplateBuilderDashboard() {
       };
     }),
   });
+
+  const buildPayload = () => {
+    const payload = buildPayloadObject();
+
+    const fd = new FormData();
+
+    fd.append("code", payload.code || "");
+    fd.append("ptw_prefix", payload.ptw_prefix || "");
+    fd.append("name", payload.name || "");
+    fd.append("status", payload.status || "draft");
+    fd.append("description", payload.description || "");
+    fd.append("format_no", payload.format_no || "");
+    fd.append("ref_no", payload.ref_no || "");
+    fd.append("issued_date_text", payload.issued_date_text || "");
+    fd.append("revision_no", payload.revision_no || "");
+
+    appendJson(fd, "header_config", payload.header_config || {});
+    appendJson(fd, "layout_config", payload.layout_config || {});
+    appendJson(fd, "ppe_config", payload.ppe_config || {});
+    appendJson(fd, "special_sections", payload.special_sections || []);
+    appendJson(fd, "print_config", payload.print_config || {});
+
+    appendJson(fd, "fields", payload.fields || []);
+    appendJson(fd, "checklist_sections", payload.checklist_sections || []);
+    appendJson(fd, "checklist_questions", payload.checklist_questions || []);
+    appendJson(fd, "signature_boxes", payload.signature_boxes || []);
+
+    if (isFile(form.left_logo)) {
+      fd.append("left_logo", form.left_logo);
+    }
+
+    if (isFile(form.right_logo)) {
+      fd.append("right_logo", form.right_logo);
+    }
+
+    if (form.remove_left_logo) {
+      fd.append("remove_left_logo", "true");
+    }
+
+    if (form.remove_right_logo) {
+      fd.append("remove_right_logo", "true");
+    }
+
+    return fd;
+  };
 
   const saveDraftTemplate = async () => {
     if (!validateBeforeSave()) return null;
@@ -1177,6 +1337,35 @@ export default function PermitTemplateBuilderDashboard() {
       </div>
 
       <div className="p-6 max-w-5xl mx-auto space-y-6">
+        {/* 0. Template Report Logos */}
+        <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <h3 className="text-lg font-medium text-slate-800 mb-4 border-b border-slate-100 pb-2">
+            Report Header Logos
+          </h3>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <TemplateLogoUploadBox
+              title="Left Logo"
+              logoKey="left_logo"
+              file={form.left_logo}
+              url={form.left_logo_url}
+              onUpload={updateLogo}
+              onRemove={removeLogo}
+              getPreviewUrl={getLogoPreviewUrl}
+            />
+
+            <TemplateLogoUploadBox
+              title="Right Logo"
+              logoKey="right_logo"
+              file={form.right_logo}
+              url={form.right_logo_url}
+              onUpload={updateLogo}
+              onRemove={removeLogo}
+              getPreviewUrl={getLogoPreviewUrl}
+            />
+          </div>
+        </section>
+
         {/* 1. Basic Details */}
         <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-medium text-slate-800 mb-4 border-b border-slate-100 pb-2">

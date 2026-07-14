@@ -1,59 +1,98 @@
-import { NCR_STATUSES } from '../constants/ncrStatus';
+import {
+  getNCRSummary as apiGetNCRSummary,
+  getNCRList as apiGetNCRList,
+  getNCRDetail as apiGetNCRDetail,
+  submitMakerResponse as apiSubmitMakerResponse,
+  getMyPending as apiGetMyPending,
+  createNCR as apiCreateNCR,
+  checkerVerifyNCR as apiCheckerVerifyNCR,
+  downloadNCRClosedReport as apiDownloadNCRClosedReport,
+  getProjectHeadPendingNCRs as apiGetProjectHeadPendingNCRs,
+  projectHeadSignNCR as apiProjectHeadSignNCR,
+} from "../api";
 
-const mockData = Array.from({ length: 45 }).map((_, i) => {
-  const statuses = NCR_STATUSES.map(s => s.key);
-  const status = statuses[i % statuses.length];
-  
-  return {
-    id: `mock-ncr-${i + 1}`,
-    ncr_no: `NCR-${2023000 + i}`,
-    doc_no: `ADL/QA/NCR/${new Date().toISOString().slice(0, 7).replace("-", "")}`,
-    related_to: ["Concrete Work", "Safety", "Material Inspection", "Electrical", "Plumbing"][i % 5],
-    classification: i % 3 === 0 ? "major" : "minor",
-    identification: `Non-conformance details for incident ${i+1}`,
-    tower_id: ["t1", "t2", "t3"][i % 3],
-    project_id: ["p1", "p2"][i % 2],
-    root_cause: `Root cause analysis for ${i+1}`,
-    correction: "Immediate correction applied",
-    corrective_action: "Corrective action plan formulated.",
-    preventive_action: "Preventive measures have been communicated.",
-    follow_up_responsibility: "Site Engineer",
-    verification_responsibility: "QA/QC Engineer",
-    assigned_to: "1",
-    target_date: new Date(Date.now() + (i - 10) * 86400000).toISOString().slice(0, 10),
-    status: status,
-    created_at: new Date(Date.now() - i * 86400000).toISOString(),
-    created_by: "Current User"
-  };
-});
-
-export const getNCRSummary = async () => {
-  await new Promise(r => setTimeout(r, 400));
-  const summary = { total: mockData.length };
-  NCR_STATUSES.forEach(s => {
-    summary[s.key] = mockData.filter(m => m.status === s.key).length;
-  });
-  return summary;
+export const getNCRSummary = async (params) => {
+  const res = await apiGetNCRSummary(params);
+  return res.data;
 };
 
-export const getNCRList = async ({ status = 'all', page = 1, pageSize = 15 }) => {
-  await new Promise(r => setTimeout(r, 600));
-  
-  let filtered = mockData;
-  if (status !== 'all') {
-    filtered = filtered.filter(m => m.status === status);
+export const getNCRList = async ({
+  status = "all",
+  page = 1,
+  pageSize = 15,
+}) => {
+  const params = { page, page_size: pageSize };
+  if (status !== "all") {
+    if (status === "draft") params.status = "draft";
+    else if (status === "assigned_to_maker")
+      params.status = "assigned_to_maker";
+    else if (status === "maker_submitted") params.status = "maker_submitted";
+    else if (status === "resubmission_required")
+      params.status = "resubmission_required";
+    else if (status === "closed") params.status = "closed";
   }
-  
-  filtered = [...filtered].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-  
-  const total = filtered.length;
-  const start = (page - 1) * pageSize;
-  const data = filtered.slice(start, start + pageSize);
-  
+
+  const res = await apiGetNCRList(params);
+  const isArray = Array.isArray(res.data);
   return {
-    data,
-    total,
+    data: isArray ? res.data : res.data.results || [],
+    total: isArray ? res.data.length : res.data.count || 0,
     page,
-    pageSize
+    pageSize,
   };
+};
+
+export const getNCRDetail = async (id) => {
+  const res = await apiGetNCRDetail(id);
+  return res.data;
+};
+
+export const submitMakerResponse = async (id, formData) => {
+  const res = await apiSubmitMakerResponse(id, formData);
+  return res.data;
+};
+
+export const getMyPending = async ({
+  role = "maker",
+  page = 1,
+  pageSize = 15,
+}) => {
+  const res = await apiGetMyPending({ role, page, page_size: pageSize });
+  const isArray = Array.isArray(res.data);
+  return {
+    data: isArray ? res.data : res.data.results || [],
+    total: isArray ? res.data.length : res.data.count || 0,
+    page,
+    pageSize,
+  };
+};
+
+export const createNCR = async (formData) => {
+  const res = await apiCreateNCR(formData);
+  return res.data;
+};
+
+export const checkerVerifyNCR = async (id, formData) => {
+  const res = await apiCheckerVerifyNCR(id, formData);
+  return res.data;
+};
+
+export const downloadNCRClosedReport = async (id) => {
+  return apiDownloadNCRClosedReport(id);
+};
+
+export const getProjectHeadPendingNCRs = async (params) => {
+  const res = await apiGetProjectHeadPendingNCRs(params);
+  const isArray = Array.isArray(res.data);
+  return {
+    data: isArray ? res.data : res.data.results || [],
+    total: isArray ? res.data.length : res.data.count || 0,
+    page: params.page || 1,
+    pageSize: params.page_size || 15,
+  };
+};
+
+export const projectHeadSignNCR = async (id, formData) => {
+  const res = await apiProjectHeadSignNCR(id, formData);
+  return res.data;
 };
