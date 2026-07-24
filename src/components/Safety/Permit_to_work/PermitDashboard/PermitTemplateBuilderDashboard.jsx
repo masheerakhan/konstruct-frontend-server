@@ -21,9 +21,10 @@ import {
   deletePermitTemplateBuilderTemplate,
   getUserGroups,
 } from "../../../../api";
-import {  resolveMediaUrl } from "../../../../lib/utils"
+import { resolveMediaUrl } from "../../../../lib/utils"
 
 import { showToast } from "../../../../utils/toast";
+import PTWDocumentationBranding from "./PTWDocumentationBranding";
 
 const extractErrorMessage = (err, fallback) => {
   const data = err?.response?.data;
@@ -35,9 +36,7 @@ const extractErrorMessage = (err, fallback) => {
     const firstKey = Object.keys(data)[0];
     if (firstKey) {
       const val = data[firstKey];
-      return Array.isArray(val)
-        ? `${firstKey}: ${val.join(" ")}`
-        : `${firstKey}: ${val}`;
+      return Array.isArray(val) ? `${firstKey}: ${val.join(" ")}` : `${firstKey}: ${val}`;
     }
   }
   return err?.message || fallback;
@@ -94,7 +93,11 @@ const QUESTION_INPUT_TYPES = [
   "checkbox",
 ];
 
-const SOURCE_TYPES = ["maker_input", "system_generated", "template_fixed"];
+const SOURCE_TYPES = [
+  "maker_input",
+  "system_generated",
+  "template_fixed",
+];
 
 const SIGNATURE_ACTIONS = [
   "submit",
@@ -271,12 +274,9 @@ const normalizeTemplateForEdit = (template) => ({
       key: s.key || "",
       label: s.label || "",
       section: s.section || "",
-      signing_group_id:
-        signerType === "creator" ? "" : s.signing_group_id || "",
-      signing_group_code:
-        signerType === "creator" ? "" : s.signing_group_code || "",
-      signing_group_name:
-        signerType === "creator" ? "" : s.signing_group_name || "",
+      signing_group_id: signerType === "creator" ? "" : s.signing_group_id || "",
+      signing_group_code: signerType === "creator" ? "" : s.signing_group_code || "",
+      signing_group_name: signerType === "creator" ? "" : s.signing_group_name || "",
       required_status: s.required_status || "",
       action: s.action || "approve",
       requires_signature: s.requires_signature !== false,
@@ -402,7 +402,7 @@ export default function PermitTemplateBuilderDashboard() {
     reader.onload = (evt) => {
       try {
         const bstr = evt.target.result;
-        const wb = XLSX.read(bstr, { type: "binary" });
+        const wb = XLSX.read(bstr, { type: 'binary' });
         const wsname = wb.SheetNames[0];
         const ws = wb.Sheets[wsname];
 
@@ -416,63 +416,49 @@ export default function PermitTemplateBuilderDashboard() {
 
         // Check if the first row is a header row
         const firstRow = rawData[0] || [];
-        const firstRowStrs = firstRow.map((c) =>
-          String(c).toLowerCase().trim(),
-        );
-        const isHeaderRow =
-          firstRowStrs.includes("question text") ||
-          firstRowStrs.includes("question");
+        const firstRowStrs = firstRow.map(c => String(c).toLowerCase().trim());
+        const isHeaderRow = firstRowStrs.includes('question text') || firstRowStrs.includes('question');
 
         let parsedData = [];
 
         if (isHeaderRow) {
           // It's a standard mapping with headers
           const dataWithHeaders = XLSX.utils.sheet_to_json(ws);
-          parsedData = dataWithHeaders.map((row) => {
+          parsedData = dataWithHeaders.map(row => {
             return {
-              key: row["Key"],
-              question: row["Question Text"] || row["Question"],
-              section: row["Section"],
-              inputType: row["Input Type"],
-              sortOrder: row["Sort Order"],
-              options: row["Options"],
-              required: row["Required"],
-              photoRequired: row["Photo Required"],
-              requiresAttachment: row["Requires Attachment"],
-              requiresRemark: row["Requires Remark"],
+              key: row['Key'],
+              question: row['Question Text'] || row['Question'],
+              section: row['Section'],
+              inputType: row['Input Type'],
+              sortOrder: row['Sort Order'],
+              options: row['Options'],
+              required: row['Required'],
+              photoRequired: row['Photo Required'],
+              requiresAttachment: row['Requires Attachment'],
+              requiresRemark: row['Requires Remark'],
             };
           });
         } else {
           // Treat every row as a single question string (usually the first column)
           // Avoid completely empty rows
-          parsedData = rawData
-            .filter((row) => row && row[0])
-            .map((row) => {
-              return {
-                question: String(row[0]).trim(),
-              };
-            });
+          parsedData = rawData.filter(row => row && row[0]).map(row => {
+            return {
+              question: String(row[0]).trim()
+            };
+          });
         }
 
         const newQuestions = parsedData.map((row, index) => {
           let sectionId = "";
           if (row.section) {
-            const sec = form.checklist_sections.find(
-              (s) =>
-                String(s.title).trim() === String(row.section).trim() ||
-                String(s.id) === String(row.section),
-            );
+            const sec = form.checklist_sections.find(s => String(s.title).trim() === String(row.section).trim() || String(s.id) === String(row.section));
             if (sec) sectionId = sec.id;
           }
 
           let optionsText = row.options ? String(row.options) : "";
           let parsedOptions = parseOptionsText(optionsText);
           if (!parsedOptions || parsedOptions.length === 0) {
-            parsedOptions = [
-              { value: "YES" },
-              { value: "NO" },
-              { value: "N/A" },
-            ];
+            parsedOptions = [{ value: "YES" }, { value: "NO" }, { value: "N/A" }];
           }
           // Default to single_choice for permits if not specified
           let inputType = row.inputType || "single_choice";
@@ -482,52 +468,20 @@ export default function PermitTemplateBuilderDashboard() {
             question: row.question || "Untitled Question",
             input_type: inputType,
             section: sectionId,
-            sort_order:
-              Number(row.sortOrder) ||
-              form.checklist_questions.length + index + 1,
+            sort_order: Number(row.sortOrder) || (form.checklist_questions.length + index + 1),
             options: parsedOptions,
-            is_required:
-              row.required !== undefined
-                ? String(row.required).toLowerCase() === "y" ||
-                  String(row.required).toLowerCase() === "yes" ||
-                  String(row.required).toLowerCase() === "true" ||
-                  row.required === true
-                : false,
-            photo_required:
-              row.photoRequired !== undefined
-                ? String(row.photoRequired).toLowerCase() === "y" ||
-                  String(row.photoRequired).toLowerCase() === "yes" ||
-                  String(row.photoRequired).toLowerCase() === "true" ||
-                  row.photoRequired === true
-                : false,
-            requires_attachment:
-              row.requiresAttachment !== undefined
-                ? String(row.requiresAttachment).toLowerCase() === "y" ||
-                  String(row.requiresAttachment).toLowerCase() === "yes" ||
-                  String(row.requiresAttachment).toLowerCase() === "true" ||
-                  row.requiresAttachment === true
-                : false,
-            requires_remark:
-              row.requiresRemark !== undefined
-                ? String(row.requiresRemark).toLowerCase() === "y" ||
-                  String(row.requiresRemark).toLowerCase() === "yes" ||
-                  String(row.requiresRemark).toLowerCase() === "true" ||
-                  row.requiresRemark === true
-                : false,
+            is_required: row.required !== undefined ? (String(row.required).toLowerCase() === 'y' || String(row.required).toLowerCase() === 'yes' || String(row.required).toLowerCase() === 'true' || row.required === true) : false,
+            photo_required: row.photoRequired !== undefined ? (String(row.photoRequired).toLowerCase() === 'y' || String(row.photoRequired).toLowerCase() === 'yes' || String(row.photoRequired).toLowerCase() === 'true' || row.photoRequired === true) : false,
+            requires_attachment: row.requiresAttachment !== undefined ? (String(row.requiresAttachment).toLowerCase() === 'y' || String(row.requiresAttachment).toLowerCase() === 'yes' || String(row.requiresAttachment).toLowerCase() === 'true' || row.requiresAttachment === true) : false,
+            requires_remark: row.requiresRemark !== undefined ? (String(row.requiresRemark).toLowerCase() === 'y' || String(row.requiresRemark).toLowerCase() === 'yes' || String(row.requiresRemark).toLowerCase() === 'true' || row.requiresRemark === true) : false,
           };
         });
 
-        setForm((prev) => ({
+        setForm(prev => ({
           ...prev,
-          checklist_questions: [
-            ...(prev.checklist_questions || []),
-            ...newQuestions,
-          ],
+          checklist_questions: [...(prev.checklist_questions || []), ...newQuestions]
         }));
-        showToast(
-          `Successfully added ${newQuestions.length} questions from Excel.`,
-          "success",
-        );
+        showToast(`Successfully added ${newQuestions.length} questions from Excel.`, "success");
       } catch (err) {
         console.error("Excel parse error:", err);
         showToast("Error parsing Excel file", "error");
@@ -632,16 +586,11 @@ export default function PermitTemplateBuilderDashboard() {
 
     const missingGroup = form.signature_boxes.some((s) => {
       const signerType = getSignerType(s);
-      return (
-        s.requires_signature && signerType === "group" && !s.signing_group_id
-      );
+      return s.requires_signature && signerType === "group" && !s.signing_group_id;
     });
 
     if (missingGroup) {
-      showToast(
-        "All required group-based signature boxes must have signing group",
-        "error",
-      );
+      showToast("All required group-based signature boxes must have signing group", "error");
       return false;
     }
 
@@ -669,7 +618,7 @@ export default function PermitTemplateBuilderDashboard() {
 
       if (template.status === "published" || template.status === "archived") {
         const confirmed = window.confirm(
-          "This template is already published. Published templates cannot be edited directly. Do you want to clone it as a new draft version and edit that?",
+          "This template is already published. Published templates cannot be edited directly. Do you want to clone it as a new draft version and edit that?"
         );
 
         if (!confirmed) return;
@@ -679,7 +628,7 @@ export default function PermitTemplateBuilderDashboard() {
 
         showToast(
           `Template cloned as draft version v${template.version}. You can edit this version now.`,
-          "success",
+          "success"
         );
       }
 
@@ -723,15 +672,19 @@ export default function PermitTemplateBuilderDashboard() {
         ...question,
         section_client_id:
           question.section_client_id ||
-          (String(question.section || "").startsWith("section_")
-            ? question.section
-            : ""),
+          (
+            String(question.section || "").startsWith("section_")
+              ? question.section
+              : ""
+          ),
       };
 
       if (
         payload.section &&
-        (String(payload.section).startsWith("section_") ||
-          !Number.isInteger(Number(payload.section)))
+        (
+          String(payload.section).startsWith("section_") ||
+          !Number.isInteger(Number(payload.section))
+        )
       ) {
         delete payload.section;
       }
@@ -744,12 +697,9 @@ export default function PermitTemplateBuilderDashboard() {
 
       return {
         ...box,
-        signing_group_id:
-          signerType === "creator" ? null : box.signing_group_id,
-        signing_group_code:
-          signerType === "creator" ? "" : box.signing_group_code,
-        signing_group_name:
-          signerType === "creator" ? "" : box.signing_group_name,
+        signing_group_id: signerType === "creator" ? null : box.signing_group_id,
+        signing_group_code: signerType === "creator" ? "" : box.signing_group_code,
+        signing_group_name: signerType === "creator" ? "" : box.signing_group_name,
         layout_config: {
           ...(box.layout_config || {}),
           signer_type: signerType,
@@ -904,10 +854,7 @@ export default function PermitTemplateBuilderDashboard() {
         special_sections: [],
       });
     } catch (err) {
-      const detail = extractErrorMessage(
-        err,
-        "Failed to save and publish template",
-      );
+      const detail = extractErrorMessage(err, "Failed to save and publish template");
       showToast(detail || "Failed to save and publish template", "error");
     }
   };
@@ -916,7 +863,7 @@ export default function PermitTemplateBuilderDashboard() {
     if (!template?.id) return;
 
     const confirmed = window.confirm(
-      `Are you sure you want to delete "${template.name}"? This action cannot be undone.`,
+      `Are you sure you want to delete "${template.name}"? This action cannot be undone.`
     );
 
     if (!confirmed) return;
@@ -1031,9 +978,9 @@ export default function PermitTemplateBuilderDashboard() {
       checklist_sections: prev.checklist_sections.filter((_, i) => i !== index),
       checklist_questions: prev.checklist_questions.map((q) =>
         String(q.section) === String(section?.id) ||
-        String(q.section) === String(section?.title)
+          String(q.section) === String(section?.title)
           ? { ...q, section: "" }
-          : q,
+          : q
       ),
     }));
   };
@@ -1073,9 +1020,7 @@ export default function PermitTemplateBuilderDashboard() {
   const removeQuestion = (index) => {
     setForm((prev) => ({
       ...prev,
-      checklist_questions: prev.checklist_questions.filter(
-        (_, i) => i !== index,
-      ),
+      checklist_questions: prev.checklist_questions.filter((_, i) => i !== index),
     }));
   };
 
@@ -1105,7 +1050,7 @@ export default function PermitTemplateBuilderDashboard() {
 
   const addSignaturePreset = (preset) => {
     const alreadyExists = form.signature_boxes.some(
-      (s) => s.key === preset.key,
+      (s) => s.key === preset.key
     );
 
     if (alreadyExists) {
@@ -1143,12 +1088,9 @@ export default function PermitTemplateBuilderDashboard() {
       if (key === "signer_type") {
         next[index] = {
           ...next[index],
-          signing_group_id:
-            value === "creator" ? "" : next[index].signing_group_id,
-          signing_group_code:
-            value === "creator" ? "" : next[index].signing_group_code,
-          signing_group_name:
-            value === "creator" ? "" : next[index].signing_group_name,
+          signing_group_id: value === "creator" ? "" : next[index].signing_group_id,
+          signing_group_code: value === "creator" ? "" : next[index].signing_group_code,
+          signing_group_name: value === "creator" ? "" : next[index].signing_group_name,
           layout_config: {
             ...(next[index].layout_config || {}),
             signer_type: value,
@@ -1199,25 +1141,45 @@ export default function PermitTemplateBuilderDashboard() {
     }
   };
 
+  if (view === "branding") {
+    return (
+      <PTWDocumentationBranding
+        onBack={() => setView("list")}
+      />
+    );
+  }
+
   if (view === "list") {
     return (
       <div className="p-6 bg-white rounded-xl shadow-sm border border-slate-200">
-        <div className="flex justify-between items-center mb-6">
+        <div className="flex flex-wrap justify-between items-center gap-3 mb-6">
           <h2 className="text-2xl font-semibold text-slate-800">
             Permit Template Builder
           </h2>
-          <button
-            onClick={handleNew}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors font-medium"
-          >
-            <Plus size={18} /> Create Template
-          </button>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setView("branding")}
+              className="flex items-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition-colors font-medium"
+            >
+              <FileText size={18} />
+              Create Permit Register
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNew}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors font-medium"
+            >
+              <Plus size={18} />
+              Create Template
+            </button>
+          </div>
         </div>
 
         {loading ? (
-          <div className="py-12 text-center text-slate-500">
-            Loading templates...
-          </div>
+          <div className="py-12 text-center text-slate-500">Loading templates...</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -1233,25 +1195,19 @@ export default function PermitTemplateBuilderDashboard() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {templates.map((t) => (
-                  <tr
-                    key={t.id}
-                    className="hover:bg-slate-50/50 transition-colors"
-                  >
-                    <td className="py-3 px-4 font-medium text-slate-800">
-                      {t.code}
-                    </td>
+                  <tr key={t.id} className="hover:bg-slate-50/50 transition-colors">
+                    <td className="py-3 px-4 font-medium text-slate-800">{t.code}</td>
                     <td className="py-3 px-4 text-slate-600">{t.name}</td>
                     <td className="py-3 px-4 text-slate-500">{t.format_no}</td>
                     <td className="py-3 px-4 text-slate-500">v{t.version}</td>
                     <td className="py-3 px-4">
                       <span
-                        className={`px-2.5 py-1 text-xs font-medium rounded-full ${
-                          t.status === "published"
-                            ? "bg-emerald-100 text-emerald-700"
-                            : t.status === "archived"
-                              ? "bg-slate-100 text-slate-600"
-                              : "bg-amber-100 text-amber-700"
-                        }`}
+                        className={`px-2.5 py-1 text-xs font-medium rounded-full ${t.status === "published"
+                          ? "bg-emerald-100 text-emerald-700"
+                          : t.status === "archived"
+                            ? "bg-slate-100 text-slate-600"
+                            : "bg-amber-100 text-amber-700"
+                          }`}
                       >
                         {t.status?.toUpperCase() || "DRAFT"}
                       </span>
@@ -1322,14 +1278,10 @@ export default function PermitTemplateBuilderDashboard() {
             </button>
             <div>
               <h2 className="text-xl font-semibold text-slate-800">
-                {isEditing
-                  ? `Edit Template: ${form.name}`
-                  : "New Permit Template"}
+                {isEditing ? `Edit Template: ${form.name}` : "New Permit Template"}
               </h2>
               {isEditing && (
-                <div className="text-sm text-slate-500 mt-1">
-                  Code: {form.code}
-                </div>
+                <div className="text-sm text-slate-500 mt-1">Code: {form.code}</div>
               )}
             </div>
           </div>
@@ -1337,6 +1289,7 @@ export default function PermitTemplateBuilderDashboard() {
       </div>
 
       <div className="p-6 max-w-5xl mx-auto space-y-6">
+
         {/* 0. Template Report Logos */}
         <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <h3 className="text-lg font-medium text-slate-800 mb-4 border-b border-slate-100 pb-2">
@@ -1368,122 +1321,56 @@ export default function PermitTemplateBuilderDashboard() {
 
         {/* 1. Basic Details */}
         <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="text-lg font-medium text-slate-800 mb-4 border-b border-slate-100 pb-2">
-            Basic Details
-          </h3>
+          <h3 className="text-lg font-medium text-slate-800 mb-4 border-b border-slate-100 pb-2">Basic Details</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Template Code *
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500"
-                value={form.code}
-                onChange={(e) => setValue("code", e.target.value)}
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Template Code *</label>
+              <input type="text" className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500" value={form.code} onChange={(e) => setValue("code", e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                PTW Prefix
-              </label>
-              <input
-                type="text"
-                placeholder="e.g. ADL-AN-PTW-HO-"
-                className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500"
-                value={form.ptw_prefix}
-                onChange={(e) => setValue("ptw_prefix", e.target.value)}
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">PTW Prefix</label>
+              <input type="text" placeholder="e.g. ADL-AN-PTW-HO-" className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500" value={form.ptw_prefix} onChange={(e) => setValue("ptw_prefix", e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Template Name *
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500"
-                value={form.name}
-                onChange={(e) => setValue("name", e.target.value)}
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Template Name *</label>
+              <input type="text" className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500" value={form.name} onChange={(e) => setValue("name", e.target.value)} />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Description
-              </label>
-              <textarea
-                className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500"
-                rows={2}
-                value={form.description}
-                onChange={(e) => setValue("description", e.target.value)}
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Description</label>
+              <textarea className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500" rows={2} value={form.description} onChange={(e) => setValue("description", e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Format No
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500"
-                value={form.format_no}
-                onChange={(e) => setValue("format_no", e.target.value)}
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Format No</label>
+              <input type="text" className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500" value={form.format_no} onChange={(e) => setValue("format_no", e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Ref No
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500"
-                value={form.ref_no}
-                onChange={(e) => setValue("ref_no", e.target.value)}
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Ref No</label>
+              <input type="text" className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500" value={form.ref_no} onChange={(e) => setValue("ref_no", e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Issued Date Text
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500"
-                value={form.issued_date_text}
-                onChange={(e) => setValue("issued_date_text", e.target.value)}
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Issued Date Text</label>
+              <input type="text" className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500" value={form.issued_date_text} onChange={(e) => setValue("issued_date_text", e.target.value)} />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">
-                Revision No
-              </label>
-              <input
-                type="text"
-                className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500"
-                value={form.revision_no}
-                onChange={(e) => setValue("revision_no", e.target.value)}
-              />
+              <label className="block text-sm font-medium text-slate-700 mb-1">Revision No</label>
+              <input type="text" className="w-full p-2 border border-slate-300 rounded focus:ring-orange-500 focus:border-orange-500" value={form.revision_no} onChange={(e) => setValue("revision_no", e.target.value)} />
             </div>
           </div>
         </section>
 
         {/* 2. Header Config */}
         <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="text-lg font-medium text-slate-800 mb-4 border-b border-slate-100 pb-2">
-            Header Visibility Flags
-          </h3>
+          <h3 className="text-lg font-medium text-slate-800 mb-4 border-b border-slate-100 pb-2">Header Visibility Flags</h3>
           <div className="flex flex-wrap gap-6">
-            {Object.keys(EMPTY_TEMPLATE.header_config).map((key) => (
-              <label
-                key={key}
-                className="flex items-center gap-2 cursor-pointer"
-              >
+            {Object.keys(EMPTY_TEMPLATE.header_config).map(key => (
+              <label key={key} className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
                   className="w-4 h-4 text-orange-500 border-slate-300 rounded focus:ring-orange-500"
                   checked={form.header_config[key]}
                   onChange={(e) => updateHeaderConfig(key, e.target.checked)}
                 />
-                <span className="text-sm font-medium text-slate-700">
-                  {key.replace("show_", "Show ").replace("_", " ")}
-                </span>
+                <span className="text-sm font-medium text-slate-700">{key.replace('show_', 'Show ').replace('_', ' ')}</span>
               </label>
             ))}
           </div>
@@ -1492,143 +1379,62 @@ export default function PermitTemplateBuilderDashboard() {
         {/* 3. User Input Fields */}
         <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
-            <h3 className="text-lg font-medium text-slate-800">
-              User Input Fields
-            </h3>
+            <h3 className="text-lg font-medium text-slate-800">User Input Fields</h3>
             <div className="flex gap-2">
-              <button
-                onClick={addPPEField}
-                className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium transition-colors"
-              >
+              <button onClick={addPPEField} className="px-3 py-1.5 text-sm bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-medium transition-colors">
                 + Add Provided PPEs
               </button>
-              <button
-                onClick={addField}
-                className="px-3 py-1.5 text-sm bg-orange-100 hover:bg-orange-200 text-orange-700 rounded font-medium transition-colors"
-              >
+              <button onClick={addField} className="px-3 py-1.5 text-sm bg-orange-100 hover:bg-orange-200 text-orange-700 rounded font-medium transition-colors">
                 + Add Field
               </button>
             </div>
           </div>
           <div className="space-y-4">
             {form.fields.map((f, i) => (
-              <div
-                key={i}
-                className="p-4 border border-slate-200 rounded-lg bg-slate-50 relative"
-              >
-                <button
-                  onClick={() => removeField(i)}
-                  className="absolute top-4 right-4 text-slate-400 hover:text-red-500"
-                >
+              <div key={i} className="p-4 border border-slate-200 rounded-lg bg-slate-50 relative">
+                <button onClick={() => removeField(i)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500">
                   <Trash2 size={18} />
                 </button>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pr-8">
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Key *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={f.key}
-                      onChange={(e) => updateField(i, "key", e.target.value)}
-                      disabled={f.key === "provided_ppes"}
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Key *</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm" value={f.key} onChange={(e) => updateField(i, "key", e.target.value)} disabled={f.key === 'provided_ppes'} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Label *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={f.label}
-                      onChange={(e) => updateField(i, "label", e.target.value)}
-                      disabled={f.key === "provided_ppes"}
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Label *</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm" value={f.label} onChange={(e) => updateField(i, "label", e.target.value)} disabled={f.key === 'provided_ppes'} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Field Type
-                    </label>
-                    <select
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={f.field_type}
-                      onChange={(e) =>
-                        updateField(i, "field_type", e.target.value)
-                      }
-                      disabled={f.key === "provided_ppes"}
-                    >
-                      {FIELD_TYPES.map((ft) => (
-                        <option key={ft} value={ft}>
-                          {ft}
-                        </option>
-                      ))}
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Field Type</label>
+                    <select className="w-full p-2 border border-slate-300 rounded text-sm" value={f.field_type} onChange={(e) => updateField(i, "field_type", e.target.value)} disabled={f.key === 'provided_ppes'}>
+                      {FIELD_TYPES.map(ft => <option key={ft} value={ft}>{ft}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Source Type
-                    </label>
-                    <select
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={f.source_type}
-                      onChange={(e) =>
-                        updateField(i, "source_type", e.target.value)
-                      }
-                      disabled={f.key === "provided_ppes"}
-                    >
-                      {SOURCE_TYPES.map((st) => (
-                        <option key={st} value={st}>
-                          {st}
-                        </option>
-                      ))}
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Source Type</label>
+                    <select className="w-full p-2 border border-slate-300 rounded text-sm" value={f.source_type} onChange={(e) => updateField(i, "source_type", e.target.value)} disabled={f.key === 'provided_ppes'}>
+                      {SOURCE_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Sort Order
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={f.sort_order}
-                      onChange={(e) =>
-                        updateField(i, "sort_order", Number(e.target.value))
-                      }
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Sort Order</label>
+                    <input type="number" className="w-full p-2 border border-slate-300 rounded text-sm" value={f.sort_order} onChange={(e) => updateField(i, "sort_order", Number(e.target.value))} />
                   </div>
                   <div className="flex items-center pt-5">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-orange-500 rounded"
-                        checked={f.required_override}
-                        onChange={(e) =>
-                          updateField(i, "required_override", e.target.checked)
-                        }
-                        disabled={f.key === "provided_ppes"}
-                      />
+                      <input type="checkbox" className="w-4 h-4 text-orange-500 rounded" checked={f.required_override} onChange={(e) => updateField(i, "required_override", e.target.checked)} disabled={f.key === 'provided_ppes'} />
                       <span className="text-sm text-slate-700">Required</span>
                     </label>
                   </div>
-                  {(f.field_type === "select" ||
-                    f.field_type === "multi_select") && (
+                  {(f.field_type === 'select' || f.field_type === 'multi_select') && (
                     <div className="md:col-span-4">
-                      <label className="block text-xs font-medium text-slate-500 mb-1">
-                        Choices (One per line)
-                      </label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Choices (One per line)</label>
                       <textarea
                         className="w-full p-2 border border-slate-300 rounded text-sm"
                         rows={3}
-                        value={(f.validation_rules?.choices || []).join("\n")}
-                        onChange={(e) =>
-                          updateField(i, "validation_rules", {
-                            ...f.validation_rules,
-                            choices: e.target.value.split("\n").filter(Boolean),
-                          })
-                        }
-                        disabled={f.key === "provided_ppes"}
+                        value={(f.validation_rules?.choices || []).join('\n')}
+                        onChange={(e) => updateField(i, "validation_rules", { ...f.validation_rules, choices: e.target.value.split('\n').filter(Boolean) })}
+                        disabled={f.key === 'provided_ppes'}
                       />
                     </div>
                   )}
@@ -1641,67 +1447,29 @@ export default function PermitTemplateBuilderDashboard() {
         {/* 4. Checklist Sections */}
         <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
-            <h3 className="text-lg font-medium text-slate-800">
-              Checklist Sections
-            </h3>
-            <button
-              onClick={addSection}
-              className="px-3 py-1.5 text-sm bg-orange-100 hover:bg-orange-200 text-orange-700 rounded font-medium transition-colors"
-            >
+            <h3 className="text-lg font-medium text-slate-800">Checklist Sections</h3>
+            <button onClick={addSection} className="px-3 py-1.5 text-sm bg-orange-100 hover:bg-orange-200 text-orange-700 rounded font-medium transition-colors">
               + Add Section
             </button>
           </div>
           <div className="space-y-4">
             {form.checklist_sections.map((s, i) => (
-              <div
-                key={i}
-                className="p-4 border border-slate-200 rounded-lg flex items-start gap-4 bg-slate-50"
-              >
+              <div key={i} className="p-4 border border-slate-200 rounded-lg flex items-start gap-4 bg-slate-50">
                 <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Title *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={s.title}
-                      onChange={(e) =>
-                        updateSection(i, "title", e.target.value)
-                      }
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Title *</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm" value={s.title} onChange={(e) => updateSection(i, "title", e.target.value)} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Description
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={s.description}
-                      onChange={(e) =>
-                        updateSection(i, "description", e.target.value)
-                      }
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Description</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm" value={s.description} onChange={(e) => updateSection(i, "description", e.target.value)} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Sort Order
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={s.sort_order}
-                      onChange={(e) =>
-                        updateSection(i, "sort_order", Number(e.target.value))
-                      }
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Sort Order</label>
+                    <input type="number" className="w-full p-2 border border-slate-300 rounded text-sm" value={s.sort_order} onChange={(e) => updateSection(i, "sort_order", Number(e.target.value))} />
                   </div>
                 </div>
-                <button
-                  onClick={() => removeSection(i)}
-                  className="mt-6 text-slate-400 hover:text-red-500"
-                >
+                <button onClick={() => removeSection(i)} className="mt-6 text-slate-400 hover:text-red-500">
                   <Trash2 size={18} />
                 </button>
               </div>
@@ -1712,68 +1480,43 @@ export default function PermitTemplateBuilderDashboard() {
         {/* 5. Checklist Questions */}
         <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
-            <h3 className="text-lg font-medium text-slate-800">
-              Checklist Questions
-            </h3>
+            <h3 className="text-lg font-medium text-slate-800">Checklist Questions</h3>
             <div className="flex gap-2">
               <input
                 type="file"
                 accept=".xlsx, .xls"
                 ref={fileInputRef}
                 onChange={handleBulkUpload}
-                style={{ display: "none" }}
+                style={{ display: 'none' }}
               />
-              <button
-                onClick={() =>
-                  fileInputRef.current && fileInputRef.current.click()
-                }
-                className="px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded font-medium transition-colors"
-              >
+              <button onClick={() => fileInputRef.current && fileInputRef.current.click()} className="px-3 py-1.5 text-sm bg-blue-100 hover:bg-blue-200 text-blue-700 rounded font-medium transition-colors">
                 Bulk Upload
               </button>
-              <button
-                onClick={addQuestion}
-                className="px-3 py-1.5 text-sm bg-orange-100 hover:bg-orange-200 text-orange-700 rounded font-medium transition-colors"
-              >
+              <button onClick={addQuestion} className="px-3 py-1.5 text-sm bg-orange-100 hover:bg-orange-200 text-orange-700 rounded font-medium transition-colors">
                 + Add Question
               </button>
             </div>
           </div>
           <div className="space-y-4">
             {form.checklist_questions.map((q, i) => (
-              <div
-                key={i}
-                className="p-4 border border-slate-200 rounded-lg bg-slate-50 relative"
-              >
-                <button
-                  onClick={() => removeQuestion(i)}
-                  className="absolute top-4 right-4 text-slate-400 hover:text-red-500"
-                >
+              <div key={i} className="p-4 border border-slate-200 rounded-lg bg-slate-50 relative">
+                <button onClick={() => removeQuestion(i)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500">
                   <Trash2 size={18} />
                 </button>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pr-8">
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Key *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={q.key}
-                      onChange={(e) => updateQuestion(i, "key", e.target.value)}
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Key *</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm" value={q.key} onChange={(e) => updateQuestion(i, "key", e.target.value)} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Section
-                    </label>
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Section</label>
                     <select
                       className="w-full p-2 border border-slate-300 rounded text-sm"
                       value={q.section_client_id || ""}
                       onChange={(e) => {
                         const clientId = e.target.value;
                         const section = form.checklist_sections.find(
-                          (s) => String(s.client_id) === String(clientId),
+                          (s) => String(s.client_id) === String(clientId)
                         );
 
                         updateQuestion(i, "section_client_id", clientId);
@@ -1789,125 +1532,48 @@ export default function PermitTemplateBuilderDashboard() {
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Input Type
-                    </label>
-                    <select
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={q.input_type}
-                      onChange={(e) =>
-                        updateQuestion(i, "input_type", e.target.value)
-                      }
-                    >
-                      {QUESTION_INPUT_TYPES.map((qt) => (
-                        <option key={qt} value={qt}>
-                          {qt}
-                        </option>
-                      ))}
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Input Type</label>
+                    <select className="w-full p-2 border border-slate-300 rounded text-sm" value={q.input_type} onChange={(e) => updateQuestion(i, "input_type", e.target.value)}>
+                      {QUESTION_INPUT_TYPES.map(qt => <option key={qt} value={qt}>{qt}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Sort Order
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={q.sort_order}
-                      onChange={(e) =>
-                        updateQuestion(i, "sort_order", Number(e.target.value))
-                      }
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Sort Order</label>
+                    <input type="number" className="w-full p-2 border border-slate-300 rounded text-sm" value={q.sort_order} onChange={(e) => updateQuestion(i, "sort_order", Number(e.target.value))} />
                   </div>
                   <div className="md:col-span-4">
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Question Text *
-                    </label>
-                    <textarea
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      rows={2}
-                      value={q.question}
-                      onChange={(e) =>
-                        updateQuestion(i, "question", e.target.value)
-                      }
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Question Text *</label>
+                    <textarea className="w-full p-2 border border-slate-300 rounded text-sm" rows={2} value={q.question} onChange={(e) => updateQuestion(i, "question", e.target.value)} />
                   </div>
 
-                  {(q.input_type === "single_choice" ||
-                    q.input_type === "multi_select") && (
+                  {(q.input_type === 'single_choice' || q.input_type === 'multi_select') && (
                     <div className="md:col-span-4">
-                      <label className="block text-xs font-medium text-slate-500 mb-1">
-                        Options (One per line)
-                      </label>
+                      <label className="block text-xs font-medium text-slate-500 mb-1">Options (One per line)</label>
                       <textarea
                         className="w-full p-2 border border-slate-300 rounded text-sm"
                         rows={3}
                         value={optionsToText(q.options)}
-                        onChange={(e) =>
-                          updateQuestion(
-                            i,
-                            "options",
-                            parseOptionsText(e.target.value),
-                          )
-                        }
+                        onChange={(e) => updateQuestion(i, "options", parseOptionsText(e.target.value))}
                       />
                     </div>
                   )}
 
                   <div className="md:col-span-4 flex flex-wrap gap-4 mt-2">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-orange-500 rounded"
-                        checked={q.is_required}
-                        onChange={(e) =>
-                          updateQuestion(i, "is_required", e.target.checked)
-                        }
-                      />
+                      <input type="checkbox" className="w-4 h-4 text-orange-500 rounded" checked={q.is_required} onChange={(e) => updateQuestion(i, "is_required", e.target.checked)} />
                       <span className="text-sm text-slate-700">Required</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-orange-500 rounded"
-                        checked={q.photo_required}
-                        onChange={(e) =>
-                          updateQuestion(i, "photo_required", e.target.checked)
-                        }
-                      />
-                      <span className="text-sm text-slate-700">
-                        Photo Required
-                      </span>
+                      <input type="checkbox" className="w-4 h-4 text-orange-500 rounded" checked={q.photo_required} onChange={(e) => updateQuestion(i, "photo_required", e.target.checked)} />
+                      <span className="text-sm text-slate-700">Photo Required</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-orange-500 rounded"
-                        checked={q.requires_attachment}
-                        onChange={(e) =>
-                          updateQuestion(
-                            i,
-                            "requires_attachment",
-                            e.target.checked,
-                          )
-                        }
-                      />
-                      <span className="text-sm text-slate-700">
-                        Requires Attachment
-                      </span>
+                      <input type="checkbox" className="w-4 h-4 text-orange-500 rounded" checked={q.requires_attachment} onChange={(e) => updateQuestion(i, "requires_attachment", e.target.checked)} />
+                      <span className="text-sm text-slate-700">Requires Attachment</span>
                     </label>
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-orange-500 rounded"
-                        checked={q.requires_remark}
-                        onChange={(e) =>
-                          updateQuestion(i, "requires_remark", e.target.checked)
-                        }
-                      />
-                      <span className="text-sm text-slate-700">
-                        Requires Remark
-                      </span>
+                      <input type="checkbox" className="w-4 h-4 text-orange-500 rounded" checked={q.requires_remark} onChange={(e) => updateQuestion(i, "requires_remark", e.target.checked)} />
+                      <span className="text-sm text-slate-700">Requires Remark</span>
                     </label>
                   </div>
                 </div>
@@ -1919,9 +1585,7 @@ export default function PermitTemplateBuilderDashboard() {
         {/* 6. Signature Boxes */}
         <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
           <div className="flex justify-between items-center mb-4 border-b border-slate-100 pb-2">
-            <h3 className="text-lg font-medium text-slate-800">
-              Signature Boxes
-            </h3>
+            <h3 className="text-lg font-medium text-slate-800">Signature Boxes</h3>
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
@@ -1966,21 +1630,13 @@ export default function PermitTemplateBuilderDashboard() {
           </div>
           <div className="space-y-4">
             {form.signature_boxes.map((sb, i) => (
-              <div
-                key={i}
-                className="p-4 border border-slate-200 rounded-lg bg-slate-50 relative"
-              >
-                <button
-                  onClick={() => removeSignatureBox(i)}
-                  className="absolute top-4 right-4 text-slate-400 hover:text-red-500"
-                >
+              <div key={i} className="p-4 border border-slate-200 rounded-lg bg-slate-50 relative">
+                <button onClick={() => removeSignatureBox(i)} className="absolute top-4 right-4 text-slate-400 hover:text-red-500">
                   <Trash2 size={18} />
                 </button>
                 <div className="mb-3 flex flex-wrap items-center gap-2 pr-8">
                   <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">
-                    {getSignerType(sb) === "creator"
-                      ? "Creator Signature"
-                      : "Group Signature"}
+                    {getSignerType(sb) === "creator" ? "Creator Signature" : "Group Signature"}
                   </span>
 
                   {sb.action && (
@@ -1997,95 +1653,31 @@ export default function PermitTemplateBuilderDashboard() {
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pr-8">
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Key *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={sb.key}
-                      onChange={(e) =>
-                        updateSignatureBox(i, "key", e.target.value)
-                      }
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Key *</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm" value={sb.key} onChange={(e) => updateSignatureBox(i, "key", e.target.value)} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Label *
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={sb.label}
-                      onChange={(e) =>
-                        updateSignatureBox(i, "label", e.target.value)
-                      }
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Label *</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm" value={sb.label} onChange={(e) => updateSignatureBox(i, "label", e.target.value)} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Section
-                    </label>
-                    <input
-                      type="text"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={sb.section}
-                      onChange={(e) =>
-                        updateSignatureBox(i, "section", e.target.value)
-                      }
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Section</label>
+                    <input type="text" className="w-full p-2 border border-slate-300 rounded text-sm" value={sb.section} onChange={(e) => updateSignatureBox(i, "section", e.target.value)} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Sort Order
-                    </label>
-                    <input
-                      type="number"
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={sb.sort_order}
-                      onChange={(e) =>
-                        updateSignatureBox(
-                          i,
-                          "sort_order",
-                          Number(e.target.value),
-                        )
-                      }
-                    />
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Sort Order</label>
+                    <input type="number" className="w-full p-2 border border-slate-300 rounded text-sm" value={sb.sort_order} onChange={(e) => updateSignatureBox(i, "sort_order", Number(e.target.value))} />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Action
-                    </label>
-                    <select
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={sb.action}
-                      onChange={(e) =>
-                        updateSignatureBox(i, "action", e.target.value)
-                      }
-                    >
-                      {SIGNATURE_ACTIONS.map((a) => (
-                        <option key={a} value={a}>
-                          {a}
-                        </option>
-                      ))}
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Action</label>
+                    <select className="w-full p-2 border border-slate-300 rounded text-sm" value={sb.action} onChange={(e) => updateSignatureBox(i, "action", e.target.value)}>
+                      {SIGNATURE_ACTIONS.map(a => <option key={a} value={a}>{a}</option>)}
                     </select>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-slate-500 mb-1">
-                      Required Status
-                    </label>
-                    <select
-                      className="w-full p-2 border border-slate-300 rounded text-sm"
-                      value={sb.required_status}
-                      onChange={(e) =>
-                        updateSignatureBox(i, "required_status", e.target.value)
-                      }
-                    >
-                      {STATUS_OPTIONS.map((s) => (
-                        <option key={s} value={s}>
-                          {s}
-                        </option>
-                      ))}
+                    <label className="block text-xs font-medium text-slate-500 mb-1">Required Status</label>
+                    <select className="w-full p-2 border border-slate-300 rounded text-sm" value={sb.required_status} onChange={(e) => updateSignatureBox(i, "required_status", e.target.value)}>
+                      {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                     </select>
                   </div>
                   <div>
@@ -2095,9 +1687,7 @@ export default function PermitTemplateBuilderDashboard() {
                     <select
                       className="w-full p-2 border border-slate-300 rounded text-sm"
                       value={getSignerType(sb)}
-                      onChange={(e) =>
-                        updateSignatureBox(i, "signer_type", e.target.value)
-                      }
+                      onChange={(e) => updateSignatureBox(i, "signer_type", e.target.value)}
                     >
                       {SIGNER_TYPES.map((type) => (
                         <option key={type.value} value={type.value}>
@@ -2110,20 +1700,12 @@ export default function PermitTemplateBuilderDashboard() {
                     <div className="md:col-span-2">
                       <label className="block text-xs font-medium text-slate-500 mb-1">
                         Signing Group
-                        {sb.requires_signature && (
-                          <span className="text-red-500"> *</span>
-                        )}
+                        {sb.requires_signature && <span className="text-red-500"> *</span>}
                       </label>
                       <select
                         className="w-full p-2 border border-slate-300 rounded text-sm"
                         value={sb.signing_group_id || ""}
-                        onChange={(e) =>
-                          updateSignatureBox(
-                            i,
-                            "signing_group_id",
-                            e.target.value,
-                          )
-                        }
+                        onChange={(e) => updateSignatureBox(i, "signing_group_id", e.target.value)}
                       >
                         <option value="">-- Select Group --</option>
                         {groups.map((g) => (
@@ -2139,28 +1721,14 @@ export default function PermitTemplateBuilderDashboard() {
                         Signing User
                       </label>
                       <div className="rounded border border-slate-200 bg-slate-100 p-2 text-sm text-slate-600">
-                        Permit creator / maker will sign this box. No group
-                        required.
+                        Permit creator / maker will sign this box. No group required.
                       </div>
                     </div>
                   )}
                   <div className="md:col-span-4 flex items-center mt-2">
                     <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        className="w-4 h-4 text-orange-500 rounded"
-                        checked={sb.requires_signature}
-                        onChange={(e) =>
-                          updateSignatureBox(
-                            i,
-                            "requires_signature",
-                            e.target.checked,
-                          )
-                        }
-                      />
-                      <span className="text-sm text-slate-700">
-                        Requires Signature
-                      </span>
+                      <input type="checkbox" className="w-4 h-4 text-orange-500 rounded" checked={sb.requires_signature} onChange={(e) => updateSignatureBox(i, "requires_signature", e.target.checked)} />
+                      <span className="text-sm text-slate-700">Requires Signature</span>
                     </label>
                   </div>
                 </div>
@@ -2171,9 +1739,7 @@ export default function PermitTemplateBuilderDashboard() {
 
         {/* 7. Special Sections */}
         <section className="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-          <h3 className="text-lg font-medium text-slate-800 mb-4 border-b border-slate-100 pb-2">
-            Special Sections JSON
-          </h3>
+          <h3 className="text-lg font-medium text-slate-800 mb-4 border-b border-slate-100 pb-2">Special Sections JSON</h3>
           <textarea
             className="w-full p-4 border border-slate-300 rounded text-sm font-mono bg-slate-50"
             rows={6}
@@ -2181,6 +1747,7 @@ export default function PermitTemplateBuilderDashboard() {
             onChange={(e) => updateSpecialSections(e.target.value)}
           />
         </section>
+
       </div>
 
       {/* Sticky Footer */}

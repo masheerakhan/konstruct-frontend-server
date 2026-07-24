@@ -88,7 +88,7 @@ export default function PermitHeaderMeta({
   };
 
   return (
-    <section className="mb-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <section className="mb-6 rounded-xl border border-slate-200 bg-white p-3.5 sm:p-5 shadow-sm">
       <div className="mb-4">
         <h3 className="text-sm font-semibold text-slate-900">
           {title}
@@ -109,14 +109,14 @@ export default function PermitHeaderMeta({
           return (
             <div
               key={f.flag}
-              className="min-h-[64px] rounded-lg border border-slate-200 bg-white px-4 py-3 transition-colors hover:border-slate-300"
+              className="min-h-[60px] rounded-lg border border-slate-200 bg-white p-3 transition-colors hover:border-slate-300 overflow-hidden"
             >
               <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
                 {f.label}
               </p>
 
               <p
-                className={`mt-2 text-sm font-semibold ${isEmpty ? "text-slate-400" : "text-slate-900"
+                className={`mt-1.5 text-xs sm:text-sm font-semibold break-words ${isEmpty ? "text-slate-400" : "text-slate-900"
                   }`}
               >
                 {value}

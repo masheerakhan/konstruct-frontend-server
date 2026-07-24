@@ -424,8 +424,8 @@ const SignOffSection = ({ detail, onViewSignature }) => {
   );
 };
 
-const ReadonlyQuestionCard = ({ item, idx, pendingStatusLabel }) => {
-  const sub = item?.submissions?.[0];
+const ReadonlyQuestionCard = ({ item, sub: passedSub, idx, pendingStatusLabel }) => {
+  const sub = passedSub || item?.submissions?.[0];
 
   if (!sub) return null;
 
@@ -663,7 +663,13 @@ function SafetyChecklistReadonlyModal({
     };
   }, [open, checklistId]);
 
-  const questions = useMemo(() => detail?.items || [], [detail]);
+  const questionsAndSubs = useMemo(() => {
+    return (detail?.items || []).flatMap((item) => {
+      const subs = item.submissions || [];
+      if (subs.length === 0) return [{ item, sub: null }];
+      return subs.map((sub) => ({ item, sub }));
+    });
+  }, [detail]);
 
   if (!open) return null;
 
@@ -718,10 +724,11 @@ function SafetyChecklistReadonlyModal({
 
               {/* QUESTIONS */}
               <div className="space-y-4">
-                {questions.map((item, idx) => (
+                {questionsAndSubs.map(({ item, sub }, idx) => (
                   <ReadonlyQuestionCard
-                    key={item.id || idx}
+                    key={sub?.id || item.id || idx}
                     item={item}
+                    sub={sub}
                     idx={idx}
                     pendingStatusLabel={pendingStatusLabel}
                   />

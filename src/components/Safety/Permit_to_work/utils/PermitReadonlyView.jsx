@@ -1,9 +1,27 @@
 import React, { useState } from "react";
 import { ArrowLeft, ImageIcon, Ban } from "lucide-react";
 import PermitHeaderMeta from "./PermitHeaderMeta";
-import { getPermitTbtAttendance } from "../../../../api";
-import { resolveMediaUrl } from "../../../../lib/utils";
 import { showToast } from "../../../../utils/toast";
+import TbtAttendanceModal from "../PermitDashboard/TbtAttendanceModal";
+import { downloadPermitReport } from "../../../../api";
+import { resolveMediaUrl } from "../../../../lib/utils";
+import { canShowPermitReportDownload } from "./permitHelpers";
+
+const renderFieldValue = (val) => {
+  if (val === null || val === undefined || val === "") return "N/A";
+  if (Array.isArray(val)) {
+    return val
+      .map((item) => (typeof item === "object" ? renderFieldValue(item) : String(item)))
+      .join(", ");
+  }
+  if (typeof val === "object") {
+    const parts = Object.entries(val)
+      .filter(([_, v]) => v !== null && v !== undefined && v !== "")
+      .map(([k, v]) => (typeof v === "object" ? `${k}: ${JSON.stringify(v)}` : String(v)));
+    return parts.length > 0 ? parts.join(" - ") : "N/A";
+  }
+  return String(val);
+};
 
 const getQuestionImages = (permit, questionId) => {
   return (permit?.checklist_images || []).filter(
@@ -55,24 +73,31 @@ export default function PermitReadonlyView({
   const signatureBoxes = permit?.template_snapshot?.signature_boxes || [];
 
   const [tbtViewModalOpen, setTbtViewModalOpen] = useState(false);
-  const [tbtViewRows, setTbtViewRows] = useState([]);
+  const [downloadingReport, setDownloadingReport] = useState(false);
 
-  const openTbtViewModal = async () => {
+  const openTbtViewModal = () => {
     if (!permit?.id) {
       showToast("Permit not found", "error");
       return;
     }
+    setTbtViewModalOpen(true);
+  };
 
+  const handleDownloadReport = async () => {
+    if (!permit?.id) return;
+    setDownloadingReport(true);
     try {
-      const res = await getPermitTbtAttendance(permit.id);
-      const rows = Array.isArray(res?.data)
-        ? res.data
-        : res?.data?.results || [];
-
-      setTbtViewRows(rows);
-      setTbtViewModalOpen(true);
+      await downloadPermitReport(permit.id);
+      showToast("Report downloaded successfully", "success");
     } catch (err) {
-      showToast("Failed to load TBT attendance", "error");
+      const message =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to download report";
+      showToast(message, "error");
+    } finally {
+      setDownloadingReport(false);
     }
   };
 
@@ -86,19 +111,32 @@ export default function PermitReadonlyView({
         Back to Dashboard
       </button>
 
-      <div className="mb-6 rounded-xl border bg-card p-5 shadow-sm">
-        <h1 className="text-lg font-bold text-foreground sm:text-xl">
-          {titlePrefix} -{" "}
-          {permit.template_snapshot?.template_name ||
-            permit.template_name ||
-            `Permit #${permit.id}`}
-        </h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Current Status:{" "}
-          <span className="font-semibold text-orange-600">
-            {permit.workflow_summary?.current_status || permit.current_status}
-          </span>
-        </p>
+      <div className="mb-6 rounded-xl border bg-card p-5 shadow-sm flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 className="text-lg font-bold text-foreground sm:text-xl">
+            {titlePrefix} -{" "}
+            {permit.template_snapshot?.template_name ||
+              permit.template_name ||
+              `Permit #${permit.id}`}
+          </h1>
+          <p className="mt-1 text-sm text-slate-500">
+            Current Status:{" "}
+            <span className="font-semibold text-orange-600">
+              {permit.workflow_summary?.current_status || permit.current_status}
+            </span>
+          </p>
+        </div>
+        
+        {canShowPermitReportDownload(permit) && (
+          <button
+            type="button"
+            onClick={handleDownloadReport}
+            disabled={downloadingReport}
+            className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {downloadingReport ? "Downloading..." : "Download Permit Report"}
+          </button>
+        )}
       </div>
 
       <PermitHeaderMeta
@@ -131,12 +169,7 @@ export default function PermitReadonlyView({
                       {field.label}
                     </p>
                     <p className="mt-1 text-sm font-medium text-slate-900">
-                      {Array.isArray(value)
-                        ? value.join(", ")
-                        : typeof value === "object" && value !== null
-                          ? Object.values(value).filter(Boolean).join(" - ") ||
-                            "N/A"
-                          : value || "N/A"}
+                      {renderFieldValue(value)}
                     </p>
                   </div>
                 );
@@ -330,6 +363,17 @@ export default function PermitReadonlyView({
               const signerType =
                 box?.layout_config?.signer_type || box?.signer_type || "group";
 
+              const actorDisplayName =
+                signature?.actor_name ||
+                signature?.log_actor_name ||
+                (signerType === "creator"
+                  ? permit?.form_data?.permit_applicant || permit?.created_by_name
+                  : box.signing_group_name) ||
+                "Unknown";
+
+              const signedTimestamp =
+                signature?.log_performed_at || signature?.created_at;
+
               return (
                 <div
                   key={box.key}
@@ -362,14 +406,9 @@ export default function PermitReadonlyView({
                       </div>
 
                       <p className="mt-2 text-xs text-slate-500">
-                        Signed by{" "}
-                        {signature.actor_name ||
-                          signature.log_actor_name ||
-                          "Unknown"}{" "}
-                        {signature.log_performed_at
-                          ? `on ${new Date(
-                              signature.log_performed_at,
-                            ).toLocaleString()}`
+                        Signed by {actorDisplayName}{" "}
+                        {signedTimestamp
+                          ? `on ${new Date(signedTimestamp).toLocaleString()}`
                           : ""}
                       </p>
                     </>
@@ -394,91 +433,13 @@ export default function PermitReadonlyView({
         </div>
       </div>
 
-      {tbtViewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b px-6 py-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  TBT Attendance
-                </h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Read-only attendance details submitted by maker.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setTbtViewModalOpen(false)}
-                className="rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="max-h-[65vh] overflow-auto p-6">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-slate-100">
-                    <th className="w-14 border p-2 text-center">SN.</th>
-                    <th className="border p-2 text-left">Name of Person</th>
-                    <th className="border p-2 text-left">Name of Contractor</th>
-                    <th className="border p-2 text-left">Designation</th>
-                    <th className="border p-2 text-left">Signature</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tbtViewRows.length > 0 ? (
-                    tbtViewRows.map((row, index) => (
-                      <tr key={row.id || index}>
-                        <td className="border p-2 text-center">
-                          {row.sn || index + 1}
-                        </td>
-                        <td className="border p-2">{row.person_name || "-"}</td>
-                        <td className="border p-2">
-                          {row.contractor_name || "-"}
-                        </td>
-                        <td className="border p-2">{row.designation || "-"}</td>
-                        <td className="border p-2">
-                          {row.signature_url || row.signature ? (
-                            <img
-                              src={resolveMediaUrl(
-                                row.signature_url || row.signature,
-                              )}
-                              alt="TBT Signature"
-                              className="h-10 max-w-[120px] rounded border object-contain"
-                            />
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan="5"
-                        className="border p-4 text-center text-slate-500"
-                      >
-                        No TBT attendance added.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex justify-end border-t px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setTbtViewModalOpen(false)}
-                className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TbtAttendanceModal
+        isOpen={tbtViewModalOpen}
+        onClose={() => setTbtViewModalOpen(false)}
+        permit={permit}
+        mode="api"
+        readonly={false}
+      />
     </div>
   );
 }

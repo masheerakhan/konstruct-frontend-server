@@ -309,7 +309,7 @@
 
 // export default Header;
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { IoSettingsOutline } from "react-icons/io5";
 import { FaRegCircleUser, FaMoon, FaSun } from "react-icons/fa6";
@@ -318,6 +318,7 @@ import Profile from "./Profile";
 import { useTheme } from "../ThemeContext";
 import { useSidebar } from "./SidebarContext";
 import { getSnagStats, resolveActiveProjectId } from "../api";
+import { initializeActiveProject } from "../utils/projectInitializer";
 
 const ORANGE = "#ffbe63";
 const BG_OFFWHITE = "#fcfaf7";
@@ -327,10 +328,28 @@ function Header() {
   const [isNotification, setIsNotification] = useState(false);
   const [isProfile, setIsProfile] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== "undefined" && window.innerWidth < 768
+  );
 
   const { theme, toggleTheme } = useTheme();
   const { sidebarOpen, setSidebarOpen } = useSidebar();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  useEffect(() => {
+    const pid = localStorage.getItem("ACTIVE_PROJECT_ID");
+    if (!pid || pid === "null" || pid === "undefined") {
+      initializeActiveProject();
+    }
+  }, []);
 
   // ---- roles
   const rolee = localStorage.getItem("ROLE");
@@ -418,7 +437,7 @@ function Header() {
           className="flex items-center gap-4"
           style={{
             minWidth: 0,
-            marginLeft: sidebarOpen && showHamburger ? SIDEBAR_WIDTH : 0,
+            marginLeft: sidebarOpen && showHamburger && !isMobile ? SIDEBAR_WIDTH : 0,
             transition: "margin-left 0.35s cubic-bezier(.6,-0.17,.22,1.08)",
             zIndex: 2,
           }}
@@ -815,9 +834,6 @@ function Header() {
           </div>
         </div>
       )}
-
-      {/* Mobile spacer */}
-      <div className="block md:hidden" style={{ height: 64 }} />
 
       {/* Drawers */}
       {isProfile && <Profile onClose={() => setIsProfile(false)} />}

@@ -166,18 +166,18 @@ export const login = async (data) =>
     },
   });
 
-  export const mobileTokenLogin = async (token) =>
-    axiosInstance.post(
-      "/auth/mobile-token-login/",
-      {
-        token,
+export const mobileTokenLogin = async (token) =>
+  axiosInstance.post(
+    "/auth/mobile-token-login/",
+    {
+      token,
+    },
+    {
+      headers: {
+        "Content-Type": "application/json",
       },
-      {
-        headers: {
-          "Content-Type": "application/json",
-        },
-      },
-    );
+    },
+  );
 
 
 
@@ -305,7 +305,7 @@ export const getCompanyDetailsById = async (id) =>
     },
   );
 
-  //NOT IN USE
+//NOT IN USE
 // export const getProjectDetailsById = async (id) => {
 //   console.log(id, "id project");
 //   return projectInstance.get(`/project/get-project-details-by-company-id/`, {
@@ -853,9 +853,8 @@ export const getProjectUserDetails = async () =>
   projectInstance.get("/user-stage-role/get-projects-by-user/", {
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${
-        localStorage.getItem("ACCESS_TOKEN") || localStorage.getItem("access")
-      }`,
+      Authorization: `Bearer ${localStorage.getItem("ACCESS_TOKEN") || localStorage.getItem("access")
+        }`,
     },
   });
 
@@ -1332,7 +1331,7 @@ export const resolveActiveProjectId = () => {
   try {
     const qp = new URLSearchParams(window.location.search).get("project_id");
     if (qp) return Number(qp);
-  } catch {}
+  } catch { }
   const ls =
     localStorage.getItem("ACTIVE_PROJECT_ID") ||
     localStorage.getItem("PROJECT_ID");
@@ -1686,7 +1685,7 @@ export const exportMIRPdf = async (mirId, includeAttachments = true) => {
     try {
       const j = JSON.parse(text);
       msg = j?.detail || j?.message || msg;
-    } catch {}
+    } catch { }
     throw new Error(msg);
   }
 
@@ -2041,7 +2040,7 @@ export const exportWIRPdf = async (wirId, includeAttachments = true) => {
     let msg = "Export failed";
     try {
       msg = JSON.parse(text)?.detail || msg;
-    } catch {}
+    } catch { }
     throw new Error(msg);
   }
 
@@ -2203,7 +2202,7 @@ export const exportUnitChecklistReportExcel = async (params = {}) => {
     try {
       const j = JSON.parse(text);
       msg = j?.detail || j?.message || msg;
-    } catch {}
+    } catch { }
     throw new Error(msg);
   }
 
@@ -2248,7 +2247,7 @@ export const exportFormResponsePdf = async (
     let msg = "PDF export failed";
     try {
       msg = JSON.parse(text)?.detail || JSON.parse(text)?.message || msg;
-    } catch {}
+    } catch { }
     throw new Error(msg);
   }
 
@@ -2264,12 +2263,11 @@ const API_BASE = "https://konstruct.world/checklists";
 // const API_BASE = "http://localhost:8001/api";
 
 const authHeaders = () => ({
-  Authorization: `Bearer ${
-    localStorage.getItem("ACCESS_TOKEN") ||
+  Authorization: `Bearer ${localStorage.getItem("ACCESS_TOKEN") ||
     localStorage.getItem("TOKEN") ||
     localStorage.getItem("token") ||
     ""
-  }`,
+    }`,
 });
 
 // ✅ SCHEDULING (Checklist service)
@@ -2862,16 +2860,16 @@ export const updateSafetyTemplateVersion = (templateId, payload) => {
 //###################################################################################################
 
 const resolveMediaUrl = (path) => {
-    if (!path) return null;
-    if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  if (!path) return null;
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
 
-    const base =
-        window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
-            ? "http://127.0.0.1:8001"
-            : "https://konstruct.world/checklists";
+  const base =
+    window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost"
+      ? "http://127.0.0.1:8001"
+      : "https://konstruct.world/checklists";
 
-    const clean = path.startsWith("/") ? path : `/${path}`;
-    return `${base}${clean}`;
+  const clean = path.startsWith("/") ? path : `/${path}`;
+  return `${base}${clean}`;
 };;
 
 /* ===================== SAFETY OBSERVATION  ===================== */
@@ -3499,7 +3497,7 @@ export const savePermitTbtAttendance = (permitId, formData) =>
       },
     }
   );
-  
+
 export const submitPermit = (id) =>
   NEWchecklistInstance.post(
     `/permits/${id}/submit/`,
@@ -3570,15 +3568,21 @@ export const getPermitTemplateBuilderTemplate = (id) =>
 
 export const createPermitTemplateBuilderTemplate = (payload) =>
   NEWchecklistInstance.post("/template-builder/", payload, {
-    headers: { "Content-Type": "application/json" },
+    headers:
+      payload instanceof FormData
+        ? { "Content-Type": "multipart/form-data" }
+        : undefined,
   });
 
 export const updatePermitTemplateBuilderTemplate = (id, payload) =>
   NEWchecklistInstance.patch(`/template-builder/${id}/`, payload, {
-    headers: { "Content-Type": "application/json" },
+    headers:
+      payload instanceof FormData
+        ? { "Content-Type": "multipart/form-data" }
+        : undefined,
   });
 
-  
+
 export const deletePermitTemplateBuilderTemplate = (id) =>
   NEWchecklistInstance.delete(`/template-builder/${id}/`);
 
@@ -3590,6 +3594,42 @@ export const publishPermitTemplateBuilderTemplate = (id) =>
   NEWchecklistInstance.post(`/template-builder/${id}/publish/`);
 
 
+
+export const getPTWRegisterBranding = (params = {}) =>
+  NEWchecklistInstance.get("/ptw-document-branding/permit-register/", {
+    params: {
+      project_id: params.project_id || undefined,
+      organization_id: params.organization_id || undefined,
+    },
+  });
+
+export const savePTWRegisterBranding = (payload, params = {}) =>
+  NEWchecklistInstance.post("/ptw-document-branding/permit-register/", payload, {
+    params: {
+      project_id: params.project_id || undefined,
+      organization_id: params.organization_id || undefined,
+    },
+    headers:
+      payload instanceof FormData
+        ? { "Content-Type": "multipart/form-data" }
+        : undefined,
+  });
+
+export const updatePTWRegisterBranding = (payload, params = {}) =>
+  NEWchecklistInstance.patch("/ptw-document-branding/permit-register/", payload, {
+    params: {
+      project_id: params.project_id || undefined,
+      organization_id: params.organization_id || undefined,
+    },
+    headers:
+      payload instanceof FormData
+        ? { "Content-Type": "multipart/form-data" }
+        : undefined,
+  });
+
+
+
+//########################################################################################### 
 
 // =======================================
 // Permit to Work 
@@ -3683,6 +3723,49 @@ export const downloadPermitRegister = async (projectId) => {
   downloadBlob(res.data, filename);
   return true;
 };
+
+export const getPermitTBTAttendance = (permitId) =>
+  NEWchecklistInstance.get(`/permits/${permitId}/tbt-attendance/`);
+
+export const savePermitTBTAttendance = (permitId, payload) =>
+  NEWchecklistInstance.post(`/permits/${permitId}/tbt-attendance/`, payload, {
+    headers:
+      payload instanceof FormData
+        ? { "Content-Type": "multipart/form-data" }
+        : undefined,
+  });
+
+export const downloadPermitTBTAttendanceReport = async (permitId) => {
+  const res = await NEWchecklistInstance.get(
+    `/permits/${permitId}/tbt-attendance-report/`,
+    {
+      responseType: "blob",
+    }
+  );
+
+  const contentType = res.headers?.["content-type"] || "";
+
+  if (contentType.includes("application/json")) {
+    const text = await res.data.text();
+    let msg = "TBT attendance report download failed";
+
+    try {
+      const json = JSON.parse(text);
+      msg = json?.detail || json?.message || msg;
+    } catch {}
+
+    throw new Error(msg);
+  }
+
+  const disposition = res.headers?.["content-disposition"];
+  const filename =
+    filenameFromDisposition?.(disposition) ||
+    `tbt_attendance_permit_${permitId}.pdf`;
+
+  downloadBlob(res.data, filename);
+  return true;
+};
+
 
 export const getProjectMakersForNCR = async (projectId) =>
   axiosInstance.get("/by-project/", {

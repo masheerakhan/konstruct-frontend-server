@@ -6,20 +6,44 @@ export function cn(...inputs) {
 }
 
 export const resolveMediaUrl = (path) => {
-  if (!path) return null;
+  if (!path || typeof path !== "string") return null;
 
-  // Already an absolute URL
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
+  const trimmed = path.trim();
+  if (!trimmed) return null;
+
+  // Base64 or Blob URLs
+  if (trimmed.startsWith("data:") || trimmed.startsWith("blob:")) {
+    return trimmed;
   }
 
-  const base =
-    window.location.hostname === "127.0.0.1" ||
-    window.location.hostname === "localhost"
-      ? "http://127.0.0.1:8001"
-      : "https://konstruct.world/checklists";
+  // Live backend domain for media assets
+  const domainBase = "https://konstruct.world";
 
-  const clean = path.startsWith("/") ? path : `/${path}`;
+  let normalized = trimmed;
 
-  return `${base}${clean}`;
+  // Handle absolute URLs
+  if (normalized.startsWith("http://") || normalized.startsWith("https://")) {
+    normalized = normalized.replace(/^http:\/\/(127\.0\.0\.1|localhost):8001/, "https://konstruct.world");
+    if (normalized.includes("/checklists/checklists/media/")) {
+      normalized = normalized.replace("/checklists/checklists/media/", "/checklists/media/");
+    } else if (normalized.includes("/media/") && !normalized.includes("/checklists/media/")) {
+      normalized = normalized.replace("/media/", "/checklists/media/");
+    }
+    return normalized;
+  }
+
+  // Normalize relative paths to start with /checklists/media/
+  if (normalized.startsWith("/checklists/media/")) {
+    // Correct relative path
+  } else if (normalized.startsWith("checklists/media/")) {
+    normalized = `/${normalized}`;
+  } else if (normalized.startsWith("/media/")) {
+    normalized = `/checklists${normalized}`;
+  } else if (normalized.startsWith("media/")) {
+    normalized = `/checklists/${normalized}`;
+  } else {
+    normalized = `/checklists/media/${normalized.replace(/^\/+/, "")}`;
+  }
+
+  return `${domainBase}${normalized}`;
 };

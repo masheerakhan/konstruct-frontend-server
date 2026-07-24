@@ -581,6 +581,7 @@ import Bg2 from "../Images/image1.jpg";
 import Bg3 from "../Images/image2.jpg";
 import { getUserDetailsById } from "../api";
 import { setLoggingOut } from "../api/axiosInstance";
+import { initializeActiveProject } from "../utils/projectInitializer";
 
 // Carousel Config
 const BG_IMAGES = [Bg1, Bg2, Bg3];
@@ -1015,6 +1016,9 @@ const Login = () => {
           userData = await cacheAvatarForUser(userData);
           dispatch(setUserData(userData));
           localStorage.setItem("ROLE", getDisplayRole(userData));
+
+          // ✅ Initialize active project ID immediately so dashboards work right after login
+          await initializeActiveProject(userData);
         }
 
         toast.success("Logged in successfully!");

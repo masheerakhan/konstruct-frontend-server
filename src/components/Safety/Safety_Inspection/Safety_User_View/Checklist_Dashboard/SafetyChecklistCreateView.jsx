@@ -1389,6 +1389,8 @@ const resolveTemplateFieldDisplayValue = ({
       return (
         defaultValue ||
         selectedTemplate?.project_name ||
+        localStorage.getItem("ACTIVE_PROJECT_NAME") ||
+        localStorage.getItem("PROJECT_NAME") ||
         (projectId ? `Project ${projectId}` : "")
       );
     }

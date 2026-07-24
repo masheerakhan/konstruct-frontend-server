@@ -21,12 +21,31 @@ import {
   getPermit,
   getPermitTbtAttendance,
   downloadPermitRegister,
+  downloadPermitReport,
 } from "../../../../api";
 import {resolveMediaUrl} from "../../../../lib/utils"
 import { showToast } from "../../../../utils/toast";
 import PermitSignatureModal from "../utils/PermitSignatureModal";
 import PermitHeaderMeta from "../utils/PermitHeaderMeta";
+import TbtAttendanceModal from "./TbtAttendanceModal";
 import PermitReadonlyView from "../utils/PermitReadonlyView";
+import { canShowPermitReportDownload } from "../utils/permitHelpers";
+
+const renderFieldValue = (val) => {
+  if (val === null || val === undefined || val === "") return "N/A";
+  if (Array.isArray(val)) {
+    return val
+      .map((item) => (typeof item === "object" ? renderFieldValue(item) : String(item)))
+      .join(", ");
+  }
+  if (typeof val === "object") {
+    const parts = Object.entries(val)
+      .filter(([_, v]) => v !== null && v !== undefined && v !== "")
+      .map(([k, v]) => (typeof v === "object" ? `${k}: ${JSON.stringify(v)}` : String(v)));
+    return parts.length > 0 ? parts.join(" - ") : "N/A";
+  }
+  return String(val);
+};
 
 const PermitFilters = ({ filters, setFilters, templates }) => {
   const updateFilter = (key, value) =>
@@ -112,9 +131,8 @@ export default function PermitCheckerDashboard() {
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [tbtViewModalOpen, setTbtViewModalOpen] = useState(false);
-  const [tbtViewRows, setTbtViewRows] = useState([]);
-
   const [reviewFormData, setReviewFormData] = useState({});
+  const [downloadingReportId, setDownloadingReportId] = useState(null);
 
   const handleDownloadRegister = async () => {
     try {
@@ -126,6 +144,24 @@ export default function PermitCheckerDashboard() {
       showToast("Register downloaded successfully", "success");
     } catch (err) {
       showToast(err?.message || "Failed to download register", "error");
+    }
+  };
+
+  const handleDownloadReport = async (permit) => {
+    if (!permit?.id) return;
+    setDownloadingReportId(permit.id);
+    try {
+      await downloadPermitReport(permit.id);
+      showToast("Report downloaded successfully", "success");
+    } catch (err) {
+      const message =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to download permit report";
+      showToast(message, "error");
+    } finally {
+      setDownloadingReportId(null);
     }
   };
 
@@ -361,23 +397,12 @@ export default function PermitCheckerDashboard() {
     }
   };
 
-  const openTbtViewModal = async () => {
+  const openTbtViewModal = () => {
     if (!selectedPermit?.id) {
       showToast("Permit not found", "error");
       return;
     }
-
-    try {
-      const res = await getPermitTbtAttendance(selectedPermit.id);
-      const rows = Array.isArray(res?.data)
-        ? res.data
-        : res?.data?.results || [];
-
-      setTbtViewRows(rows);
-      setTbtViewModalOpen(true);
-    } catch (err) {
-      showToast("Failed to load TBT attendance", "error");
-    }
+    setTbtViewModalOpen(true);
   };
 
   const renderPermitBucket = (title, items, icon, colorClass, badgeClass) => {
@@ -442,6 +467,18 @@ export default function PermitCheckerDashboard() {
                       ? "View"
                       : "Review"}
                   </button>
+                  {canShowPermitReportDownload(item) && (
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadReport(item)}
+                      disabled={downloadingReportId === item.id}
+                      className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-green-700 disabled:opacity-50"
+                    >
+                      {downloadingReportId === item.id
+                        ? "Downloading..."
+                        : "Download Report"}
+                    </button>
+                  )}
                 </div>
               </div>
             ))
@@ -765,9 +802,7 @@ export default function PermitCheckerDashboard() {
                             {field.label}
                           </p>
                           <p className="mt-1 text-sm text-slate-900 font-medium">
-                            {Array.isArray(value)
-                              ? value.join(", ")
-                              : value || "N/A"}
+                            {renderFieldValue(value)}
                           </p>
                         </div>
                       );
@@ -867,7 +902,7 @@ export default function PermitCheckerDashboard() {
                                         key={col.key}
                                         className="border border-slate-300 p-2 text-slate-800"
                                       >
-                                        {currentValue || "-"}
+                                        {renderFieldValue(currentValue)}
                                       </td>
                                     );
                                   })}
@@ -892,7 +927,7 @@ export default function PermitCheckerDashboard() {
                                       {f.label}
                                     </p>
                                     <p className="mt-1 text-sm text-slate-900 font-medium">
-                                      {val || "N/A"}
+                                      {renderFieldValue(val)}
                                     </p>
                                   </div>
                                 );
@@ -901,7 +936,7 @@ export default function PermitCheckerDashboard() {
                           )}
                         </div>
                       ) : section.type === "table" ? (
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                           {section.fields?.map((f) => {
                             const val =
                               selectedPermit.form_data?.[section.key]?.[
@@ -916,7 +951,7 @@ export default function PermitCheckerDashboard() {
                                   {f.label}
                                 </p>
                                 <p className="mt-1 text-sm text-slate-900 font-medium">
-                                  {val || "N/A"}
+                                  {renderFieldValue(val)}
                                 </p>
                               </div>
                             );
@@ -1107,93 +1142,13 @@ export default function PermitCheckerDashboard() {
         />
       )}
 
-      {tbtViewModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b px-6 py-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  TBT Attendance
-                </h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Read-only attendance details submitted by maker.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setTbtViewModalOpen(false)}
-                className="rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="max-h-[65vh] overflow-auto p-6">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-slate-100">
-                    <th className="w-14 border p-2 text-center">SN.</th>
-                    <th className="border p-2 text-left">Name of Person</th>
-                    <th className="border p-2 text-left">Name of Contractor</th>
-                    <th className="border p-2 text-left">Designation</th>
-                    <th className="border p-2 text-left">Signature</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {tbtViewRows.length > 0 ? (
-                    tbtViewRows.map((row, index) => (
-                      <tr key={row.id || index}>
-                        <td className="border p-2 text-center">
-                          {row.sn || index + 1}
-                        </td>
-                        <td className="border p-2">{row.person_name || "-"}</td>
-                        <td className="border p-2">
-                          {row.contractor_name || "-"}
-                        </td>
-                        <td className="border p-2">{row.designation || "-"}</td>
-                        <td className="border p-2">
-                          {row.signature_url || row.signature ? (
-                            <img
-                              src={resolveMediaUrl(
-                                row.signature_url || row.signature,
-                              )}
-                              alt="TBT Signature"
-                              className="h-10 max-w-[120px] rounded border object-contain"
-                            />
-                          ) : (
-                            "-"
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td
-                        colSpan="5"
-                        className="border p-4 text-center text-slate-500"
-                      >
-                        No TBT attendance added.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex justify-end border-t px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setTbtViewModalOpen(false)}
-                className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-900"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TbtAttendanceModal
+        isOpen={tbtViewModalOpen}
+        onClose={() => setTbtViewModalOpen(false)}
+        permit={selectedPermit}
+        mode="api"
+        readonly={false}
+      />
 
       {/* Signature Modal */}
       <PermitSignatureModal

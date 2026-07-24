@@ -35,6 +35,24 @@ import PermitSignatureModal from "../utils/PermitSignatureModal";
 import PermitHeaderMeta from "../utils/PermitHeaderMeta";
 import PermitReadonlyView from "../utils/PermitReadonlyView";
 import { reservePermitNumber } from "../../../../api";
+import TbtAttendanceModal from "./TbtAttendanceModal";
+import { canShowPermitReportDownload } from "../utils/permitHelpers";
+
+const renderFieldValue = (val) => {
+  if (val === null || val === undefined || val === "") return "N/A";
+  if (Array.isArray(val)) {
+    return val
+      .map((item) => (typeof item === "object" ? renderFieldValue(item) : String(item)))
+      .join(", ");
+  }
+  if (typeof val === "object") {
+    const parts = Object.entries(val)
+      .filter(([_, v]) => v !== null && v !== undefined && v !== "")
+      .map(([k, v]) => (typeof v === "object" ? `${k}: ${JSON.stringify(v)}` : String(v)));
+    return parts.length > 0 ? parts.join(" - ") : "N/A";
+  }
+  return String(val);
+};
 
 const dataUrlToFile = (input, filename = "signature.png") => {
   if (!input) return input;
@@ -200,6 +218,7 @@ export default function PermitMakerDashboard() {
   const [checklistResponse, setChecklistResponse] = useState({});
   const [checklistImages, setChecklistImages] = useState({});
   const [filters, setFilters] = useState({ status: "all", type: "all" });
+  const [downloadingReportId, setDownloadingReportId] = useState(null);
 
   const [reservedPtwNo, setReservedPtwNo] = useState("");
   const [ptwReservationId, setPtwReservationId] = useState(null);
@@ -244,6 +263,7 @@ export default function PermitMakerDashboard() {
   const [signatureModalOpen, setSignatureModalOpen] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
   const [tbtModalOpen, setTbtModalOpen] = useState(false);
+  const [tbtSheet, setTbtSheet] = useState(null);
   const [tbtRows, setTbtRows] = useState([
     {
       person_name: "",
@@ -252,10 +272,6 @@ export default function PermitMakerDashboard() {
       signature: "",
     },
   ]);
-
-  const [tbtSignatureModalOpen, setTbtSignatureModalOpen] = useState(false);
-  const [activeTbtSignatureIndex, setActiveTbtSignatureIndex] = useState(null);
-  // const [activeTbtSignatureValue, setActiveTbtSignatureValue] = useState("");
 
   const fetchData = async () => {
     setLoading(true);
@@ -445,19 +461,7 @@ export default function PermitMakerDashboard() {
   //   });
   // };
 
-  const openTbtSignatureModal = (index) => {
-    setActiveTbtSignatureIndex(index);
-    setTbtSignatureModalOpen(true);
-  };
-
-  const handleTbtSignatureSuccess = (signatureDataUrl) => {
-    if (activeTbtSignatureIndex === null) return;
-
-    updateTbtRow(activeTbtSignatureIndex, "signature", signatureDataUrl);
-
-    setTbtSignatureModalOpen(false);
-    setActiveTbtSignatureIndex(null);
-  };
+  // TBT Modal state variables managed by TbtAttendanceModal now
 
   const getCleanedTbtRows = () => {
     const firstQuestionId =
@@ -636,36 +640,8 @@ export default function PermitMakerDashboard() {
     ]);
   };
 
-  const removeTbtRow = (index) => {
-    setTbtRows((prev) => {
-      if (prev.length === 1) return prev;
-      return prev.filter((_, i) => i !== index);
-    });
-  };
-
   const saveTbtAttendance = () => {
-    const firstQuestion = getFirstChecklistQuestion();
-
-    if (!firstQuestion) {
-      showToast("First checklist question not found", "error");
-      return;
-    }
-
-    const hasAnyData = tbtRows.some(
-      (row) =>
-        String(row.person_name || "").trim() ||
-        String(row.contractor_name || "").trim() ||
-        String(row.designation || "").trim() ||
-        row.signature,
-    );
-
-    if (!hasAnyData) {
-      showToast("Please add at least one attendance detail", "error");
-      return;
-    }
-
-    setTbtModalOpen(false);
-    showToast("TBT attendance saved locally", "success");
+    // Logic moved to TbtAttendanceModal, local save sets state directly via setter
   };
 
   const extractNumbers = (text) => {
@@ -828,8 +804,28 @@ export default function PermitMakerDashboard() {
       if (createdPermitId) {
         const cleanedTbtRows = getCleanedTbtRows();
 
-        if (cleanedTbtRows.length > 0) {
+        if (cleanedTbtRows.length > 0 || tbtSheet) {
           const tbtFormData = new FormData();
+
+          // Add sheet data
+          const sheetData = { ...(tbtSheet || {}) };
+          if (sheetData.issued_date && sheetData.issued_date.includes("-")) {
+            const parts = sheetData.issued_date.split("-");
+            sheetData.issued_date = `${parts[2]}/${parts[1]}/${parts[0]}`;
+          }
+          if (sheetData.date_of_training && sheetData.date_of_training.includes("-")) {
+            const parts = sheetData.date_of_training.split("-");
+            sheetData.date_of_training = `${parts[2]}/${parts[1]}/${parts[0]}`;
+          }
+
+          if (sheetData.training_conducted_by_sign && sheetData.training_conducted_by_sign.startsWith("data:")) {
+            const sigFile = dataUrlToFile(sheetData.training_conducted_by_sign, `trainer_sign_${Date.now()}.png`);
+            tbtFormData.append("training_conducted_by_sign", sigFile);
+            delete sheetData.training_conducted_by_sign;
+          } else {
+            delete sheetData.training_conducted_by_sign;
+          }
+          tbtFormData.append("sheet", JSON.stringify(sheetData));
 
           const rowsWithoutBase64 = cleanedTbtRows.map((row, index) => {
             if (row.signature) {
@@ -867,6 +863,7 @@ export default function PermitMakerDashboard() {
           signature: "",
         },
       ]);
+      setTbtSheet(null);
       fetchData();
     } catch (err) {
       const detail =
@@ -912,11 +909,20 @@ export default function PermitMakerDashboard() {
 
   // Download handler
   const handleDownloadReport = async (permit) => {
+    if (!permit?.id) return;
+    setDownloadingReportId(permit.id);
     try {
       await downloadPermitReport(permit.id);
       showToast("Report downloaded successfully", "success");
     } catch (err) {
-      showToast(err?.message || "Failed to download report", "error");
+      const message =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Failed to download permit report";
+      showToast(message, "error");
+    } finally {
+      setDownloadingReportId(null);
     }
   };
 
@@ -1018,13 +1024,16 @@ export default function PermitMakerDashboard() {
                   >
                     View
                   </button>
-                  {getStatus(item) === "closed" && (
+                  {canShowPermitReportDownload(item) && (
                     <button
                       type="button"
                       onClick={() => handleDownloadReport(item)}
-                      className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-green-700"
+                      disabled={downloadingReportId === item.id}
+                      className="rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-green-700 disabled:opacity-50"
                     >
-                      Download Report
+                      {downloadingReportId === item.id
+                        ? "Downloading..."
+                        : "Download Report"}
                     </button>
                   )}
                   {getStatus(item) === "rejected" && (
@@ -1228,7 +1237,7 @@ export default function PermitMakerDashboard() {
             Back to Dashboard
           </button>
 
-          <div className="mb-6 rounded-xl border bg-card p-5 shadow-sm">
+          <div className="mb-6 rounded-xl border bg-card p-4 sm:p-5 shadow-sm">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-orange-100">
                 <ClipboardList className="h-5 w-5 text-orange-500" />
@@ -1241,7 +1250,7 @@ export default function PermitMakerDashboard() {
             </div>
           </div>
 
-          <div className="rounded-xl border bg-white p-6 shadow-sm">
+          <div className="rounded-xl border bg-white p-4 sm:p-6 shadow-sm">
             <div className="mb-6">
               <label className="mb-2 block text-sm font-medium text-slate-700">
                 Select Template
@@ -1325,7 +1334,7 @@ export default function PermitMakerDashboard() {
                             </p>
                           </div>
                         ) : fieldDef.key === "location" ? (
-                          <div className="flex gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <select
                               className="min-w-0 flex-1 rounded-lg border p-3 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
                               value={locationParts.wing}
@@ -1384,7 +1393,7 @@ export default function PermitMakerDashboard() {
                           />
                         ) : fieldDef.field_type === "multiselect" ||
                           fieldDef.field_type === "multi_select" ? (
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5 mt-2">
                             {(
                               fieldDef.validation_rules?.choices ||
                               fieldDef.validation_rules?.options ||
@@ -1393,7 +1402,7 @@ export default function PermitMakerDashboard() {
                             )?.map((opt) => (
                               <label
                                 key={opt}
-                                className="flex items-center gap-3 text-sm cursor-pointer rounded-xl border bg-slate-50/50 p-3 hover:bg-orange-50 hover:border-orange-200 transition-colors"
+                                className="flex items-center gap-2.5 text-xs sm:text-sm cursor-pointer rounded-xl border bg-slate-50/50 p-2.5 sm:p-3 hover:bg-orange-50 hover:border-orange-200 transition-colors min-w-0"
                               >
                                 <input
                                   type="checkbox"
@@ -1415,9 +1424,9 @@ export default function PermitMakerDashboard() {
                                         ),
                                       });
                                   }}
-                                  className="h-4 w-4 rounded border-gray-300 text-orange-600 focus:ring-orange-600 accent-orange-600"
+                                  className="h-4 w-4 shrink-0 rounded border-gray-300 text-orange-600 focus:ring-orange-600 accent-orange-600"
                                 />
-                                <span className="font-medium text-slate-700">
+                                <span className="font-medium text-slate-700 break-words min-w-0">
                                   {opt}
                                 </span>
                               </label>
@@ -1469,9 +1478,9 @@ export default function PermitMakerDashboard() {
                           return (
                             <div
                               key={q.id}
-                              className="rounded-xl border bg-card p-5 shadow-sm transition-all hover:shadow-md mb-4"
+                              className="rounded-xl border bg-card p-4 sm:p-5 shadow-sm transition-all hover:shadow-md mb-4"
                             >
-                              <div className="mb-4 flex items-start justify-between gap-3">
+                              <div className="mb-4 flex flex-col sm:flex-row sm:items-start justify-between gap-3">
                                 <div className="flex items-start gap-3">
                                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-orange-400 to-orange-600 text-xs font-bold text-white shadow-sm">
                                     {idx + 1}
@@ -1494,7 +1503,7 @@ export default function PermitMakerDashboard() {
                                   </button>
                                 )}
                               </div>
-                              <div className="ml-11">
+                              <div className="ml-0 sm:ml-11">
                                 <div className="flex flex-wrap gap-2 mb-4">
                                   {options.map((opt) => {
                                     const label = opt;
@@ -1758,7 +1767,7 @@ export default function PermitMakerDashboard() {
                             )}
                           </div>
                         ) : section.type === "table" ? (
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             {section.fields?.map((f) => (
                               <div key={f.key}>
                                 <label className="mb-2 block text-sm font-medium text-slate-700">
@@ -2025,17 +2034,17 @@ export default function PermitMakerDashboard() {
               </div>
             )}
 
-            <div className="flex justify-end gap-3 border-t pt-6 mt-6">
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-3 border-t pt-6 mt-6">
               <button
                 onClick={() => setView("dashboard")}
-                className="rounded-lg border px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+                className="w-full sm:w-auto rounded-lg border px-4 py-2.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
                 Back
               </button>
               {templateDetails && (
                 <button
                   onClick={() => handleCreateDraft()}
-                  className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
+                  className="w-full sm:w-auto rounded-lg bg-orange-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-orange-700"
                 >
                   Raise Permit
                 </button>
@@ -2110,9 +2119,7 @@ export default function PermitMakerDashboard() {
                             {field.label}
                           </p>
                           <p className="mt-1 text-sm font-medium text-slate-900">
-                            {Array.isArray(value)
-                              ? value.join(", ")
-                              : value || "N/A"}
+                            {renderFieldValue(value)}
                           </p>
                         </div>
                       );
@@ -2242,165 +2249,19 @@ export default function PermitMakerDashboard() {
         />
       )}
 
-      {tbtModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl bg-white shadow-xl">
-            <div className="flex items-center justify-between border-b px-6 py-4">
-              <div>
-                <h2 className="text-lg font-bold text-slate-900">
-                  TBT Attendance
-                </h2>
-                <p className="mt-1 text-xs text-slate-500">
-                  Add attendance details for toolbox talk.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => setTbtModalOpen(false)}
-                className="rounded-lg px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100"
-              >
-                ✕
-              </button>
-            </div>
-
-            <div className="max-h-[65vh] overflow-auto p-6">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="bg-slate-100">
-                    <th className="w-14 border p-2 text-center">SN.</th>
-                    <th className="border p-2 text-left">Name of Person</th>
-                    <th className="border p-2 text-left">Name of Contractor</th>
-                    <th className="border p-2 text-left">Designation</th>
-                    <th className="border p-2 text-left">Signature</th>
-                    <th className="w-24 border p-2 text-center">Action</th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {tbtRows.map((row, index) => (
-                    <tr key={index}>
-                      <td className="border p-2 text-center">{index + 1}</td>
-
-                      <td className="border p-2">
-                        <input
-                          type="text"
-                          value={row.person_name || ""}
-                          onChange={(e) =>
-                            updateTbtRow(index, "person_name", e.target.value)
-                          }
-                          placeholder="Name of person"
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
-                        />
-                      </td>
-
-                      <td className="border p-2">
-                        <input
-                          type="text"
-                          value={row.contractor_name || ""}
-                          onChange={(e) =>
-                            updateTbtRow(
-                              index,
-                              "contractor_name",
-                              e.target.value,
-                            )
-                          }
-                          placeholder="Name of contractor"
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
-                        />
-                      </td>
-
-                      <td className="border p-2">
-                        <input
-                          type="text"
-                          value={row.designation || ""}
-                          onChange={(e) =>
-                            updateTbtRow(index, "designation", e.target.value)
-                          }
-                          placeholder="Designation"
-                          className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-100"
-                        />
-                      </td>
-
-                      <td className="border p-2">
-                        <div className="flex items-center gap-3">
-                          {row.signature ? (
-                            <img
-                              src={row.signature}
-                              alt="TBT Signature"
-                              className="h-10 max-w-[120px] rounded border object-contain"
-                            />
-                          ) : (
-                            <span className="text-xs text-slate-400">
-                              No signature
-                            </span>
-                          )}
-
-                          <button
-                            type="button"
-                            onClick={() => openTbtSignatureModal(index)}
-                            className="rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100"
-                          >
-                            {row.signature ? "Edit Signature" : "Add Signature"}
-                          </button>
-                        </div>
-                      </td>
-
-                      <td className="border p-2 text-center">
-                        <button
-                          type="button"
-                          onClick={() => removeTbtRow(index)}
-                          disabled={tbtRows.length === 1}
-                          className="rounded-lg border border-red-200 bg-red-50 px-2 py-1 text-xs font-semibold text-red-600 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          Remove
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-
-              <button
-                type="button"
-                onClick={addTbtRow}
-                className="mt-4 rounded-lg border border-orange-200 bg-orange-50 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-100"
-              >
-                + Add Row
-              </button>
-            </div>
-
-            <div className="flex justify-end gap-3 border-t px-6 py-4">
-              <button
-                type="button"
-                onClick={() => setTbtModalOpen(false)}
-                className="rounded-lg border px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-
-              <button
-                type="button"
-                onClick={saveTbtAttendance}
-                className="rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-700"
-              >
-                Save Attendance
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* TBT attendance signature modal */}
-      <PermitSignatureModal
-        isOpen={tbtSignatureModalOpen}
-        onClose={() => {
-          setTbtSignatureModalOpen(false);
-          setActiveTbtSignatureIndex(null);
-        }}
-        onSignatureSuccess={handleTbtSignatureSuccess}
-        actionTitle="TBT Attendance"
+      <TbtAttendanceModal
+        isOpen={tbtModalOpen}
+        onClose={() => setTbtModalOpen(false)}
+        mode="local"
+        localRows={tbtRows}
+        setLocalRows={setTbtRows}
+        localSheet={tbtSheet}
+        setLocalSheet={setTbtSheet}
+        firstQuestionId={getFirstChecklistQuestion()?.id}
+        permit={selectedPermit}
       />
+
+
 
       {/* Signature Modal */}
       <PermitSignatureModal
